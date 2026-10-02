@@ -27,8 +27,8 @@ final class WorkerPoolCommand extends Command
             ->addArgument('stage', InputArgument::REQUIRED, 'fetch or browser')
             ->addOption('workers', null, InputOption::VALUE_REQUIRED, 'Global process concurrency')
             ->addOption('max-jobs', null, InputOption::VALUE_REQUIRED, 'Jobs before worker recycle', '100')
-            ->addOption('per-host-concurrency', null, InputOption::VALUE_REQUIRED, 'Per-host concurrency', '2')
-            ->addOption('min-host-delay-ms', null, InputOption::VALUE_REQUIRED, 'Per-host delay', '250');
+            ->addOption('per-host-concurrency', null, InputOption::VALUE_REQUIRED, 'Per-host concurrency')
+            ->addOption('min-host-delay-ms', null, InputOption::VALUE_REQUIRED, 'Per-host delay');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -43,25 +43,45 @@ final class WorkerPoolCommand extends Command
             return Command::INVALID;
         }
 
-        $workersOption = $input->getOption('workers');
-        $workers = $workersOption === null
-            ? ($stage === 'fetch' ? 8 : 2)
-            : $this->positiveInt($workersOption, 'workers');
-        $maxJobs = $this->positiveInt($input->getOption('max-jobs'), 'max-jobs');
-        $perHost = $this->positiveInt(
-            $input->getOption('per-host-concurrency'),
-            'per-host-concurrency',
-        );
-        $delay = $this->nonNegativeInt(
-            $input->getOption('min-host-delay-ms'),
-            'min-host-delay-ms',
-        );
-
         $runtime = RuntimeFactory::create($this->projectRoot);
-        if ($runtime->runs->get($runId) === null) {
+        $run = $runtime->runs->get($runId);
+        if ($run === null) {
             $output->writeln('<error>Unknown run.</error>');
             return Command::FAILURE;
         }
+
+        $scheduler = $run->configuration['scheduler'] ?? [];
+        $scheduler = is_array($scheduler) ? $scheduler : [];
+
+        $workersOption = $input->getOption('workers');
+        $defaultWorkersKey = $stage === 'fetch'
+            ? 'recommendedHttpWorkers'
+            : 'recommendedBrowserWorkers';
+        $defaultWorkers = $stage === 'fetch' ? 8 : 2;
+        $workers = $workersOption === null
+            ? $this->schedulerInt($scheduler, $defaultWorkersKey, $defaultWorkers)
+            : $this->positiveInt($workersOption, 'workers');
+
+        $maxJobs = $this->positiveInt($input->getOption('max-jobs'), 'max-jobs');
+        $perHost = $input->getOption('per-host-concurrency') === null
+            ? $this->schedulerInt($scheduler, 'perHostConcurrency', 2)
+            : $this->positiveInt($input->getOption('per-host-concurrency'), 'per-host-concurrency');
+        $delay = $input->getOption('min-host-delay-ms') === null
+            ? $this->schedulerInt($scheduler, 'minHostDelayMs', 250, allowZero: true)
+            : $this->nonNegativeInt($input->getOption('min-host-delay-ms'), 'min-host-delay-ms');
+
+        $runtime->runs->recordEvent(
+            $runId,
+            'worker_pool_start',
+            null,
+            [
+                'stage' => $stage,
+                'workers' => $workers,
+                'max_jobs' => $maxJobs,
+                'per_host_concurrency' => $perHost,
+                'min_host_delay_ms' => $delay,
+            ],
+        );
 
         $bin = $this->projectRoot . '/bin/privacy-evidence';
         $waves = 0;
@@ -117,6 +137,27 @@ final class WorkerPoolCommand extends Command
         $output->writeln(sprintf('%s pool completed with %d worker waves.', $stage, $waves));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * @param array<array-key,scalar> $scheduler
+     */
+    private function schedulerInt(
+        array $scheduler,
+        string $key,
+        int $default,
+        bool $allowZero = false,
+    ): int {
+        $value = $scheduler[$key] ?? $default;
+        if (!is_int($value)) {
+            return $default;
+        }
+
+        if (($allowZero && $value >= 0) || (!$allowZero && $value > 0)) {
+            return $value;
+        }
+
+        return $default;
     }
 
     private function positiveInt(mixed $value, string $name): int
