@@ -138,10 +138,6 @@ final class SqliteJobQueue implements JobQueue
 
         $result = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
-            if (!is_array($row)) {
-                continue;
-            }
-
             $result[Value::string($row['status'] ?? null, 'status')] = Value::int(
                 $row['count'] ?? null,
                 'count',
