@@ -34,7 +34,7 @@ final readonly class ConfusionMatrix
             return null;
         }
 
-        return 2 * $precision * $recall / ($precision + $recall);
+        return 2.0 * $precision * $recall / ($precision + $recall);
     }
 
     public function support(): int
