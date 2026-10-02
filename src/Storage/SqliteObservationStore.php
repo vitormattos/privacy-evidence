@@ -258,6 +258,7 @@ final class SqliteObservationStore implements ObservationStore
 
         $results = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
+            /** @psalm-suppress MixedAssignment */
             $decoded = json_decode(
                 Value::string($row['result_json'] ?? null, 'result_json'),
                 true,
