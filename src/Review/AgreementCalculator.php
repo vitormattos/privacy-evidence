@@ -86,16 +86,18 @@ final class AgreementCalculator
                 $countsB[$b] = ($countsB[$b] ?? 0) + 1;
             }
 
-            $observed = $matches / $count;
+            $countFloat = (float) $count;
+            $observed = (float) $matches / $countFloat;
             $expected = 0.0;
             foreach ($categoryList as $category) {
-                $expected += (($countsA[$category] ?? 0) / $count)
-                    * (($countsB[$category] ?? 0) / $count);
+                $expected += ((float) ($countsA[$category] ?? 0) / $countFloat)
+                    * ((float) ($countsB[$category] ?? 0) / $countFloat);
             }
 
-            $kappa = (1.0 - $expected) <= 0.0
+            $denominator = 1.0 - $expected;
+            $kappa = $denominator <= 0.0
                 ? null
-                : ($observed - $expected) / (1.0 - $expected);
+                : ($observed - $expected) / $denominator;
 
             $result[$type] = [
                 'paired' => $count,
