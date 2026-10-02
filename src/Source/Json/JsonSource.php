@@ -86,13 +86,18 @@ final class JsonSource implements SourceAdapter
                 }
             }
 
+            $classification = $this->classifier->classifyDetailed($sourceValue, $normalized);
+
             yield new ImportedResource(
                 id: $id,
                 name: $name,
                 sourceValue: $sourceValue,
                 normalizedUrl: $normalized,
-                type: $this->classifier->classify($sourceValue, $normalized),
+                type: $classification->type,
                 metadata: $metadata,
+                classificationRule: $classification->rule,
+                classificationVersion: $classification->version,
+                classificationConfidence: $classification->confidence,
             );
         }
     }
