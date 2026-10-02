@@ -71,6 +71,7 @@ final class CommandWorkflowTest extends TestCase
         $telemetry = $decoded['telemetry'] ?? null;
         self::assertIsArray($telemetry);
         self::assertSame(3, $telemetry['jobs_completed'] ?? null);
+        self::assertSame(0, $decoded['events'] ?? null);
     }
 
     public function testResumeCompletesInterruptedRunWithNoPendingJobs(): void
