@@ -9,6 +9,7 @@ final readonly class BrowserEscalationDecision
     public function __construct(
         public bool $required,
         public string $reason,
+        public string $policyVersion,
     ) {
     }
 }
