@@ -10,21 +10,48 @@
     "datasetHash",
     "protocolVersion",
     "versions",
-    "configuration"
+    "configuration",
+    "status"
   ],
   "properties": {
-    "id": {"type": "string", "minLength": 1},
-    "startedAt": {"type": "string", "format": "date-time"},
-    "gitCommit": {"type": "string", "minLength": 1},
-    "datasetHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-    "protocolVersion": {"type": "string", "minLength": 1},
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "gitCommit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "datasetHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "protocolVersion": {
+      "type": "string",
+      "minLength": 1
+    },
     "versions": {
       "type": "object",
-      "additionalProperties": {"type": "string"}
+      "additionalProperties": {
+        "type": "string"
+      }
     },
     "configuration": {
       "type": "object",
       "additionalProperties": true
+    },
+    "status": {
+      "enum": [
+        "created",
+        "running",
+        "interrupted",
+        "completed",
+        "failed"
+      ]
     }
   },
   "additionalProperties": false
