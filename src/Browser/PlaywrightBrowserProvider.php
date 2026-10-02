@@ -53,9 +53,8 @@ final readonly class PlaywrightBrowserProvider implements BrowserProvider
         /** @var array<string, mixed> $metadata */
         $metadata = [];
         foreach (['cookies', 'localStorage', 'sessionStorage', 'requests'] as $key) {
-            $value = $decoded[$key] ?? null;
-            if (is_array($value)) {
-                $metadata[$key] = $value;
+            if (isset($decoded[$key]) && is_array($decoded[$key])) {
+                $metadata[$key] = $decoded[$key];
             }
         }
 
