@@ -74,7 +74,13 @@ final class LinkDiscoverer
                 continue;
             }
 
-            if (!$this->sameHost($document->finalUrl, $absolute)) {
+            $absolute = $this->withoutFragment($absolute);
+            $current = $this->withoutFragment($document->finalUrl);
+            if (
+                $absolute === ''
+                || $absolute === $current
+                || !$this->sameHost($current, $absolute)
+            ) {
                 continue;
             }
 
@@ -98,6 +104,13 @@ final class LinkDiscoverer
         );
 
         return $result;
+    }
+
+    private function withoutFragment(string $url): string
+    {
+        $fragment = strpos($url, '#');
+
+        return $fragment === false ? $url : substr($url, 0, $fragment);
     }
 
     private function sameHost(string $base, string $candidate): bool
