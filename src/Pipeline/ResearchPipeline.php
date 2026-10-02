@@ -402,13 +402,63 @@ final readonly class ResearchPipeline
     {
         $counts = $this->jobs->counts($runId);
         if (($counts['pending'] ?? 0) === 0 && ($counts['running'] ?? 0) === 0) {
-            $this->runs->setStatus($runId, RunStatus::Completed);
-            $this->runs->recordEvent($runId, 'run_terminal', null, ['status' => 'completed']);
+            $status = ($counts['dead'] ?? 0) > 0
+                ? RunStatus::Failed
+                : RunStatus::Completed;
+
+            $this->runs->setStatus($runId, $status);
+            $this->recordResourceTerminals($runId);
+            $this->runs->recordEvent(
+                $runId,
+                'run_terminal',
+                null,
+                ['status' => $status->value],
+            );
             return;
         }
 
         $this->runs->setStatus($runId, RunStatus::Interrupted);
         $this->runs->recordEvent($runId, 'run_terminal', null, ['status' => 'interrupted']);
+    }
+
+    private function recordResourceTerminals(string $runId): void
+    {
+        $failed = [];
+        $terminal = [];
+
+        foreach ($this->runs->events($runId) as $event) {
+            $subject = $event['subjectId'];
+            if ($event['type'] === 'resource_terminal' && $subject !== null) {
+                $terminal[$subject] = true;
+            }
+
+            if (
+                $event['type'] === 'job_failure'
+                && $subject !== null
+                && ($event['detail']['status'] ?? null) === JobStatus::Dead->value
+            ) {
+                $failed[$subject] = true;
+            }
+        }
+
+        foreach ($this->observations->resourceRecords($runId) as $resource) {
+            $id = $resource['id'] ?? null;
+            if (!is_string($id) || isset($terminal[$id])) {
+                continue;
+            }
+
+            $normalizedUrl = $resource['normalizedUrl'] ?? null;
+            $status = $normalizedUrl === null
+                ? 'invalid_url'
+                : (isset($failed[$id]) ? 'failed' : 'completed');
+
+            $this->runs->recordEvent(
+                $runId,
+                'resource_terminal',
+                $id,
+                ['status' => $status],
+            );
+        }
     }
 
     private function recordQueueWait(string $runId, Job $job): void
