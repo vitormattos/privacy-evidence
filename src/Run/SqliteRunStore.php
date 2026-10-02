@@ -110,6 +110,18 @@ final class SqliteRunStore implements RunStore
         );
     }
 
+
+    public function status(string $runId): ?RunStatus
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT status FROM research_runs WHERE id = :id',
+        );
+        $stmt->execute(['id' => $runId]);
+        $value = $stmt->fetchColumn();
+
+        return is_string($value) ? RunStatus::tryFrom($value) : null;
+    }
+
     public function telemetry(string $runId): array
     {
         $stmt = $this->pdo->prepare(
