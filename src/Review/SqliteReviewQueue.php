@@ -6,6 +6,7 @@ namespace PrivacyEvidence\Review;
 
 use PDO;
 use PDOStatement;
+use PrivacyEvidence\Core\Value;
 
 final class SqliteReviewQueue implements ReviewQueue
 {
@@ -51,10 +52,23 @@ final class SqliteReviewQueue implements ReviewQueue
             throw new \RuntimeException('Unable to query review queue.');
         }
 
-        /** @var list<array{run_id:string,evidence_id:string,payload:string,status:string}> $rows */
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $result = [];
 
-        return $rows;
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $result[] = [
+                'run_id' => Value::string($row['run_id'] ?? null, 'run_id'),
+                'evidence_id' => Value::string($row['evidence_id'] ?? null, 'evidence_id'),
+                'payload' => Value::string($row['payload'] ?? null, 'payload'),
+                'status' => Value::string($row['status'] ?? null, 'status'),
+            ];
+        }
+
+        return $result;
     }
 
     public function decide(ReviewDecision $decision): void
@@ -109,14 +123,18 @@ final class SqliteReviewQueue implements ReviewQueue
 
         $records = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
+            if (!is_array($row)) {
+                continue;
+            }
+
             $records[] = [
-                'evidenceId' => (string) $row['evidence_id'],
-                'type' => (string) $row['type'],
-                'state' => (string) $row['state'],
-                'reviewerType' => (string) $row['reviewer_type'],
-                'reviewerId' => (string) $row['reviewer_id'],
-                'reviewedAt' => (string) $row['reviewed_at'],
-                'rationale' => (string) $row['rationale'],
+                'evidenceId' => Value::string($row['evidence_id'] ?? null, 'evidence_id'),
+                'type' => Value::string($row['type'] ?? null, 'type'),
+                'state' => Value::string($row['state'] ?? null, 'state'),
+                'reviewerType' => Value::string($row['reviewer_type'] ?? null, 'reviewer_type'),
+                'reviewerId' => Value::string($row['reviewer_id'] ?? null, 'reviewer_id'),
+                'reviewedAt' => Value::string($row['reviewed_at'] ?? null, 'reviewed_at'),
+                'rationale' => Value::string($row['rationale'] ?? null, 'rationale'),
             ];
         }
 
