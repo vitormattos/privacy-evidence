@@ -26,8 +26,14 @@ final class SourceImportCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $path = (string) $input->getArgument('dataset');
-        $source = DatasetSourceFactory::fromPath($path);
+        $argument = $input->getArgument('dataset');
+        if (!is_string($argument) || $argument === '') {
+            $output->writeln('<error>Dataset path must be a non-empty string.</error>');
+
+            return Command::INVALID;
+        }
+
+        $source = DatasetSourceFactory::fromPath($argument);
 
         $output->writeln(json_encode([
             'sourceId' => $source->sourceId(),
