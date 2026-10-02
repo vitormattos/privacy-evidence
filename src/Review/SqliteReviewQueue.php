@@ -52,6 +52,7 @@ final class SqliteReviewQueue implements ReviewQueue
             throw new \RuntimeException('Unable to query review queue.');
         }
 
+        /** @var list<array<string, mixed>> $rows */
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $result = [];
 
