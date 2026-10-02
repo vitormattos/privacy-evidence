@@ -1,0 +1,26 @@
+name: Performance and scalability
+description: Report or propose work involving throughput, memory, concurrency or resource limits
+title: "[Performance] "
+labels: ["performance"]
+body:
+  - type: textarea
+    id: workload
+    attributes:
+      label: Workload
+      description: Dataset size, acquisition mode and workload characteristics.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: CPU, memory, PHP/browser versions and relevant configuration.
+    validations:
+      required: true
+  - type: textarea
+    id: measurements
+    attributes:
+      label: Measurements
+      description: Throughput, elapsed time, memory, error rate or other measured results.
+    validations:
+      required: true
