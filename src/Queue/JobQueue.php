@@ -18,4 +18,10 @@ interface JobQueue
      * @return array<string,int>
      */
     public function counts(string $runId): array;
+
+    public function scheduledCount(
+        string $runId,
+        string $stage,
+        string $deduplicationPrefix,
+    ): int;
 }
