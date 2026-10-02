@@ -477,6 +477,17 @@ final readonly class ResearchPipeline
             'peak_memory_bytes',
             memory_get_peak_usage(true),
         );
+
+        $telemetry = $this->runs->telemetry($runId);
+        $totalJobs = $telemetry['stage_jobs.' . $stage] ?? 0;
+        $totalElapsedMs = $telemetry['stage_elapsed_ms.' . $stage] ?? 0;
+        if (is_numeric($totalJobs) && is_numeric($totalElapsedMs) && (float) $totalElapsedMs > 0.0) {
+            $this->runs->setMetric(
+                $runId,
+                'throughput_jobs_per_second.' . $stage,
+                (float) $totalJobs / ((float) $totalElapsedMs / 1000.0),
+            );
+        }
     }
 
     private function payloadInt(Job $job, string $key, int $default): int
