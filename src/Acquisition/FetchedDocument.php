@@ -18,6 +18,8 @@ final readonly class FetchedDocument
         public string $fetchedAt,
         public string $acquisitionMode = 'http',
         public bool $truncated = false,
+        /** @var array<string, mixed> */
+        public array $metadata = [],
     ) {
         $this->sha256 = hash('sha256', $body);
     }
