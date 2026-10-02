@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PrivacyEvidence\Storage;
 
 use PDO;
+use PDOException;
 use PrivacyEvidence\Acquisition\FetchedDocument;
 use PrivacyEvidence\Core\ObservationState;
 use PrivacyEvidence\Core\Value;
@@ -48,9 +49,9 @@ final class SqliteObservationStore implements ObservationStore
         $stmt = $this->pdo->prepare(
             'INSERT OR IGNORE INTO documents
              (run_id, artifact_hash, resource_id, requested_url, final_url, status_code,
-              media_type, fetched_at, acquisition_mode, truncated, body_size)
+              media_type, fetched_at, acquisition_mode, truncated, body_size, metadata_json)
              VALUES (:run_id, :artifact_hash, :resource_id, :requested_url, :final_url, :status_code,
-                     :media_type, :fetched_at, :acquisition_mode, :truncated, :body_size)',
+                     :media_type, :fetched_at, :acquisition_mode, :truncated, :body_size, :metadata_json)',
         );
         $stmt->execute([
             'run_id' => $runId,
@@ -64,6 +65,7 @@ final class SqliteObservationStore implements ObservationStore
             'acquisition_mode' => $document->acquisitionMode,
             'truncated' => $document->truncated ? 1 : 0,
             'body_size' => strlen($document->body),
+            'metadata_json' => json_encode($document->metadata, JSON_THROW_ON_ERROR),
         ]);
     }
 
@@ -142,7 +144,7 @@ final class SqliteObservationStore implements ObservationStore
     {
         $stmt = $this->pdo->prepare(
             'SELECT artifact_hash, resource_id, requested_url, final_url, status_code,
-                    media_type, fetched_at, acquisition_mode, truncated, body_size
+                    media_type, fetched_at, acquisition_mode, truncated, body_size, metadata_json
              FROM documents WHERE run_id = :run_id ORDER BY resource_id, fetched_at, artifact_hash',
         );
         $stmt->execute(['run_id' => $runId]);
@@ -160,6 +162,11 @@ final class SqliteObservationStore implements ObservationStore
                 'acquisitionMode' => Value::string($row['acquisition_mode'] ?? null, 'acquisition_mode'),
                 'truncated' => Value::int($row['truncated'] ?? null, 'truncated') === 1,
                 'bodySize' => Value::int($row['body_size'] ?? null, 'body_size'),
+                'metadata' => json_decode(
+                    Value::string($row['metadata_json'] ?? null, 'metadata_json'),
+                    true,
+                    flags: JSON_THROW_ON_ERROR,
+                ),
             ];
         }
 
@@ -362,9 +369,20 @@ final class SqliteObservationStore implements ObservationStore
                 acquisition_mode TEXT NOT NULL,
                 truncated INTEGER NOT NULL,
                 body_size INTEGER NOT NULL,
+                metadata_json TEXT NOT NULL DEFAULT '{}',
                 PRIMARY KEY (run_id, artifact_hash)
             )',
         );
+
+        try {
+            $this->pdo->exec(
+                'ALTER TABLE documents ADD COLUMN metadata_json TEXT NOT NULL DEFAULT "{}"',
+            );
+        } catch (PDOException $e) {
+            if (!str_contains(strtolower($e->getMessage()), 'duplicate column')) {
+                throw $e;
+            }
+        }
 
         $this->pdo->exec(
             'CREATE TABLE IF NOT EXISTS evidence (
