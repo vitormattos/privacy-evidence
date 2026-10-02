@@ -37,6 +37,15 @@ final class Value
         throw new \UnexpectedValueException(sprintf('%s must be an integer.', $field));
     }
 
+    public static function bool(mixed $value, string $field): bool
+    {
+        if (!is_bool($value)) {
+            throw new \UnexpectedValueException(sprintf('%s must be a boolean.', $field));
+        }
+
+        return $value;
+    }
+
     public static function float(mixed $value, string $field): float
     {
         if (is_float($value) || is_int($value)) {
