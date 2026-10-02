@@ -16,6 +16,7 @@ use PrivacyEvidence\Source\DatasetSourceFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Uid\Uuid;
 
@@ -30,7 +31,14 @@ final class RunCommand extends Command
     {
         $this
             ->setDescription('Start and execute a research run for a CSV, JSON, or IPB HTML source.')
-            ->addArgument('dataset', InputArgument::REQUIRED);
+            ->addArgument('dataset', InputArgument::REQUIRED)
+            ->addOption(
+                'max-jobs',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Maximum jobs to process before leaving the run interrupted; 0 means unlimited.',
+                '0',
+            );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -38,6 +46,14 @@ final class RunCommand extends Command
         $argument = $input->getArgument('dataset');
         if (!is_string($argument) || $argument === '') {
             $output->writeln('<error>Dataset path must be a non-empty string.</error>');
+
+            return Command::INVALID;
+        }
+
+        $maxJobsOption = $input->getOption('max-jobs');
+        $maxJobs = filter_var($maxJobsOption, FILTER_VALIDATE_INT);
+        if (!is_int($maxJobs) || $maxJobs < 0) {
+            $output->writeln('<error>max-jobs must be a non-negative integer.</error>');
 
             return Command::INVALID;
         }
@@ -77,6 +93,7 @@ final class RunCommand extends Command
             configuration: [
                 'sourceId' => $source->sourceId(),
                 'browserEscalation' => $browser !== null,
+                'maxJobsPerInvocation' => $maxJobs,
                 'scheduler' => [
                     'recommendedHttpWorkers' => 8,
                     'recommendedBrowserWorkers' => 2,
@@ -96,7 +113,10 @@ final class RunCommand extends Command
         $runtime = RuntimeFactory::create($this->projectRoot);
         $pipeline = RuntimeFactory::pipeline(
             $runtime,
-            new PipelineConfig(enableBrowserEscalation: $browser !== null),
+            new PipelineConfig(
+                maxJobsPerInvocation: $maxJobs,
+                enableBrowserEscalation: $browser !== null,
+            ),
             $browser,
         );
         $pipeline->start($run, $source);
