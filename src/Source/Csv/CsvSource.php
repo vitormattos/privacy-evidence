@@ -101,13 +101,18 @@ final class CsvSource implements SourceAdapter
             $metadata = $record;
             unset($metadata['id'], $metadata['name'], $metadata['url']);
 
+            $classification = $this->classifier->classifyDetailed($sourceValue, $normalized);
+
             yield new ImportedResource(
                 id: $record['id'],
                 name: $record['name'],
                 sourceValue: $sourceValue,
                 normalizedUrl: $normalized,
-                type: $this->classifier->classify($sourceValue, $normalized),
+                type: $classification->type,
                 metadata: $metadata,
+                classificationRule: $classification->rule,
+                classificationVersion: $classification->version,
+                classificationConfidence: $classification->confidence,
             );
         }
 
