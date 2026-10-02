@@ -51,10 +51,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          RUN_ID="$(php bin/privacy-evidence run examples/poc/sites.csv | tail -n 1)"
+          RUN_ID="$(php bin/privacy-evidence run examples/poc/sites.csv --max-jobs=1 | tail -n 1)"
           test -n "$RUN_ID"
           echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
           printf '%s\n' "$RUN_ID" > /tmp/privacy-evidence-run-id
+
+      - name: Verify intentional interruption
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ID="${{ steps.run.outputs.run_id }}"
+          php bin/privacy-evidence status "$RUN_ID" | tee /tmp/interrupted-status.json
+          grep -q '"status": "interrupted"' /tmp/interrupted-status.json
+
+      - name: Resume collection
+        run: php bin/privacy-evidence run:resume "${{ steps.run.outputs.run_id }}"
 
       - name: Status after acquisition
         run: |
