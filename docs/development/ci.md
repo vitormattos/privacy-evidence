@@ -8,4 +8,4 @@ Mutation testing is a secondary quality gate because of runtime cost. It complem
 
 Local equivalents are `composer quality` and `reuse lint`. Browser-worker changes also validate npm metadata and Node syntax.
 
-Workflow permissions remain least-privilege. Dependency/tool versions remain visible to update automation. Stable CI job names are part of branch-protection configuration and are validated by this pull-request workflow.
+Workflow permissions remain least-privilege. Dependency/tool versions remain visible to update automation. Stable CI job names are part of branch-protection configuration and are validated by this pull-request workflow. The validation branch is refreshed after quality fixes.
