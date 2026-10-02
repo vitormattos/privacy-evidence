@@ -250,8 +250,19 @@ final class CookieInterfaceDetector implements Detector
     {
         /** @psalm-suppress MixedAssignment */
         $browser = $document->metadata['browser'] ?? null;
+        if (!is_array($browser)) {
+            return null;
+        }
 
-        return is_array($browser) ? $browser : null;
+        $normalized = [];
+        /** @psalm-suppress MixedAssignment */
+        foreach ($browser as $key => $value) {
+            if (is_string($key)) {
+                $normalized[$key] = $value;
+            }
+        }
+
+        return $normalized;
     }
 
     private function isKnownTrackingCookie(string $name): bool
