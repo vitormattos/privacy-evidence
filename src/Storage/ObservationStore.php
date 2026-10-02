@@ -1,0 +1,39 @@
+<?php
+
+declare(strict_types=1);
+
+namespace PrivacyEvidence\Storage;
+
+use PrivacyEvidence\Acquisition\FetchedDocument;
+use PrivacyEvidence\Evidence\PrivacyEvidence;
+use PrivacyEvidence\Source\ImportedResource;
+
+interface ObservationStore
+{
+    public function recordResource(string $runId, ImportedResource $resource): void;
+
+    public function recordDocument(string $runId, FetchedDocument $document): void;
+
+    public function recordEvidence(string $runId, PrivacyEvidence $evidence): void;
+
+    /**
+     * @return list<PrivacyEvidence>
+     */
+    public function evidence(string $runId, ?string $resourceId = null): array;
+
+    /**
+     * @param array<string,mixed> $result
+     */
+    public function recordProfileResult(
+        string $runId,
+        string $resourceId,
+        string $profile,
+        string $profileVersion,
+        array $result,
+    ): void;
+
+    /**
+     * @return array<string,int>
+     */
+    public function counts(string $runId): array;
+}
