@@ -3,12 +3,24 @@ name: End-to-end PoC
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/poc.yml'
       - 'examples/poc/**'
+      - 'bin/**'
+      - 'src/**'
+      - 'schema/**'
+      - 'browser/**'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'docs/research/**'
 
 permissions:
   contents: read
+
+concurrency:
+  group: poc-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   poc:
