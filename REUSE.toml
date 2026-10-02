@@ -8,6 +8,8 @@ path = [
   ".github/**",
   "AGENTS.md",
   "CHANGELOG.md",
+  "Dockerfile",
+  "compose.yaml",
   "CITATION.cff",
   "CODE_OF_CONDUCT.md",
   "CONTRIBUTING.md",
