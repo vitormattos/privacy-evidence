@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-$requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+/** @var mixed $requestUriValue */
+$requestUriValue = $_SERVER['REQUEST_URI'] ?? null;
+$requestUri = is_string($requestUriValue) ? $requestUriValue : '/';
 $path = parse_url($requestUri, PHP_URL_PATH);
 
 if ($path === '/redirect') {
