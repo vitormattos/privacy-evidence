@@ -18,6 +18,7 @@ path = [
   "SUPPORT.md",
   "bin/**",
   "browser/**",
+  "benchmarks/**",
   "composer.json",
   "composer.lock",
   "config/**",
