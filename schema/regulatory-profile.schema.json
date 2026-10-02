@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vitormattos/privacy-evidence/schema/regulatory-profile.schema.json",
+  "title": "RegulatoryProfile",
+  "type": "object",
+  "required": ["id", "version", "requirements"],
+  "properties": {
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "source",
+          "evidenceTypes",
+          "publiclyObservable",
+          "interpretation"
+        ],
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"},
+          "source": {"type": "string"},
+          "evidenceTypes": {
+            "type": "array",
+            "items": {"type": "string"},
+            "uniqueItems": true
+          },
+          "publiclyObservable": {"type": "boolean"},
+          "interpretation": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
