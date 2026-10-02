@@ -20,4 +20,24 @@ interface RunStore
     public function telemetry(string $runId): array;
 
     public function increment(string $runId, string $metric, int|float $amount = 1): void;
+
+    /**
+     * @param array<string, scalar|null> $detail
+     */
+    public function recordEvent(
+        string $runId,
+        string $type,
+        ?string $subjectId = null,
+        array $detail = [],
+    ): void;
+
+    /**
+     * @return list<array{
+     *   type:string,
+     *   subjectId:string|null,
+     *   occurredAt:string,
+     *   detail:array<string,scalar|null>
+     * }>
+     */
+    public function events(string $runId): array;
 }
