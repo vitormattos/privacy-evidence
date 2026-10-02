@@ -1,0 +1,24 @@
+name: Bug
+description: Report reproducible incorrect behavior
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What happened and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Provide commands, minimized fixtures or steps. Do not include restricted research data.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Research impact
+      description: Could this affect observations, evidence, regulatory mappings or reported metrics?
