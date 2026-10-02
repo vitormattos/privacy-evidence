@@ -60,6 +60,7 @@ final class Value
         }
 
         $result = [];
+        /** @psalm-suppress MixedAssignment */
         foreach ($value as $key => $item) {
             if (!is_string($key)) {
                 continue;
@@ -117,6 +118,7 @@ final class Value
             }
 
             $nested = [];
+            /** @psalm-suppress MixedAssignment */
             foreach ($item as $nestedKey => $nestedValue) {
                 if (is_scalar($nestedValue)) {
                     $nested[$nestedKey] = $nestedValue;
