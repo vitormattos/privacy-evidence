@@ -46,9 +46,13 @@ final class RunCommand extends Command
         $detectors = DefaultDetectorRegistry::create();
         $profiles = DefaultProfileRegistry::create();
 
+        $lockPath = $this->projectRoot . '/composer.lock';
         $versions = [
             'protocol' => '0.1.0-draft',
             'schema' => '0.1.0-draft',
+            'php' => PHP_VERSION,
+            'composer-lock-sha256' => is_file($lockPath) ? hash_file('sha256', $lockPath) ?: 'unknown' : 'missing',
+            'browser-backend' => 'playwright',
         ];
         foreach ($detectors->detectors as $detector) {
             $versions['detector:' . $detector->name()] = $detector->version();
@@ -84,9 +88,13 @@ final class RunCommand extends Command
         $pipeline->start($run, $source);
         $pipeline->execute($run->id);
 
+        $status = $runtime->runs->status($run->id) ?? throw new \RuntimeException(
+            'Run status disappeared after execution.',
+        );
         (new RunManifestWriter())->write(
             $run,
             $this->projectRoot . '/data/derived/runs/' . $run->id . '/manifest.json',
+            $status,
         );
 
         $output->writeln($run->id);
