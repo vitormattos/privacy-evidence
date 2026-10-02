@@ -63,7 +63,12 @@ final class ResearchPipelineStageTest extends TestCase
         $reviews = new SqliteReviewQueue($pdo);
 
         $browser = new class implements BrowserProvider {
-            public int $calls = 0;
+            public int $calls;
+
+            public function __construct()
+            {
+                $this->calls = 0;
+            }
 
             public function observe(string $url, array $actions = []): BrowserObservation
             {
@@ -100,11 +105,13 @@ final class ResearchPipelineStageTest extends TestCase
             ),
         );
 
+        $datasetHash = hash_file('sha256', $csv);
+
         $run = new ResearchRun(
             id: 'run-stage-test',
             startedAt: '2026-10-02T00:00:00Z',
             gitCommit: 'fixture',
-            datasetHash: hash_file('sha256', $csv) ?: str_repeat('0', 64),
+            datasetHash: $datasetHash === false ? str_repeat('0', 64) : $datasetHash,
             protocolVersion: 'test',
             versions: ['schema' => 'test'],
             configuration: [],
