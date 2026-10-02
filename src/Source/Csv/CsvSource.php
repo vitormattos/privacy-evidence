@@ -42,7 +42,7 @@ final class CsvSource implements SourceAdapter
         fwrite($handle, $this->contents);
         rewind($handle);
 
-        $rawHeader = fgetcsv($handle, escape: '');
+        $rawHeader = $this->readRow($handle);
         if ($rawHeader === false) {
             throw new \InvalidArgumentException('CSV source is empty.');
         }
@@ -65,7 +65,7 @@ final class CsvSource implements SourceAdapter
 
         $seenIds = [];
 
-        while (($row = fgetcsv($handle, escape: '')) !== false) {
+        while (($row = $this->readRow($handle)) !== false) {
             if (count($row) === 1 && $row[0] === null) {
                 continue;
             }
@@ -112,6 +112,26 @@ final class CsvSource implements SourceAdapter
         }
 
         fclose($handle);
+    }
+
+    /**
+     * @param resource $handle
+     * @return list<string|null>|false
+     */
+    private function readRow($handle): array|false
+    {
+        $row = fgetcsv($handle, escape: '');
+        if ($row === false) {
+            return false;
+        }
+
+        // Psalm's signature still permits null on supported runtimes; PHP 8.4 does not.
+        /** @phpstan-ignore-next-line */
+        if ($row === null) {
+            return false;
+        }
+
+        return $row;
     }
 
     public function snapshot(): SourceSnapshot
