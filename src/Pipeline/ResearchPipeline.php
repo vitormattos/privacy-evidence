@@ -222,6 +222,23 @@ final readonly class ResearchPipeline
             maxBytes: $this->config->maxBodyBytes,
         );
         $this->persistAndAnalyze($runId, $document);
+        if ($document->statusCode < 200 || $document->statusCode >= 300) {
+            $this->runs->increment($runId, 'http_status.' . $document->statusCode);
+            if ($depth === 0) {
+                $this->runs->recordEvent(
+                    $runId,
+                    'resource_terminal',
+                    $resourceId,
+                    [
+                        'status' => 'http_error',
+                        'http_status' => $document->statusCode,
+                    ],
+                );
+            }
+
+            return;
+        }
+
         $this->scheduleLinks(
             runId: $runId,
             resourceId: $resourceId,
@@ -379,6 +396,10 @@ final readonly class ResearchPipeline
         $this->observations->recordDocument($runId, $document);
         $this->runs->increment($runId, 'documents_acquired');
         $this->runs->increment($runId, 'bytes_acquired', strlen($document->body));
+
+        if ($document->statusCode < 200 || $document->statusCode >= 300) {
+            return;
+        }
 
         foreach ($this->detectors->detectors as $detector) {
             foreach ($detector->detect($document) as $evidence) {
