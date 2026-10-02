@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vitormattos/privacy-evidence/schema/imported-resource.schema.json",
+  "title": "ImportedResource",
+  "type": "object",
+  "required": ["id", "name", "sourceValue", "normalizedUrl", "type", "metadata"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "name": {"type": "string"},
+    "sourceValue": {"type": "string"},
+    "normalizedUrl": {"type": ["string", "null"], "format": "uri"},
+    "type": {
+      "enum": [
+        "institutional_website",
+        "social_network",
+        "video_platform",
+        "link_aggregator",
+        "third_party_hosted_page",
+        "malformed",
+        "unknown"
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "number", "integer", "boolean", "null"]
+      }
+    }
+  },
+  "additionalProperties": false
+}
