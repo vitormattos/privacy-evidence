@@ -1,0 +1,26 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use PrivacyEvidence\Command\AnalyzeCommand;
+use PrivacyEvidence\Command\DoctorCommand;
+use PrivacyEvidence\Command\ReportCommand;
+use PrivacyEvidence\Command\ResumeCommand;
+use PrivacyEvidence\Command\RunCommand;
+use PrivacyEvidence\Command\SourceImportCommand;
+use PrivacyEvidence\Command\StatusCommand;
+use Symfony\Component\Console\Application;
+
+$projectRoot = dirname(__DIR__);
+require $projectRoot . '/vendor/autoload.php';
+
+$application = new Application('Privacy Evidence', '0.1.0-dev');
+$application->add(new DoctorCommand($projectRoot));
+$application->add(new SourceImportCommand());
+$application->add(new RunCommand($projectRoot));
+$application->add(new ResumeCommand($projectRoot));
+$application->add(new StatusCommand($projectRoot));
+$application->add(new AnalyzeCommand($projectRoot));
+$application->add(new ReportCommand($projectRoot));
+$application->run();
