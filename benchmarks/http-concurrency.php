@@ -41,7 +41,6 @@ if (!$ready) {
 }
 
 $client = HttpClient::create([
-    'max_host_connections' => $concurrency,
     'timeout' => 10.0,
 ]);
 
@@ -56,37 +55,48 @@ $fdCount = static function (): ?int {
 $usageBefore = getrusage();
 $fdBefore = $fdCount();
 $started = hrtime(true);
-$responses = [];
-for ($i = 0; $i < $requests; $i++) {
-    $responses[] = $client->request('GET', sprintf(
-        'http://127.0.0.1:%d/final?request=%d',
-        $port,
-        $i,
-    ));
-}
-
-$fdAfterDispatch = $fdCount();
 $errors = 0;
 $bytes = 0;
-foreach ($client->stream($responses) as $response => $chunk) {
-    if ($chunk->isTimeout()) {
-        $errors++;
-        continue;
+$peakObservedFd = $fdBefore ?? 0;
+
+for ($offset = 0; $offset < $requests; $offset += $concurrency) {
+    $batchSize = min($concurrency, $requests - $offset);
+    $responses = [];
+
+    for ($i = 0; $i < $batchSize; $i++) {
+        $requestNumber = $offset + $i;
+        $responses[] = $client->request('GET', sprintf(
+            'http://127.0.0.1:%d/final?request=%d',
+            $port,
+            $requestNumber,
+        ));
     }
-    if ($chunk->isLast()) {
-        try {
-            if ($response->getStatusCode() !== 200) {
+
+    $fdAfterDispatch = $fdCount();
+    if (is_int($fdAfterDispatch)) {
+        $peakObservedFd = max($peakObservedFd, $fdAfterDispatch);
+    }
+
+    foreach ($client->stream($responses) as $response => $chunk) {
+        if ($chunk->isTimeout()) {
+            $errors++;
+            continue;
+        }
+        if ($chunk->isLast()) {
+            try {
+                if ($response->getStatusCode() !== 200) {
+                    $errors++;
+                }
+            } catch (Throwable) {
                 $errors++;
             }
+            continue;
+        }
+        try {
+            $bytes += strlen($chunk->getContent());
         } catch (Throwable) {
             $errors++;
         }
-        continue;
-    }
-    try {
-        $bytes += strlen($chunk->getContent());
-    } catch (Throwable) {
-        $errors++;
     }
 }
 
@@ -111,9 +121,8 @@ echo json_encode([
     'peakMemoryMiB' => round(memory_get_peak_usage(true) / 1024 / 1024, 2),
     'fileDescriptors' => [
         'before' => $fdBefore,
-        'afterDispatch' => $fdAfterDispatch,
         'after' => $fdAfter,
-        'peakObserved' => max(array_filter([$fdBefore, $fdAfterDispatch, $fdAfter], 'is_int') ?: [0]),
+        'peakObserved' => max($peakObservedFd, $fdAfter ?? 0),
     ],
     'cpu' => [
         'userMicros' => (($usageAfter['ru_utime.tv_sec'] ?? 0) - ($usageBefore['ru_utime.tv_sec'] ?? 0)) * 1_000_000
