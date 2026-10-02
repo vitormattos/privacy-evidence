@@ -104,10 +104,6 @@ final class SqliteRunStore implements RunStore
         $result = [];
 
         foreach ($rows as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-
             $metric = Value::string($row['metric'] ?? null, 'metric');
             $value = $row['value'] ?? null;
             $result[$metric] = is_numeric($value)
