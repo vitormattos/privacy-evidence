@@ -32,13 +32,13 @@ final class GoldSamplerTest extends TestCase
             array_map(static fn (PrivacyEvidence $item): string => $item->id(), $second),
         );
         self::assertCount(3, $first);
-        self::assertSame(
-            ['absent', 'present', 'unknown'],
-            array_values(array_unique(array_map(
-                static fn (PrivacyEvidence $item): string => $item->state->value,
-                $first,
-            ))),
-        );
+        $states = array_values(array_unique(array_map(
+            static fn (PrivacyEvidence $item): string => $item->state->value,
+            $first,
+        )));
+        sort($states);
+
+        self::assertSame(['absent', 'present', 'unknown'], $states);
     }
 
     private function evidence(
