@@ -12,6 +12,7 @@ final class InterRaterAgreement
      * @param list<ReviewDecision> $decisions
      * @return array<string,array{
      *   sampleSize:int,
+     *   paired:int,
      *   observedAgreement:float|null,
      *   expectedAgreement:float|null,
      *   kappa:float|null,
@@ -110,6 +111,7 @@ final class InterRaterAgreement
 
             $result[$type] = [
                 'sampleSize' => $total,
+                'paired' => $total,
                 'observedAgreement' => $observed,
                 'expectedAgreement' => $expected,
                 'kappa' => $kappa,
