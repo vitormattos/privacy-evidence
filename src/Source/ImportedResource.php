@@ -18,4 +18,19 @@ final readonly class ImportedResource
         public array $metadata = [],
     ) {
     }
+
+    /**
+     * @return array<string,mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'sourceValue' => $this->sourceValue,
+            'normalizedUrl' => $this->normalizedUrl,
+            'type' => $this->type->value,
+            'metadata' => $this->metadata,
+        ];
+    }
 }
