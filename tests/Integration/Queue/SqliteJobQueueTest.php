@@ -79,9 +79,12 @@ final class SqliteJobQueueTest extends TestCase
 
         self::assertSame(['pending' => 1], $queue->counts('r1'));
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Job queue capacity reached');
-        $queue->enqueue(new Job('j3', 'r1', 'fetch', 'different', ['url' => 'https://b.test']));
+        try {
+            $queue->enqueue(new Job('j3', 'r1', 'fetch', 'different', ['url' => 'https://b.test']));
+            self::fail('Expected queue backpressure exception.');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('Job queue capacity reached', $e->getMessage());
+        }
     }
 
     public function testPriorityAndPerHostConcurrencyAreAppliedAcrossCandidates(): void
