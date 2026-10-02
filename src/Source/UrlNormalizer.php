@@ -17,6 +17,10 @@ final class UrlNormalizer
             $value = 'https://' . $value;
         }
 
+        if (filter_var($value, FILTER_VALIDATE_URL) === false) {
+            return null;
+        }
+
         $parts = parse_url($value);
         if ($parts === false || !isset($parts['scheme'], $parts['host'])) {
             return null;
@@ -28,7 +32,7 @@ final class UrlNormalizer
         }
 
         $host = strtolower(rtrim($parts['host'], '.'));
-        if ($host === '') {
+        if ($host === '' || preg_match('/\s/u', $host) === 1) {
             return null;
         }
 
@@ -39,7 +43,8 @@ final class UrlNormalizer
         }
 
         $query = isset($parts['query']) ? '?' . $parts['query'] : '';
+        $normalized = sprintf('%s://%s%s%s%s', $scheme, $host, $port, $path, $query);
 
-        return sprintf('%s://%s%s%s%s', $scheme, $host, $port, $path, $query);
+        return filter_var($normalized, FILTER_VALIDATE_URL) === false ? null : $normalized;
     }
 }
