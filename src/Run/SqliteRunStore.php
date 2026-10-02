@@ -105,6 +105,7 @@ final class SqliteRunStore implements RunStore
 
         /** @var list<array<string, mixed>> $rows */
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        /** @var array<string, int|float|string> $result */
         $result = [];
 
         foreach ($rows as $row) {
@@ -178,6 +179,12 @@ final class SqliteRunStore implements RunStore
         );
         $stmt->execute(['run_id' => $runId]);
 
+        /** @var list<array{
+         *   type:string,
+         *   subjectId:string|null,
+         *   occurredAt:string,
+         *   detail:array<string,scalar|null>
+         * }> $events */
         $events = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
             /** @psalm-suppress MixedAssignment */
@@ -187,6 +194,7 @@ final class SqliteRunStore implements RunStore
                 flags: JSON_THROW_ON_ERROR,
             );
 
+            /** @var array<string, scalar|null> $detail */
             $detail = [];
             if (is_array($decoded)) {
                 /** @psalm-suppress MixedAssignment */
@@ -199,7 +207,7 @@ final class SqliteRunStore implements RunStore
 
             $events[] = [
                 'type' => Value::string($row['type'] ?? null, 'event.type'),
-                'subjectId' => $row['subject_id'] === null
+                'subjectId' => ($row['subject_id'] ?? null) === null
                     ? null
                     : Value::string($row['subject_id'], 'event.subject_id'),
                 'occurredAt' => Value::string($row['occurred_at'] ?? null, 'event.occurred_at'),
