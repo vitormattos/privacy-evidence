@@ -114,6 +114,10 @@ final readonly class ResearchPipeline
                             body: $observation->html,
                             fetchedAt: $observation->capturedAt,
                             acquisitionMode: 'browser',
+                            metadata: [
+                                'browserVersion' => $observation->browserVersion,
+                                'browser' => $observation->metadata,
+                            ],
                         );
                         $this->persistAndAnalyze($runId, $rendered);
                     }
