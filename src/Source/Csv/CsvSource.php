@@ -23,6 +23,7 @@ final class CsvSource implements SourceAdapter
         if ($contents === false) {
             throw new \RuntimeException(sprintf('Unable to read CSV source: %s', $path));
         }
+
         $this->contents = $contents;
     }
 
@@ -41,38 +42,55 @@ final class CsvSource implements SourceAdapter
         fwrite($handle, $this->contents);
         rewind($handle);
 
-        $header = fgetcsv($handle, escape: '');
-        if ($header === false) {
+        $rawHeader = fgetcsv($handle, escape: '');
+        if ($rawHeader === false) {
             throw new \InvalidArgumentException('CSV source is empty.');
         }
 
-        $required = ['id', 'name', 'url'];
-        foreach ($required as $column) {
+        $header = [];
+        foreach ($rawHeader as $column) {
+            if (!is_string($column) || $column === '') {
+                throw new \InvalidArgumentException('CSV header contains an empty or invalid column.');
+            }
+            $header[] = $column;
+        }
+
+        foreach (['id', 'name', 'url'] as $column) {
             if (!in_array($column, $header, true)) {
-                throw new \InvalidArgumentException(sprintf('CSV is missing required column "%s".', $column));
+                throw new \InvalidArgumentException(
+                    sprintf('CSV is missing required column "%s".', $column),
+                );
             }
         }
 
         while (($row = fgetcsv($handle, escape: '')) !== false) {
-            if ($row === [null] || $row === []) {
+            if (count($row) === 1 && $row[0] === null) {
                 continue;
             }
 
             if (count($row) !== count($header)) {
-                throw new \InvalidArgumentException('CSV row has a different number of columns than the header.');
+                throw new \InvalidArgumentException(
+                    'CSV row has a different number of columns than the header.',
+                );
             }
 
-            /** @var array<string, string|null> $record */
-            $record = array_combine($header, $row);
-            $sourceValue = (string) ($record['url'] ?? '');
+            $values = [];
+            foreach ($row as $value) {
+                $values[] = $value ?? '';
+            }
+
+            /** @var array<string, string> $record */
+            $record = array_combine($header, $values);
+            $sourceValue = $record['url'];
             $normalized = $this->normalizer->normalize($sourceValue);
 
+            /** @var array<string, scalar|null> $metadata */
             $metadata = $record;
             unset($metadata['id'], $metadata['name'], $metadata['url']);
 
             yield new ImportedResource(
-                id: (string) $record['id'],
-                name: (string) $record['name'],
+                id: $record['id'],
+                name: $record['name'],
                 sourceValue: $sourceValue,
                 normalizedUrl: $normalized,
                 type: $this->classifier->classify($sourceValue, $normalized),
@@ -85,9 +103,11 @@ final class CsvSource implements SourceAdapter
 
     public function snapshot(): SourceSnapshot
     {
+        $mtime = filemtime($this->path);
+
         return new SourceSnapshot(
             sourceId: $this->sourceId(),
-            capturedAt: gmdate(DATE_ATOM, (int) filemtime($this->path)),
+            capturedAt: gmdate(DATE_ATOM, $mtime === false ? 0 : $mtime),
             sha256: hash('sha256', $this->contents),
             mediaType: 'text/csv',
             location: $this->path,
