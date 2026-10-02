@@ -59,12 +59,16 @@ final class JsonSource implements SourceAdapter
 
             $metadata = [];
             foreach ($record as $key => $value) {
-                if (in_array((string) $key, ['id', 'name', 'url'], true)) {
+                if (!is_string($key)) {
+                    continue;
+                }
+
+                if (in_array($key, ['id', 'name', 'url'], true)) {
                     continue;
                 }
 
                 if (is_scalar($value) || $value === null) {
-                    $metadata[(string) $key] = $value;
+                    $metadata[$key] = $value;
                 }
             }
 
