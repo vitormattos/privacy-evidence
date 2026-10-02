@@ -10,6 +10,8 @@ use PrivacyEvidence\Command\ResumeCommand;
 use PrivacyEvidence\Command\RunCommand;
 use PrivacyEvidence\Command\SourceImportCommand;
 use PrivacyEvidence\Command\StatusCommand;
+use PrivacyEvidence\Command\WorkerCommand;
+use PrivacyEvidence\Command\WorkerPoolCommand;
 use Symfony\Component\Console\Application;
 
 $projectRoot = dirname(__DIR__);
@@ -21,6 +23,8 @@ $application->addCommand(new SourceImportCommand());
 $application->addCommand(new RunCommand($projectRoot));
 $application->addCommand(new ResumeCommand($projectRoot));
 $application->addCommand(new StatusCommand($projectRoot));
+$application->addCommand(new WorkerCommand($projectRoot));
+$application->addCommand(new WorkerPoolCommand($projectRoot));
 $application->addCommand(new AnalyzeCommand($projectRoot));
 $application->addCommand(new ReportCommand($projectRoot));
 $application->run();

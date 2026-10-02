@@ -50,3 +50,8 @@ php bin/privacy-evidence report RUN_ID
 ```
 
 Live web measurement is intentionally outside the deterministic default test path.
+
+- [Performance baseline](performance.md)
+- [Mutation testing](mutation-testing.md)
+- [Release and supply chain](releases.md)
+- [Repository protection](repository-protection.md)

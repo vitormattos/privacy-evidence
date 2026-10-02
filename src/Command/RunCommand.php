@@ -62,6 +62,11 @@ final class RunCommand extends Command
             $versions['profile:' . $profile->id()] = $profile->version();
         }
 
+        $worker = $this->projectRoot . '/browser/src/worker.mjs';
+        $browser = is_file($worker) && is_dir($this->projectRoot . '/browser/node_modules/playwright')
+            ? new PlaywrightBrowserProvider($worker)
+            : null;
+
         $run = new ResearchRun(
             id: Uuid::v7()->toRfc4122(),
             startedAt: gmdate(DATE_ATOM),
@@ -71,16 +76,24 @@ final class RunCommand extends Command
             versions: $versions,
             configuration: [
                 'sourceId' => $source->sourceId(),
-                'browserEscalation' => true,
+                'browserEscalation' => $browser !== null,
+                'scheduler' => [
+                    'recommendedHttpWorkers' => 8,
+                    'recommendedBrowserWorkers' => 2,
+                    'perHostConcurrency' => 2,
+                    'minHostDelayMs' => 250,
+                ],
+                'crawlBudget' => [
+                    'maxPages' => 20,
+                    'maxDepth' => 3,
+                    'maxBytes' => 5000000,
+                    'maxDurationSeconds' => 60,
+                    'maxBrowserPages' => 3,
+                ],
             ],
         );
 
         $runtime = RuntimeFactory::create($this->projectRoot);
-        $worker = $this->projectRoot . '/browser/src/worker.mjs';
-        $browser = is_file($worker) && is_dir($this->projectRoot . '/browser/node_modules/playwright')
-            ? new PlaywrightBrowserProvider($worker)
-            : null;
-
         $pipeline = RuntimeFactory::pipeline(
             $runtime,
             new PipelineConfig(enableBrowserEscalation: $browser !== null),

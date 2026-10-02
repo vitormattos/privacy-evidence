@@ -26,6 +26,11 @@ final class RuntimeFactory
         }
 
         $pdo = new PDO('sqlite:' . $derived . '/privacy-evidence.sqlite');
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo->exec('PRAGMA busy_timeout = 5000');
+        $pdo->exec('PRAGMA journal_mode = WAL');
+        $pdo->exec('PRAGMA synchronous = NORMAL');
+
         $runs = new SqliteRunStore($pdo);
         $jobs = new SqliteJobQueue($pdo);
         $observations = new SqliteObservationStore($pdo);

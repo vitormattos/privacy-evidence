@@ -18,7 +18,7 @@ $started = hrtime(true);
 $usageBefore = getrusage();
 $fdBefore = is_dir('/proc/self/fd') ? count(scandir('/proc/self/fd') ?: []) : null;
 $pdo = new PDO('sqlite::memory:');
-$queue = new SqliteJobQueue($pdo, maxPending: $iterations + 10);
+$queue = new SqliteJobQueue($pdo, maxPending: $iterations + 10, retryBaseDelayMs: 0);
 
 $queueStart = hrtime(true);
 for ($i = 0; $i < $iterations; $i++) {

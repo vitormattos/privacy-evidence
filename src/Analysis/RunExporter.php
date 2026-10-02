@@ -41,6 +41,7 @@ final readonly class RunExporter
         $reviews = $this->runtime->reviews->decisions($runId);
         $profiles = $this->runtime->observations->profileResults($runId);
         $telemetry = $this->runtime->runs->telemetry($runId);
+        $events = $this->runtime->runs->events($runId);
         $counts = $this->runtime->observations->counts($runId);
 
         $analysis = $this->analysis(
@@ -59,6 +60,7 @@ final readonly class RunExporter
         $this->json($directory . '/reviews.json', $reviews);
         $this->json($directory . '/profiles.json', $profiles);
         $this->json($directory . '/telemetry.json', $telemetry);
+        $this->json($directory . '/events.json', $events);
         $this->json($directory . '/counts.json', $counts);
         $this->json($directory . '/analysis.json', $analysis);
 

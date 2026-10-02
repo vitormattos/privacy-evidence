@@ -17,6 +17,10 @@ final readonly class Job
         public array $payload,
         public JobStatus $status = JobStatus::Pending,
         public int $attempts = 0,
+        public int $priority = 0,
+        public ?string $host = null,
+        public int $enqueuedAtMs = 0,
+        public ?int $reservedAtMs = null,
     ) {
     }
 }
