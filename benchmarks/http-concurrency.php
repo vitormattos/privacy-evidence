@@ -41,45 +41,68 @@ if (!$ready) {
 }
 
 $client = HttpClient::create([
-    'max_host_connections' => $concurrency,
     'timeout' => 10.0,
 ]);
 
-$started = hrtime(true);
-$responses = [];
-for ($i = 0; $i < $requests; $i++) {
-    $responses[] = $client->request('GET', sprintf(
-        'http://127.0.0.1:%d/final?request=%d',
-        $port,
-        $i,
-    ));
-}
+$fdCount = static function (): ?int {
+    if (!is_dir('/proc/self/fd')) {
+        return null;
+    }
+    $items = scandir('/proc/self/fd');
+    return is_array($items) ? max(count($items) - 2, 0) : null;
+};
 
+$usageBefore = getrusage();
+$fdBefore = $fdCount();
+$started = hrtime(true);
 $errors = 0;
 $bytes = 0;
-foreach ($client->stream($responses) as $response => $chunk) {
-    if ($chunk->isTimeout()) {
-        $errors++;
-        continue;
+$peakObservedFd = $fdBefore ?? 0;
+
+for ($offset = 0; $offset < $requests; $offset += $concurrency) {
+    $batchSize = min($concurrency, $requests - $offset);
+    $responses = [];
+
+    for ($i = 0; $i < $batchSize; $i++) {
+        $requestNumber = $offset + $i;
+        $responses[] = $client->request('GET', sprintf(
+            'http://127.0.0.1:%d/final?request=%d',
+            $port,
+            $requestNumber,
+        ));
     }
-    if ($chunk->isLast()) {
-        try {
-            if ($response->getStatusCode() !== 200) {
+
+    $fdAfterDispatch = $fdCount();
+    if (is_int($fdAfterDispatch)) {
+        $peakObservedFd = max($peakObservedFd, $fdAfterDispatch);
+    }
+
+    foreach ($client->stream($responses) as $response => $chunk) {
+        if ($chunk->isTimeout()) {
+            $errors++;
+            continue;
+        }
+        if ($chunk->isLast()) {
+            try {
+                if ($response->getStatusCode() !== 200) {
+                    $errors++;
+                }
+            } catch (Throwable) {
                 $errors++;
             }
+            continue;
+        }
+        try {
+            $bytes += strlen($chunk->getContent());
         } catch (Throwable) {
             $errors++;
         }
-        continue;
-    }
-    try {
-        $bytes += strlen($chunk->getContent());
-    } catch (Throwable) {
-        $errors++;
     }
 }
 
 $finished = hrtime(true);
+$usageAfter = getrusage();
+$fdAfter = $fdCount();
 $server->stop();
 
 $seconds = max(($finished - $started) / 1_000_000_000, 0.000001);
@@ -96,4 +119,15 @@ echo json_encode([
     'requestsPerSecond' => round($requests / $seconds, 2),
     'peakMemoryBytes' => memory_get_peak_usage(true),
     'peakMemoryMiB' => round(memory_get_peak_usage(true) / 1024 / 1024, 2),
+    'fileDescriptors' => [
+        'before' => $fdBefore,
+        'after' => $fdAfter,
+        'peakObserved' => max($peakObservedFd, $fdAfter ?? 0),
+    ],
+    'cpu' => [
+        'userMicros' => (($usageAfter['ru_utime.tv_sec'] ?? 0) - ($usageBefore['ru_utime.tv_sec'] ?? 0)) * 1_000_000
+            + (($usageAfter['ru_utime.tv_usec'] ?? 0) - ($usageBefore['ru_utime.tv_usec'] ?? 0)),
+        'systemMicros' => (($usageAfter['ru_stime.tv_sec'] ?? 0) - ($usageBefore['ru_stime.tv_sec'] ?? 0)) * 1_000_000
+            + (($usageAfter['ru_stime.tv_usec'] ?? 0) - ($usageBefore['ru_stime.tv_usec'] ?? 0)),
+    ],
 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL;

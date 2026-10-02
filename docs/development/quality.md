@@ -52,3 +52,8 @@ Mutation testing targets production code and is a secondary quality signal. Muta
 ## CI mapping
 
 The CI workflow provides separately named jobs for Composer validation/audit, unit tests, integration tests, Psalm, PHPStan, PHPCS and REUSE. Dependency/tool versions are declared in Composer/npm/workflow metadata so update automation can discover them.
+
+
+## Validation PR
+
+The repository periodically uses a documentation-only validation pull request to exercise all deterministic PR quality gates against the current default-branch state. This does not replace normal feature-level testing; it is a diagnostic check for the CI configuration itself.

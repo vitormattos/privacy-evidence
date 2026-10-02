@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-$requestUri = filter_input(INPUT_SERVER, 'REQUEST_URI');
-if (!is_string($requestUri) || $requestUri === '') {
-    $requestUri = '/';
-}
+/** @var mixed $requestUriValue */
+$requestUriValue = $_SERVER['REQUEST_URI'] ?? null;
+$requestUri = is_string($requestUriValue) ? $requestUriValue : '/';
 $path = parse_url($requestUri, PHP_URL_PATH);
+
 if ($path === '/redirect') {
     header('Location: /final', true, 302);
     exit;

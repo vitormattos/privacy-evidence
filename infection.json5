@@ -1,7 +1,11 @@
 {
   "$schema": "https://raw.githubusercontent.com/infection/infection/0.35.5/resources/schema.json",
   "source": {
-    "directories": ["src"]
+    "directories": [
+      "src/Source",
+      "src/Evidence",
+      "src/Crawl"
+    ]
   },
   "logs": {
     "text": "infection.log"

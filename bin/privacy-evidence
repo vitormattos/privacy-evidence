@@ -16,11 +16,11 @@ $projectRoot = dirname(__DIR__);
 require $projectRoot . '/vendor/autoload.php';
 
 $application = new Application('Privacy Evidence', '0.1.0-dev');
-$application->add(new DoctorCommand($projectRoot));
-$application->add(new SourceImportCommand());
-$application->add(new RunCommand($projectRoot));
-$application->add(new ResumeCommand($projectRoot));
-$application->add(new StatusCommand($projectRoot));
-$application->add(new AnalyzeCommand($projectRoot));
-$application->add(new ReportCommand($projectRoot));
+$application->addCommand(new DoctorCommand($projectRoot));
+$application->addCommand(new SourceImportCommand());
+$application->addCommand(new RunCommand($projectRoot));
+$application->addCommand(new ResumeCommand($projectRoot));
+$application->addCommand(new StatusCommand($projectRoot));
+$application->addCommand(new AnalyzeCommand($projectRoot));
+$application->addCommand(new ReportCommand($projectRoot));
 $application->run();
