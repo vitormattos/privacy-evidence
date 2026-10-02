@@ -63,11 +63,11 @@ final class ResearchPipelineStageTest extends TestCase
         $reviews = new SqliteReviewQueue($pdo);
 
         $browser = new class implements BrowserProvider {
-            public int $calls;
+            private int $calls = 0;
 
-            public function __construct()
+            public function callCount(): int
             {
-                $this->calls = 0;
+                return $this->calls;
             }
 
             public function observe(string $url, array $actions = []): BrowserObservation
@@ -121,11 +121,11 @@ final class ResearchPipelineStageTest extends TestCase
         self::assertSame(['pending' => 1], $jobs->stageCounts($run->id, 'fetch'));
 
         self::assertSame(1, $pipeline->executeStage($run->id, 'fetch', 1));
-        self::assertSame(0, $browser->calls);
+        self::assertSame(0, $browser->callCount());
         self::assertSame(['pending' => 1], $jobs->stageCounts($run->id, 'browser'));
 
         self::assertSame(1, $pipeline->executeStage($run->id, 'browser', 1));
-        self::assertSame(1, $browser->calls);
+        self::assertSame(1, $browser->callCount());
         self::assertSame(2, $observations->counts($run->id)['documents']);
         self::assertSame(['completed' => 1], $jobs->stageCounts($run->id, 'browser'));
     }
