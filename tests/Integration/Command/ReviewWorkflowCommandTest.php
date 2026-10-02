@@ -46,10 +46,12 @@ final class ReviewWorkflowCommandTest extends TestCase
         );
         $runtime->runs->create($run);
 
-        foreach ([
-            ['resource-a', ObservationState::Present],
-            ['resource-b', ObservationState::Absent],
-        ] as [$resourceId, $state]) {
+        foreach (
+            [
+                ['resource-a', ObservationState::Present],
+                ['resource-b', ObservationState::Absent],
+            ] as [$resourceId, $state]
+        ) {
             $runtime->observations->recordEvidence($run->id, new PrivacyEvidence(
                 EvidenceType::PrivacyNotice,
                 $state,
@@ -79,6 +81,7 @@ final class ReviewWorkflowCommandTest extends TestCase
         self::assertIsArray($decoded);
         $cases = $decoded['cases'] ?? null;
         self::assertIsArray($cases);
+        /** @var list<array<string,mixed>> $cases */
         self::assertCount(2, $cases);
 
         foreach ($cases as &$case) {
@@ -88,6 +91,7 @@ final class ReviewWorkflowCommandTest extends TestCase
             $case['reviewedAt'] = '2026-10-02T01:00:00Z';
         }
         unset($case);
+        $decoded['cases'] = $cases;
         file_put_contents($package, json_encode($decoded, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
 
         $importA = new CommandTester(new ReviewImportCommand($this->projectRoot));
