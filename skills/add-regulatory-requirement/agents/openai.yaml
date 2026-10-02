@@ -1,0 +1,3 @@
+interface:
+  display_name: "Add Regulatory Requirement"
+  short_description: "Map authoritative privacy requirements to observable evidence."
