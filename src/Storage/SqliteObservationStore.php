@@ -115,7 +115,7 @@ final class SqliteObservationStore implements ObservationStore
                 'sourceValue' => Value::string($row['source_value'] ?? null, 'source_value'),
                 'normalizedUrl' => $row['normalized_url'] === null
                     ? null
-                    : Value::string($row['normalized_url'] ?? null, 'normalized_url'),
+                    : Value::string($row['normalized_url'], 'normalized_url'),
                 'type' => Value::string($row['resource_type'] ?? null, 'resource_type'),
                 'metadata' => $metadata,
             ];
@@ -206,7 +206,7 @@ final class SqliteObservationStore implements ObservationStore
                 detector: Value::string($row['detector'] ?? null, 'detector'),
                 detectorVersion: Value::string($row['detector_version'] ?? null, 'detector_version'),
                 method: Value::string($row['method'] ?? null, 'method'),
-                excerpt: $row['excerpt'] === null ? null : Value::string($row['excerpt'] ?? null, 'excerpt'),
+                excerpt: $row['excerpt'] === null ? null : Value::string($row['excerpt'], 'excerpt'),
                 confidence: Value::float($row['confidence'] ?? null, 'confidence'),
                 needsReview: Value::int($row['needs_review'] ?? null, 'needs_review') === 1,
                 attributes: $attributes,
