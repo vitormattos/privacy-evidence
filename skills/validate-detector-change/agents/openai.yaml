@@ -1,0 +1,3 @@
+interface:
+  display_name: "Validate Detector Change"
+  short_description: "Validate privacy detector changes against tests and research evidence."
