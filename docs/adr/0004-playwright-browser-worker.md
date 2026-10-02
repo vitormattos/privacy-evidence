@@ -11,7 +11,7 @@ The browser backend must support rendered DOM, cookies/storage, network observat
 
 Use Playwright in an isolated Node.js worker/provider for the initial behavioral-browser backend. PHP remains the orchestrator.
 
-The provider boundary remains replaceable; Panther or another backend can be evaluated later without changing evidence contracts.
+The provider boundary remains replaceable; Panther or another backend can be evaluated later without changing evidence contracts. The comparative capability review and reproducible benchmark protocol are recorded in `docs/research/browser-backend-evaluation.md`.
 
 ## Decision criteria
 
