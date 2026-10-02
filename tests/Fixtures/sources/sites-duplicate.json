@@ -1,0 +1,4 @@
+[
+  {"id":"dup","name":"First","url":"example.com"},
+  {"id":"dup","name":"Second","url":"example.org"}
+]
