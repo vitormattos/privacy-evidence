@@ -14,6 +14,7 @@ RUN apt-get update \
         libxml2-dev \
         libsqlite3-dev \
     && docker-php-ext-install -j"$(nproc)" \
+        dom \
         mbstring \
         pdo \
         pdo_sqlite \
