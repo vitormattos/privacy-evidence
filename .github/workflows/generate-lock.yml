@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   lock:
@@ -21,8 +21,15 @@ jobs:
           tools: composer:v2
           coverage: none
       - run: composer update --no-interaction --prefer-dist --no-progress
-      - uses: actions/upload-artifact@v4
-        with:
-          name: composer-lock
-          path: composer.lock
-          if-no-files-found: error
+      - name: Commit lock file when changed
+        run: |
+          if git diff --quiet -- composer.lock && git ls-files --error-unmatch composer.lock >/dev/null 2>&1; then
+            echo "composer.lock is already up to date"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add composer.lock
+          git commit -m "build: update Composer lock file"
+          git push
