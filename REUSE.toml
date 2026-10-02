@@ -5,14 +5,27 @@ path = [
   ".editorconfig",
   ".gitattributes",
   ".gitignore",
-  "CITATION.cff",
+  ".github/**",
+  "AGENTS.md",
   "CHANGELOG.md",
+  "CITATION.cff",
   "CODE_OF_CONDUCT.md",
   "CONTRIBUTING.md",
   "README.md",
   "SECURITY.md",
   "SUPPORT.md",
-  "AGENTS.md"
+  "composer.json",
+  "config/**",
+  "data/**",
+  "docs/**",
+  "infection.json5",
+  "phpcs.xml",
+  "phpstan.neon",
+  "phpunit.xml",
+  "psalm.xml",
+  "schema/**",
+  "src/**",
+  "tests/**"
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Vitor Mattos"
