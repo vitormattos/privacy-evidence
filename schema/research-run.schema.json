@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vitormattos/privacy-evidence/schema/research-run.schema.json",
+  "title": "ResearchRun",
+  "type": "object",
+  "required": [
+    "id",
+    "startedAt",
+    "gitCommit",
+    "datasetHash",
+    "protocolVersion",
+    "versions",
+    "configuration"
+  ],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "startedAt": {"type": "string", "format": "date-time"},
+    "gitCommit": {"type": "string", "minLength": 1},
+    "datasetHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "protocolVersion": {"type": "string", "minLength": 1},
+    "versions": {
+      "type": "object",
+      "additionalProperties": {"type": "string"}
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
