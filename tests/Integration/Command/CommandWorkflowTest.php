@@ -6,6 +6,7 @@ namespace PrivacyEvidence\Tests\Integration\Command;
 
 use PHPUnit\Framework\TestCase;
 use PrivacyEvidence\Command\ResumeCommand;
+use PrivacyEvidence\Command\RunCommand;
 use PrivacyEvidence\Command\SourceImportCommand;
 use PrivacyEvidence\Command\StatusCommand;
 use PrivacyEvidence\Run\ResearchRun;
@@ -39,6 +40,20 @@ final class CommandWorkflowTest extends TestCase
         self::assertSame(Command::SUCCESS, $exit);
         self::assertStringContainsString('"sourceId"', $tester->getDisplay());
         self::assertStringContainsString('"snapshot"', $tester->getDisplay());
+    }
+
+    public function testRunRejectsNegativeMaxJobs(): void
+    {
+        $fixture = dirname(__DIR__, 2) . '/Fixtures/sources/sites.csv';
+        $tester = new CommandTester(new RunCommand($this->projectRoot));
+
+        $exit = $tester->execute([
+            'dataset' => $fixture,
+            '--max-jobs' => '-1',
+        ]);
+
+        self::assertSame(Command::INVALID, $exit);
+        self::assertStringContainsString('max-jobs', $tester->getDisplay());
     }
 
     public function testStatusReportsDurableRunStateAndTelemetry(): void
