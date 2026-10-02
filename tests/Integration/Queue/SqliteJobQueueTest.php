@@ -66,6 +66,24 @@ final class SqliteJobQueueTest extends TestCase
         self::assertSame(['completed' => 1], $queue->counts('r1'));
     }
 
+
+    public function testDuplicateDeliveryRemainsIdempotentAtCapacity(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            self::markTestSkipped('pdo_sqlite not available');
+        }
+
+        $queue = new SqliteJobQueue(new PDO('sqlite::memory:'), maxPending: 1);
+        $queue->enqueue(new Job('j1', 'r1', 'fetch', 'same', ['url' => 'https://a.test']));
+        $queue->enqueue(new Job('j2', 'r1', 'fetch', 'same', ['url' => 'https://a.test']));
+
+        self::assertSame(['pending' => 1], $queue->counts('r1'));
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Job queue capacity reached');
+        $queue->enqueue(new Job('j3', 'r1', 'fetch', 'different', ['url' => 'https://b.test']));
+    }
+
     public function testPriorityAndPerHostConcurrencyAreAppliedAcrossCandidates(): void
     {
         if (!extension_loaded('pdo_sqlite')) {
