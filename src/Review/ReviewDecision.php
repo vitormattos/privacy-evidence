@@ -10,6 +10,7 @@ use PrivacyEvidence\Evidence\EvidenceType;
 final readonly class ReviewDecision
 {
     public function __construct(
+        public string $runId,
         public string $evidenceId,
         public EvidenceType $type,
         public ObservationState $state,
