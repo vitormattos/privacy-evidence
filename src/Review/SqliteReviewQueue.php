@@ -56,10 +56,6 @@ final class SqliteReviewQueue implements ReviewQueue
         $result = [];
 
         foreach ($rows as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-
             $result[] = [
                 'run_id' => Value::string($row['run_id'] ?? null, 'run_id'),
                 'evidence_id' => Value::string($row['evidence_id'] ?? null, 'evidence_id'),
@@ -123,10 +119,6 @@ final class SqliteReviewQueue implements ReviewQueue
 
         $records = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
-            if (!is_array($row)) {
-                continue;
-            }
-
             $records[] = [
                 'evidenceId' => Value::string($row['evidence_id'] ?? null, 'evidence_id'),
                 'type' => Value::string($row['type'] ?? null, 'type'),
