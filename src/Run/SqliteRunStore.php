@@ -90,6 +90,7 @@ final class SqliteRunStore implements RunStore
             'SELECT status FROM research_runs WHERE id = :id',
         );
         $stmt->execute(['id' => $runId]);
+        /** @psalm-suppress MixedAssignment */
         $value = $stmt->fetchColumn();
 
         return is_string($value) ? RunStatus::tryFrom($value) : null;
