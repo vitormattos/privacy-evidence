@@ -45,17 +45,17 @@
         "phpstan": "phpstan analyse --no-progress",
         "phpcs": "phpcs",
         "mutation": "infection --threads=max --no-progress",
-        "audit": "composer audit",
         "quality": [
-            "@validate",
+            "@qa:validate",
             "@test:unit",
             "@test:integration",
             "@psalm",
             "@phpstan",
             "@phpcs",
-            "@audit"
+            "@qa:audit"
         ],
-        "validate": "composer validate --strict"
+        "qa:validate": "composer validate --strict",
+        "qa:audit": "composer audit"
     },
     "config": {
         "sort-packages": true,
