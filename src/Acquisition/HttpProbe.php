@@ -27,32 +27,36 @@ final class HttpProbe
 
     public function probe(string $url): HttpProbeResult
     {
-        if (filter_var($url, FILTER_VALIDATE_URL) === false || !in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true)) {
-            return new HttpProbeResult($url, null, null, null, failure: ProbeFailure::InvalidUrl);
+        $scheme = parse_url($url, PHP_URL_SCHEME);
+        if (filter_var($url, FILTER_VALIDATE_URL) === false || !in_array($scheme, ['http', 'https'], true)) {
+            return new HttpProbeResult(
+                $url,
+                null,
+                null,
+                null,
+                failure: ProbeFailure::InvalidUrl,
+            );
         }
 
         try {
             $response = $this->client->request('GET', $url, [
-                'headers' => ['User-Agent' => 'PrivacyEvidence/0.x research crawler'],
-                'extra' => ['trace_content' => false],
+                'headers' => [
+                    'User-Agent' => 'PrivacyEvidence/0.x research crawler',
+                ],
+                'extra' => [
+                    'trace_content' => false,
+                ],
             ]);
 
             $status = $response->getStatusCode();
-            $info = $response->getInfo();
             $headers = $response->getHeaders(false);
-            $redirects = [];
-            foreach (($info['redirect_url'] ?? []) as $redirect) {
-                if (is_string($redirect)) {
-                    $redirects[] = $redirect;
-                }
-            }
+            $finalUrl = $response->getInfo('url');
 
             return new HttpProbeResult(
                 requestedUrl: $url,
-                finalUrl: is_string($info['url'] ?? null) ? $info['url'] : $url,
+                finalUrl: is_string($finalUrl) ? $finalUrl : $url,
                 statusCode: $status,
                 contentType: $headers['content-type'][0] ?? null,
-                redirectChain: $redirects,
             );
         } catch (TransportExceptionInterface $e) {
             return new HttpProbeResult(
