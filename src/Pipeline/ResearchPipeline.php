@@ -9,6 +9,7 @@ use PrivacyEvidence\Acquisition\FetchedDocument;
 use PrivacyEvidence\Acquisition\HttpFetcher;
 use PrivacyEvidence\Browser\BrowserEscalationPolicy;
 use PrivacyEvidence\Browser\BrowserProvider;
+use PrivacyEvidence\Crawl\LinkDiscoverer;
 use PrivacyEvidence\Queue\Job;
 use PrivacyEvidence\Queue\JobQueue;
 use PrivacyEvidence\Review\ReviewQueue;
@@ -153,7 +154,8 @@ final readonly class ResearchPipeline
         $budget = $this->config->crawlBudget;
         $usage = $this->observations->resourceUsage($runId, $resourceId);
 
-        if ($depth >= $budget->maxDepth
+        if (
+            $depth >= $budget->maxDepth
             || $usage['pages'] >= $budget->maxPages
             || $usage['bytes'] >= $budget->maxBytes
             || (time() - $crawlStartedAt) >= $budget->maxDurationSeconds
@@ -208,7 +210,6 @@ final readonly class ResearchPipeline
                 }
             }
         }
-
     }
 
     private function payloadInt(Job $job, string $key, int $default): int
