@@ -21,4 +21,21 @@ final class CsvSourceTest extends TestCase
         self::assertSame(ResourceType::SocialNetwork, $resources[1]->type);
         self::assertSame(ResourceType::Malformed, $resources[2]->type);
     }
+    public function testRejectsDuplicateIds(): void
+    {
+        $source = new CsvSource(__DIR__ . '/../../Fixtures/sources/sites-duplicate.csv');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('duplicate id');
+        iterator_to_array($source->resources());
+    }
+
+    public function testRejectsMissingRequiredColumn(): void
+    {
+        $source = new CsvSource(__DIR__ . '/../../Fixtures/sources/sites-missing-column.csv');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('missing required column');
+        iterator_to_array($source->resources());
+    }
 }
