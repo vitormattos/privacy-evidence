@@ -6,8 +6,9 @@
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "scripts": {
-    "check": "node --check src/worker.mjs",
-    "install-browser": "playwright install --with-deps chromium"
+    "check": "node --check src/worker.mjs && node --check benchmark.mjs",
+    "install-browser": "playwright install --with-deps chromium",
+    "benchmark": "node benchmark.mjs"
   },
   "dependencies": {
     "playwright": "1.63.0"
