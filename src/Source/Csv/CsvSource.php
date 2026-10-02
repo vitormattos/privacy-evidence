@@ -43,7 +43,7 @@ final class CsvSource implements SourceAdapter
         rewind($handle);
 
         $rawHeader = fgetcsv($handle, escape: '');
-        if ($rawHeader === false || $rawHeader === null) {
+        if ($rawHeader === false) {
             throw new \InvalidArgumentException('CSV source is empty.');
         }
 
@@ -64,10 +64,6 @@ final class CsvSource implements SourceAdapter
         }
 
         while (($row = fgetcsv($handle, escape: '')) !== false) {
-            if ($row === null) {
-                continue;
-            }
-
             if (count($row) === 1 && $row[0] === null) {
                 continue;
             }
