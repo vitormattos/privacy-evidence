@@ -72,6 +72,19 @@ final class RunCommand extends Command
             configuration: [
                 'sourceId' => $source->sourceId(),
                 'browserEscalation' => true,
+                'scheduler' => [
+                    'recommendedHttpWorkers' => 8,
+                    'recommendedBrowserWorkers' => 2,
+                    'perHostConcurrency' => 2,
+                    'minHostDelayMs' => 250,
+                ],
+                'crawlBudget' => [
+                    'maxPages' => 20,
+                    'maxDepth' => 3,
+                    'maxBytes' => 5000000,
+                    'maxDurationSeconds' => 60,
+                    'maxBrowserPages' => 3,
+                ],
             ],
         );
 
