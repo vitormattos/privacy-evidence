@@ -19,6 +19,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Process\Process;
 
 final class RunCommand extends Command
 {
@@ -64,12 +65,48 @@ final class RunCommand extends Command
 
         $lockPath = $this->projectRoot . '/composer.lock';
         $lockHash = is_file($lockPath) ? hash_file('sha256', $lockPath) : false;
+
+        $browserLockPath = $this->projectRoot . '/browser/package-lock.json';
+        $browserLockHash = is_file($browserLockPath) ? hash_file('sha256', $browserLockPath) : false;
+
+        $nodeVersion = 'unavailable';
+        $node = new Process(['node', '--version']);
+        $node->setTimeout(5.0);
+        $node->run();
+        if ($node->isSuccessful()) {
+            $nodeVersion = trim($node->getOutput());
+        }
+
+        $playwrightVersion = 'unknown';
+        $browserPackagePath = $this->projectRoot . '/browser/package.json';
+        if (is_file($browserPackagePath)) {
+            /** @var mixed $browserPackage */
+            $browserPackage = json_decode(
+                (string) file_get_contents($browserPackagePath),
+                true,
+            );
+            if (is_array($browserPackage)) {
+                $dependencies = $browserPackage['dependencies'] ?? [];
+                $devDependencies = $browserPackage['devDependencies'] ?? [];
+                if (is_array($dependencies) && is_string($dependencies['playwright'] ?? null)) {
+                    $playwrightVersion = $dependencies['playwright'];
+                } elseif (is_array($devDependencies) && is_string($devDependencies['playwright'] ?? null)) {
+                    $playwrightVersion = $devDependencies['playwright'];
+                }
+            }
+        }
+
         $versions = [
             'protocol' => '0.1.0-draft',
             'schema' => '0.1.0-draft',
             'php' => PHP_VERSION,
             'composer-lock-sha256' => is_string($lockHash) ? $lockHash : 'missing',
+            'browser-lock-sha256' => is_string($browserLockHash) ? $browserLockHash : 'missing',
+            'node' => $nodeVersion,
+            'os-family' => PHP_OS_FAMILY,
+            'kernel' => php_uname('sr'),
             'browser-backend' => 'playwright',
+            'playwright-package' => $playwrightVersion,
         ];
         foreach ($detectors->detectors as $detector) {
             $versions['detector:' . $detector->name()] = $detector->version();
