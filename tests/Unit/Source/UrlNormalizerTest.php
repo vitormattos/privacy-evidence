@@ -16,6 +16,9 @@ final class UrlNormalizerTest extends TestCase
         self::assertSame($expected, (new UrlNormalizer())->normalize($input));
     }
 
+    /**
+     * @return iterable<array{string, ?string}>
+     */
     public static function cases(): iterable
     {
         yield ['example.com', 'https://example.com/'];
