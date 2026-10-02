@@ -1,0 +1,28 @@
+name: Research or methodology
+description: Propose or change a research method, construct, variable or evaluation rule
+title: "[Research] "
+labels: ["methodology", "area:research"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Research problem
+    validations:
+      required: true
+  - type: textarea
+    id: method
+    attributes:
+      label: Proposed method or change
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Supporting literature or evidence
+      description: Include peer-reviewed or authoritative sources where applicable.
+    validations:
+      required: true
+  - type: textarea
+    id: validity
+    attributes:
+      label: Validity and comparability impact
