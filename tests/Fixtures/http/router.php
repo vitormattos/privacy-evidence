@@ -3,9 +3,6 @@
 declare(strict_types=1);
 
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
-if (!is_string($requestUri)) {
-    $requestUri = '/';
-}
 $path = parse_url($requestUri, PHP_URL_PATH);
 
 if ($path === '/redirect') {
