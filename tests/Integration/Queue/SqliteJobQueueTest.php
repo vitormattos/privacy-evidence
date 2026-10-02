@@ -43,21 +43,24 @@ final class SqliteJobQueueTest extends TestCase
         self::assertSame(['pending' => 1], $queue->counts('r1'));
 
         $reserved = $queue->reserve('r1', 'fetch');
-        self::assertSame('j1', $reserved?->id);
-        self::assertNotNull($reserved?->reservedAtMs);
+        self::assertInstanceOf(Job::class, $reserved);
+        self::assertSame('j1', $reserved->id);
+        self::assertNotNull($reserved->reservedAtMs);
 
         self::assertSame(JobStatus::Pending, $queue->fail('j1', 'temporary'));
         self::assertNull($queue->reserve('r1', 'fetch'));
 
         usleep(550_000);
         $reserved = $queue->reserve('r1', 'fetch');
-        self::assertSame(2, $reserved?->attempts);
+        self::assertInstanceOf(Job::class, $reserved);
+        self::assertSame(2, $reserved->attempts);
 
         self::assertSame(1, $queue->requeueRunning('r1'));
         self::assertSame(['pending' => 1], $queue->counts('r1'));
 
         $reserved = $queue->reserve('r1', 'fetch');
-        self::assertSame(3, $reserved?->attempts);
+        self::assertInstanceOf(Job::class, $reserved);
+        self::assertSame(3, $reserved->attempts);
         $queue->complete('j1');
 
         self::assertSame(['completed' => 1], $queue->counts('r1'));
