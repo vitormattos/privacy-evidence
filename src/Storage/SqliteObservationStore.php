@@ -369,7 +369,7 @@ final class SqliteObservationStore implements ObservationStore
                 acquisition_mode TEXT NOT NULL,
                 truncated INTEGER NOT NULL,
                 body_size INTEGER NOT NULL,
-                metadata_json TEXT NOT NULL DEFAULT '{}',
+                metadata_json TEXT NOT NULL DEFAULT "{}",
                 PRIMARY KEY (run_id, artifact_hash)
             )',
         );
