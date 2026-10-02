@@ -16,7 +16,25 @@ final class DetectorEvaluator
      * @return array{
      *   protocolVersion:string,
      *   goldDatasetVersion:string,
-     *   signals:array<string,array<string,mixed>>
+     *   signals:array<string,array{
+     *     confusionMatrix:array{
+     *       truePositive:int,
+     *       falsePositive:int,
+     *       trueNegative:int,
+     *       falseNegative:int
+     *     },
+     *     precision:float|null,
+     *     recall:float|null,
+     *     f1:float|null,
+     *     support:int,
+     *     evaluated:int,
+     *     abstained:int,
+     *     truthUnknown:int,
+     *     coverage:float|null,
+     *     detectors:list<string>,
+     *     falsePositives:list<array<string,string>>,
+     *     falseNegatives:list<array<string,string>>
+     *   }>
      * }
      */
     public function evaluate(
