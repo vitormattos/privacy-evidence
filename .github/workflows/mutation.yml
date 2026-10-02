@@ -2,6 +2,7 @@ name: Mutation testing
 
 on:
   workflow_dispatch:
+  pull_request:
   schedule:
     - cron: '23 4 * * 1'
   push:
