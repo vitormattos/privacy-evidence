@@ -85,8 +85,9 @@ final class ReviewWorkflowCommandTest extends TestCase
         self::assertCount(2, $cases);
 
         foreach ($cases as &$case) {
-            self::assertIsArray($case);
-            $case['humanState'] = $case['automatedState'];
+            $automatedState = $case['automatedState'] ?? null;
+            self::assertIsString($automatedState);
+            $case['humanState'] = $automatedState;
             $case['rationale'] = 'Independent review A.';
             $case['reviewedAt'] = '2026-10-02T01:00:00Z';
         }
@@ -101,7 +102,6 @@ final class ReviewWorkflowCommandTest extends TestCase
         ]));
 
         foreach ($cases as $index => &$case) {
-            self::assertIsArray($case);
             if ($index === 0) {
                 $case['humanState'] = $case['humanState'] === 'present' ? 'absent' : 'present';
             }
