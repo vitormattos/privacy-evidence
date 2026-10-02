@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use Privacy Evidence in research, please cite the software."
+title: "Privacy Evidence"
+type: software
+authors:
+  - family-names: "Mattos"
+    given-names: "Vitor"
+repository-code: "https://github.com/vitormattos/privacy-evidence"
+url: "https://github.com/vitormattos/privacy-evidence"
+license: "AGPL-3.0-or-later"
+abstract: "Research software for reproducible, large-scale collection and analysis of publicly observable web privacy evidence."
+keywords:
+  - privacy
+  - web measurement
+  - LGPD
+  - GDPR
+  - ePrivacy
+  - reproducible research
