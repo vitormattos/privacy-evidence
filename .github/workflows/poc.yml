@@ -88,8 +88,9 @@ jobs:
           RUN_ID="${{ steps.run.outputs.run_id }}"
           EXPORT_DIR="data/exports/$RUN_ID"
           mkdir -p "$EXPORT_DIR/review"
-          php bin/privacy-evidence review:export "$RUN_ID" "$EXPORT_DIR/review/reviewer-a.jsonl"
-          cp "$EXPORT_DIR/review/reviewer-a.jsonl" "$EXPORT_DIR/review/reviewer-b.jsonl"
+          php bin/privacy-evidence review:sample "$RUN_ID" "$EXPORT_DIR/review/gold-poc-v1.json" --per-stratum=2 --seed=privacy-evidence-poc-v1
+          cp "$EXPORT_DIR/review/gold-poc-v1.json" "$EXPORT_DIR/review/reviewer-a.json"
+          cp "$EXPORT_DIR/review/gold-poc-v1.json" "$EXPORT_DIR/review/reviewer-b.json"
 
       - name: Capture final status and PoC metadata
         shell: bash
