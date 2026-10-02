@@ -4,7 +4,6 @@
     "type": "project",
     "license": "AGPL-3.0-or-later",
     "require": {
-        "php": "^8.4.1",
         "ext-ctype": "*",
         "ext-dom": "*",
         "ext-json": "*",
@@ -12,11 +11,13 @@
         "ext-mbstring": "*",
         "ext-pdo": "*",
         "ext-tokenizer": "*",
+        "php": "^8.4.1",
         "symfony/console": "^8.1",
         "symfony/css-selector": "^8.1",
         "symfony/dom-crawler": "^8.1",
         "symfony/http-client": "^8.1",
         "symfony/messenger": "^8.1",
+        "symfony/process": "^8.1",
         "symfony/rate-limiter": "^8.1",
         "symfony/uid": "^8.1"
     },
