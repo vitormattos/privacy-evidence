@@ -51,6 +51,7 @@ final class RunCommand extends Command
             return Command::INVALID;
         }
 
+        /** @psalm-suppress MixedAssignment Symfony InputInterface returns mixed by contract. */
         $maxJobsOption = $input->getOption('max-jobs');
         $maxJobs = filter_var($maxJobsOption, FILTER_VALIDATE_INT);
         if (!is_int($maxJobs) || $maxJobs < 0) {
@@ -86,16 +87,28 @@ final class RunCommand extends Command
                 true,
             );
             if (is_array($browserPackage)) {
+                /** @var mixed $dependencies */
                 $dependencies = $browserPackage['dependencies'] ?? [];
+                /** @var mixed $devDependencies */
                 $devDependencies = $browserPackage['devDependencies'] ?? [];
-                if (is_array($dependencies) && is_string($dependencies['playwright'] ?? null)) {
-                    $playwrightVersion = $dependencies['playwright'];
-                } elseif (is_array($devDependencies) && is_string($devDependencies['playwright'] ?? null)) {
-                    $playwrightVersion = $devDependencies['playwright'];
+                if (is_array($dependencies)) {
+                    /** @var mixed $candidate */
+                    $candidate = $dependencies['playwright'] ?? null;
+                    if (is_string($candidate)) {
+                        $playwrightVersion = $candidate;
+                    }
+                }
+                if ($playwrightVersion === 'unknown' && is_array($devDependencies)) {
+                    /** @var mixed $candidate */
+                    $candidate = $devDependencies['playwright'] ?? null;
+                    if (is_string($candidate)) {
+                        $playwrightVersion = $candidate;
+                    }
                 }
             }
         }
 
+        /** @var array<string,string> $versions */
         $versions = [
             'protocol' => '0.1.0-draft',
             'schema' => '0.1.0-draft',
