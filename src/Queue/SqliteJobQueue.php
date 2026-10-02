@@ -199,8 +199,10 @@ final class SqliteJobQueue implements JobQueue
         $stmt->execute(['id' => $jobId]);
         $attempts = Value::int($stmt->fetchColumn(), 'attempts');
         $status = $attempts >= $maxAttempts ? JobStatus::Dead : JobStatus::Pending;
+        $exponent = min(max($attempts - 1, 0), 16);
+        $retryMultiplier = 1 << $exponent;
         $delayMs = $status === JobStatus::Pending
-            ? min(30_000, $this->retryBaseDelayMs * (2 ** max($attempts - 1, 0)))
+            ? min(30_000, $this->retryBaseDelayMs * $retryMultiplier)
             : 0;
 
         $update = $this->pdo->prepare(
@@ -402,6 +404,6 @@ final class SqliteJobQueue implements JobQueue
 
     private static function nowMs(): int
     {
-        return (int) floor(microtime(true) * 1000);
+        return (int) floor(microtime(true) * 1000.0);
     }
 }
