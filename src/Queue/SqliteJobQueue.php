@@ -76,6 +76,7 @@ final class SqliteJobQueue implements JobQueue
             $update->execute(['id' => $row['id']]);
             $this->pdo->commit();
 
+            /** @psalm-suppress MixedAssignment */
             $decoded = json_decode(
                 Value::string($row['payload_json'] ?? null, 'payload_json'),
                 true,
