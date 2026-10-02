@@ -67,6 +67,10 @@ final readonly class RunComparator
 
         $changes = [];
         foreach (array_intersect($baseIds, $targetIds) as $resourceId) {
+            if (!isset($baseResources[$resourceId], $targetResources[$resourceId])) {
+                continue;
+            }
+
             $before = $baseResources[$resourceId];
             $after = $targetResources[$resourceId];
             $fields = [];
