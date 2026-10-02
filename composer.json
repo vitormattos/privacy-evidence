@@ -1,0 +1,24 @@
+{
+    "name": "vitormattos/privacy-evidence",
+    "description": "Reproducible large-scale collection and analysis of public web privacy evidence.",
+    "type": "project",
+    "license": "AGPL-3.0-or-later",
+    "require": {
+        "php": "^8.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "PrivacyEvidence\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PrivacyEvidence\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
