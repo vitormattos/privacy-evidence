@@ -24,6 +24,22 @@ final class SqliteJobQueue implements JobQueue
 
     public function enqueue(Job $job): void
     {
+        $existing = $this->pdo->prepare(
+            'SELECT 1 FROM jobs
+             WHERE run_id = :run_id
+               AND stage = :stage
+               AND deduplication_key = :deduplication_key
+             LIMIT 1',
+        );
+        $existing->execute([
+            'run_id' => $job->runId,
+            'stage' => $job->stage,
+            'deduplication_key' => $job->deduplicationKey,
+        ]);
+        if ($existing->fetchColumn() !== false) {
+            return;
+        }
+
         $countStatement = $this->pdo->query(
             'SELECT COUNT(*) FROM jobs WHERE status IN ("pending", "running")',
         );
