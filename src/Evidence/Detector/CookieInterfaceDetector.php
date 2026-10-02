@@ -6,6 +6,7 @@ namespace PrivacyEvidence\Evidence\Detector;
 
 use PrivacyEvidence\Acquisition\FetchedDocument;
 use PrivacyEvidence\Core\ObservationState;
+use PrivacyEvidence\Core\Value;
 use PrivacyEvidence\Evidence\Detector;
 use PrivacyEvidence\Evidence\EvidenceType;
 use PrivacyEvidence\Evidence\PrivacyEvidence;
@@ -78,8 +79,17 @@ final class CookieInterfaceDetector implements Detector
             );
         }
 
-        $browser = $document->metadata['browser'] ?? null;
-        $cookies = is_array($browser) ? ($browser['cookies'] ?? null) : null;
+        $browser = $this->browserMetadata($document);
+        if ($browser === null) {
+            return $this->dynamicUnknown(
+                $document,
+                EvidenceType::NonEssentialStorageBeforeConsent,
+                'cookies_unavailable',
+            );
+        }
+
+        /** @psalm-suppress MixedAssignment */
+        $cookies = $browser['cookies'] ?? null;
         if (!is_array($cookies)) {
             return $this->dynamicUnknown(
                 $document,
@@ -90,12 +100,18 @@ final class CookieInterfaceDetector implements Detector
 
         $knownTracking = [];
         $unknownCount = 0;
+        /** @psalm-suppress MixedAssignment */
         foreach ($cookies as $cookie) {
-            if (!is_array($cookie) || !is_string($cookie['name'] ?? null)) {
+            if (!is_array($cookie) || !array_key_exists('name', $cookie)) {
                 continue;
             }
 
-            $name = $cookie['name'];
+            try {
+                $name = Value::string($cookie['name'], 'browser.cookie.name');
+            } catch (\UnexpectedValueException) {
+                continue;
+            }
+
             if ($this->isKnownTrackingCookie($name)) {
                 $knownTracking[] = $name;
             } else {
@@ -161,8 +177,17 @@ final class CookieInterfaceDetector implements Detector
             );
         }
 
-        $browser = $document->metadata['browser'] ?? null;
-        $requests = is_array($browser) ? ($browser['requests'] ?? null) : null;
+        $browser = $this->browserMetadata($document);
+        if ($browser === null) {
+            return $this->dynamicUnknown(
+                $document,
+                EvidenceType::ThirdPartyRequestsBeforeConsent,
+                'requests_unavailable',
+            );
+        }
+
+        /** @psalm-suppress MixedAssignment */
+        $requests = $browser['requests'] ?? null;
         if (!is_array($requests)) {
             return $this->dynamicUnknown(
                 $document,
@@ -181,11 +206,19 @@ final class CookieInterfaceDetector implements Detector
         }
 
         $thirdParty = [];
+        /** @psalm-suppress MixedAssignment */
         foreach ($requests as $request) {
-            if (!is_array($request) || !is_string($request['url'] ?? null)) {
+            if (!is_array($request) || !array_key_exists('url', $request)) {
                 continue;
             }
-            $host = parse_url($request['url'], PHP_URL_HOST);
+
+            try {
+                $requestUrl = Value::string($request['url'], 'browser.request.url');
+            } catch (\UnexpectedValueException) {
+                continue;
+            }
+
+            $host = parse_url($requestUrl, PHP_URL_HOST);
             if (is_string($host) && $host !== '' && strtolower($host) !== strtolower($pageHost)) {
                 $thirdParty[] = $host;
             }
@@ -207,6 +240,18 @@ final class CookieInterfaceDetector implements Detector
                 'sampleThirdPartyHost' => $thirdParty[0] ?? null,
             ],
         );
+    }
+
+
+    /**
+     * @return array<string,mixed>|null
+     */
+    private function browserMetadata(FetchedDocument $document): ?array
+    {
+        /** @psalm-suppress MixedAssignment */
+        $browser = $document->metadata['browser'] ?? null;
+
+        return is_array($browser) ? $browser : null;
     }
 
     private function isKnownTrackingCookie(string $name): bool
