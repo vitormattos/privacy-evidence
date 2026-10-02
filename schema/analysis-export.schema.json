@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vitormattos/privacy-evidence/schema/analysis-export.schema.json",
+  "title": "AnalysisExport",
+  "type": "object",
+  "required": ["schemaVersion", "runId", "generatedAt", "metrics"],
+  "properties": {
+    "schemaVersion": {"type": "string"},
+    "runId": {"type": "string"},
+    "generatedAt": {"type": "string", "format": "date-time"},
+    "metrics": {"type": "object"},
+    "failures": {"type": "object"},
+    "performance": {"type": "object"}
+  },
+  "additionalProperties": true
+}
