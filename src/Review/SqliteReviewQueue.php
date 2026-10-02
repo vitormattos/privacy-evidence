@@ -96,6 +96,33 @@ final class SqliteReviewQueue implements ReviewQueue
         }
     }
 
+
+    public function decisions(string $runId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT evidence_id, type, state, reviewer_type, reviewer_id, reviewed_at, rationale
+             FROM review_decisions
+             WHERE run_id = :run_id
+             ORDER BY evidence_id, reviewed_at, id',
+        );
+        $stmt->execute(['run_id' => $runId]);
+
+        $records = [];
+        while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
+            $records[] = [
+                'evidenceId' => (string) $row['evidence_id'],
+                'type' => (string) $row['type'],
+                'state' => (string) $row['state'],
+                'reviewerType' => (string) $row['reviewer_type'],
+                'reviewerId' => (string) $row['reviewer_id'],
+                'reviewedAt' => (string) $row['reviewed_at'],
+                'rationale' => (string) $row['rationale'],
+            ];
+        }
+
+        return $records;
+    }
+
     private function migrate(): void
     {
         $this->pdo->exec(
