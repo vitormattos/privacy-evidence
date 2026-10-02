@@ -117,7 +117,7 @@ final class RunCommand extends Command
             'browser-lock-sha256' => is_string($browserLockHash) ? $browserLockHash : 'missing',
             'node' => $nodeVersion,
             'os-family' => PHP_OS_FAMILY,
-            'kernel' => php_uname('sr'),
+            'kernel' => php_uname('s') . ' ' . php_uname('r'),
             'browser-backend' => 'playwright',
             'playwright-package' => $playwrightVersion,
         ];
