@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use PDO;
 use PrivacyEvidence\Acquisition\FetchedDocument;
 use PrivacyEvidence\Pipeline\DefaultDetectorRegistry;
 use PrivacyEvidence\Queue\Job;
@@ -17,7 +16,7 @@ if ($iterations < 1 || $iterations > 100_000) {
 
 $started = hrtime(true);
 $pdo = new PDO('sqlite::memory:');
-$queue = new SqliteJobQueue($pdo, maxPendingJobs: $iterations + 10);
+$queue = new SqliteJobQueue($pdo, maxPending: $iterations + 10);
 
 $queueStart = hrtime(true);
 for ($i = 0; $i < $iterations; $i++) {
