@@ -134,6 +134,67 @@ final class SqliteRunStore implements RunStore
         ]);
     }
 
+    public function recordEvent(
+        string $runId,
+        string $type,
+        ?string $subjectId = null,
+        array $detail = [],
+    ): void {
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO run_events (run_id, type, subject_id, occurred_at, detail_json)
+             VALUES (:run_id, :type, :subject_id, :occurred_at, :detail_json)',
+        );
+        $stmt->execute([
+            'run_id' => $runId,
+            'type' => $type,
+            'subject_id' => $subjectId,
+            'occurred_at' => gmdate(DATE_ATOM),
+            'detail_json' => json_encode($detail, JSON_THROW_ON_ERROR),
+        ]);
+    }
+
+    public function events(string $runId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT type, subject_id, occurred_at, detail_json
+             FROM run_events
+             WHERE run_id = :run_id
+             ORDER BY id',
+        );
+        $stmt->execute(['run_id' => $runId]);
+
+        $events = [];
+        while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
+            /** @psalm-suppress MixedAssignment */
+            $decoded = json_decode(
+                Value::string($row['detail_json'] ?? null, 'detail_json'),
+                true,
+                flags: JSON_THROW_ON_ERROR,
+            );
+
+            $detail = [];
+            if (is_array($decoded)) {
+                /** @psalm-suppress MixedAssignment */
+                foreach ($decoded as $key => $value) {
+                    if (is_string($key) && (is_scalar($value) || $value === null)) {
+                        $detail[$key] = $value;
+                    }
+                }
+            }
+
+            $events[] = [
+                'type' => Value::string($row['type'] ?? null, 'event.type'),
+                'subjectId' => $row['subject_id'] === null
+                    ? null
+                    : Value::string($row['subject_id'], 'event.subject_id'),
+                'occurredAt' => Value::string($row['occurred_at'] ?? null, 'event.occurred_at'),
+                'detail' => $detail,
+            ];
+        }
+
+        return $events;
+    }
+
     private function migrate(): void
     {
         $this->pdo->exec(
@@ -155,6 +216,20 @@ final class SqliteRunStore implements RunStore
                 value REAL NOT NULL DEFAULT 0,
                 PRIMARY KEY (run_id, metric)
             )',
+        );
+        $this->pdo->exec(
+            'CREATE TABLE IF NOT EXISTS run_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id TEXT NOT NULL,
+                type TEXT NOT NULL,
+                subject_id TEXT,
+                occurred_at TEXT NOT NULL,
+                detail_json TEXT NOT NULL
+            )',
+        );
+        $this->pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_run_events_run_type
+             ON run_events(run_id, type)',
         );
     }
 }
