@@ -181,7 +181,12 @@ final class SqliteObservationStore implements ObservationStore
         $stmt->execute(['run_id' => $runId]);
 
         $ids = [];
-        while (($value = $stmt->fetchColumn()) !== false) {
+        while (true) {
+            /** @psalm-suppress MixedAssignment */
+            $value = $stmt->fetchColumn();
+            if ($value === false) {
+                break;
+            }
             $ids[] = Value::string($value, 'resource_id');
         }
 
