@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vitormattos/privacy-evidence/schema/review-decision.schema.json",
+  "title": "ReviewDecision",
+  "type": "object",
+  "required": [
+    "evidenceId",
+    "type",
+    "state",
+    "reviewerType",
+    "reviewerId",
+    "reviewedAt",
+    "rationale"
+  ],
+  "properties": {
+    "evidenceId": {"type": "string"},
+    "type": {"type": "string"},
+    "state": {"type": "string"},
+    "reviewerType": {"enum": ["human", "ai_suggestion", "adjudicator"]},
+    "reviewerId": {"type": "string"},
+    "reviewedAt": {"type": "string", "format": "date-time"},
+    "rationale": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": false
+}
