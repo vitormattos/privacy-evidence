@@ -32,8 +32,15 @@ final class SqliteRunStoreTest extends TestCase
         $store->create($run);
         $store->setStatus('run-1', RunStatus::Running);
         $store->increment('run-1', 'processed', 2);
+        $store->recordEvent('run-1', 'budget_stop', 'site-1', ['reason' => 'pages']);
 
         self::assertSame('run-1', $store->get('run-1')?->id);
         self::assertSame(2.0, $store->telemetry('run-1')['processed']);
+
+        $events = $store->events('run-1');
+        self::assertCount(1, $events);
+        self::assertSame('budget_stop', $events[0]['type']);
+        self::assertSame('site-1', $events[0]['subjectId']);
+        self::assertSame('pages', $events[0]['detail']['reason'] ?? null);
     }
 }
