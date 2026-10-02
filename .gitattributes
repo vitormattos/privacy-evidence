@@ -1,0 +1,13 @@
+* text=auto eol=lf
+
+*.php text diff=php
+*.md text
+*.json text
+*.yml text
+*.yaml text
+
+/vendor/ export-ignore
+/tests/ export-ignore
+/data/ export-ignore
+/.github/ export-ignore
+/AGENTS.md export-ignore
