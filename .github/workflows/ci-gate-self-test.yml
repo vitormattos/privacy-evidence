@@ -1,0 +1,114 @@
+name: CI gate self-test
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/ci-gate-self-test.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  reject-injected-failure:
+    name: Reject injected failure (${{ matrix.gate }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gate: [composer, unit, integration, psalm, phpstan, phpcs]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Inject and verify rejection
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          case "${{ matrix.gate }}" in
+            composer)
+              cp composer.json composer.json.valid
+              printf '{ invalid json\n' > composer.json
+              set +e
+              composer validate --strict >/tmp/gate.log 2>&1
+              code=$?
+              set -e
+              mv composer.json.valid composer.json
+              ;;
+            unit)
+              cat > tests/Unit/InjectedGateFailureTest.php <<'PHP'
+          <?php
+          declare(strict_types=1);
+          namespace PrivacyEvidence\Tests\Unit;
+          use PHPUnit\Framework\TestCase;
+          final class InjectedGateFailureTest extends TestCase
+          {
+              public function testInjectedFailure(): void
+              {
+                  self::fail('intentional CI gate self-test');
+              }
+          }
+          PHP
+              set +e
+              composer test:unit >/tmp/gate.log 2>&1
+              code=$?
+              set -e
+              ;;
+            integration)
+              cat > tests/Integration/InjectedGateFailureTest.php <<'PHP'
+          <?php
+          declare(strict_types=1);
+          namespace PrivacyEvidence\Tests\Integration;
+          use PHPUnit\Framework\TestCase;
+          final class InjectedGateFailureTest extends TestCase
+          {
+              public function testInjectedFailure(): void
+              {
+                  self::fail('intentional CI gate self-test');
+              }
+          }
+          PHP
+              set +e
+              composer test:integration >/tmp/gate.log 2>&1
+              code=$?
+              set -e
+              ;;
+            psalm|phpstan)
+              cat > src/InjectedStaticAnalysisFailure.php <<'PHP'
+          <?php
+          declare(strict_types=1);
+          namespace PrivacyEvidence;
+          final class InjectedStaticAnalysisFailure
+          {
+              public function value(): int
+              {
+                  return 'not-an-int';
+              }
+          }
+          PHP
+              set +e
+              composer "${{ matrix.gate }}" >/tmp/gate.log 2>&1
+              code=$?
+              set -e
+              ;;
+            phpcs)
+              printf '%s\n' '<?php function injected_bad_style(){echo "x";}' > src/InjectedStyleFailure.php
+              set +e
+              composer phpcs >/tmp/gate.log 2>&1
+              code=$?
+              set -e
+              ;;
+          esac
+
+          cat /tmp/gate.log
+          if [ "$code" -eq 0 ]; then
+            echo "Expected ${{ matrix.gate }} gate to reject the injected violation."
+            exit 1
+          fi
+
+          echo "${{ matrix.gate }} correctly rejected the injected violation."
