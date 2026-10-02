@@ -103,14 +103,20 @@ final class RunExporterTest extends TestCase
             flags: JSON_THROW_ON_ERROR,
         );
         self::assertIsArray($decoded);
-        $analysis = $decoded;
-        self::assertSame('run-export', $analysis['runId']);
-        self::assertSame('2026-10-02T00:00:00Z', $analysis['generatedAt']);
-        self::assertSame(1, $analysis['metrics']['counts']['resources']);
-        self::assertSame(
-            1,
-            $analysis['metrics']['evidenceByType']['privacy_notice']['eligibleResources'],
-        );
+        self::assertSame('run-export', $decoded['runId'] ?? null);
+        self::assertSame('2026-10-02T00:00:00Z', $decoded['generatedAt'] ?? null);
+
+        $metrics = $decoded['metrics'] ?? null;
+        self::assertIsArray($metrics);
+        $counts = $metrics['counts'] ?? null;
+        self::assertIsArray($counts);
+        self::assertSame(1, $counts['resources'] ?? null);
+
+        $byType = $metrics['evidenceByType'] ?? null;
+        self::assertIsArray($byType);
+        $privacyNotice = $byType['privacy_notice'] ?? null;
+        self::assertIsArray($privacyNotice);
+        self::assertSame(1, $privacyNotice['eligibleResources'] ?? null);
 
         $report = (string) file_get_contents($directory . '/report.md');
         self::assertStringContainsString('not a legal-compliance certification', $report);
