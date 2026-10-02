@@ -47,6 +47,8 @@ final class DetectorEvaluatorTest extends TestCase
         self::assertSame(1, $metric['confusionMatrix']['falseNegative']);
         self::assertSame(0.5, $metric['precision']);
         self::assertSame(0.5, $metric['recall']);
+        self::assertSame(0.5, $metric['specificity']);
+        self::assertSame(0.5, $metric['negativePredictiveValue']);
         self::assertSame(0.5, $metric['f1']);
         self::assertSame(2, $metric['support']);
         self::assertSame(1, $metric['abstained']);
