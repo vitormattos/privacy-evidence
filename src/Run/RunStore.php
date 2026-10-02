@@ -12,6 +12,8 @@ interface RunStore
 
     public function get(string $runId): ?ResearchRun;
 
+    public function status(string $runId): ?RunStatus;
+
     /**
      * @return array<string, int|float|string>
      */
