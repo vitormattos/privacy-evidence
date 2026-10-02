@@ -53,6 +53,7 @@ final class WorkerPoolCommand extends Command
         $scheduler = $run->configuration['scheduler'] ?? [];
         $scheduler = is_array($scheduler) ? $scheduler : [];
 
+        /** @psalm-suppress MixedAssignment Symfony InputInterface returns mixed by contract. */
         $workersOption = $input->getOption('workers');
         $defaultWorkersKey = $stage === 'fetch'
             ? 'recommendedHttpWorkers'
