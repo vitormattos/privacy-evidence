@@ -1,0 +1,48 @@
+name: Mutation testing
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 4 * * 1'
+  push:
+    branches: [main]
+    paths:
+      - 'src/Source/**'
+      - 'src/Evidence/**'
+      - 'src/Crawl/**'
+      - 'tests/Unit/Source/**'
+      - 'tests/Unit/Evidence/**'
+      - 'tests/Unit/Crawl/**'
+      - 'infection.json5'
+      - 'composer.json'
+      - 'composer.lock'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mutation-testing
+  cancel-in-progress: true
+
+jobs:
+  mutation:
+    name: Infection critical logic
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, mbstring, dom
+          tools: composer:v2
+          coverage: xdebug
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Run mutation analysis
+        run: composer mutation
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: infection-report
+          path: infection.log
+          if-no-files-found: warn
