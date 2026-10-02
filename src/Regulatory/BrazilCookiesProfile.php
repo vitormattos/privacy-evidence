@@ -8,8 +8,14 @@ use PrivacyEvidence\Evidence\EvidenceType;
 
 final class BrazilCookiesProfile implements RegulatoryProfile
 {
-    public function id(): string { return 'cookies-br'; }
-    public function version(): string { return '1.0.0'; }
+    public function id(): string
+    {
+        return 'cookies-br';
+    }
+    public function version(): string
+    {
+        return '1.0.0';
+    }
 
     public function requirements(): array
     {
