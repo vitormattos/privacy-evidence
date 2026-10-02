@@ -1,0 +1,22 @@
+name: Feature
+description: Propose a product or engineering capability
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed capability
+    validations:
+      required: true
+  - type: textarea
+    id: research
+    attributes:
+      label: Research or methodological impact
+      description: Explain whether the proposal changes what the project measures or how it is interpreted.
