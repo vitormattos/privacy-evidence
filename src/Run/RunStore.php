@@ -21,6 +21,8 @@ interface RunStore
 
     public function increment(string $runId, string $metric, int|float $amount = 1): void;
 
+    public function setMetric(string $runId, string $metric, int|float $value): void;
+
     /**
      * @param array<string, scalar|null> $detail
      */
