@@ -119,6 +119,9 @@ final readonly class ResearchPipeline
         $idleRounds = 0;
         $stageStartedAt = microtime(true);
         $usageBefore = getrusage();
+        if (!is_array($usageBefore)) {
+            $usageBefore = [];
+        }
 
         while ($maxJobs === 0 || $processed < $maxJobs) {
             $job = $this->jobs->reserve(
@@ -450,6 +453,9 @@ final readonly class ResearchPipeline
     ): void {
         $elapsedMs = max(0.0, (microtime(true) - $startedAt) * 1000);
         $usageAfter = getrusage();
+        if (!is_array($usageAfter)) {
+            $usageAfter = [];
+        }
 
         $userBefore = ($usageBefore['ru_utime.tv_sec'] ?? 0) * 1_000_000
             + ($usageBefore['ru_utime.tv_usec'] ?? 0);
