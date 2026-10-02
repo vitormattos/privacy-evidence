@@ -6,6 +6,7 @@ namespace PrivacyEvidence\Run;
 
 use PDO;
 use PDOStatement;
+use PrivacyEvidence\Core\Value;
 
 final class SqliteRunStore implements RunStore
 {
@@ -59,54 +60,24 @@ final class SqliteRunStore implements RunStore
         }
 
         $versionsDecoded = json_decode(
-            (string) $row['versions_json'],
+            Value::string($row['versions_json'] ?? null, 'versions_json'),
             true,
             flags: JSON_THROW_ON_ERROR,
         );
         $configurationDecoded = json_decode(
-            (string) $row['configuration_json'],
+            Value::string($row['configuration_json'] ?? null, 'configuration_json'),
             true,
             flags: JSON_THROW_ON_ERROR,
         );
 
-        if (!is_array($versionsDecoded) || !is_array($configurationDecoded)) {
-            throw new \RuntimeException('Stored ResearchRun metadata is invalid.');
-        }
-
-        $versions = [];
-        foreach ($versionsDecoded as $key => $value) {
-            if (is_string($key) && is_string($value)) {
-                $versions[$key] = $value;
-            }
-        }
-
-        $configuration = [];
-        foreach ($configurationDecoded as $key => $value) {
-            if (!is_string($key)) {
-                continue;
-            }
-
-            if (is_scalar($value) || $value === null) {
-                $configuration[$key] = $value;
-            } elseif (is_array($value)) {
-                $scalars = [];
-                foreach ($value as $nestedKey => $nestedValue) {
-                    if (is_scalar($nestedValue)) {
-                        $scalars[$nestedKey] = $nestedValue;
-                    }
-                }
-                $configuration[$key] = $scalars;
-            }
-        }
-
         return new ResearchRun(
-            id: (string) $row['id'],
-            startedAt: (string) $row['started_at'],
-            gitCommit: (string) $row['git_commit'],
-            datasetHash: (string) $row['dataset_hash'],
-            protocolVersion: (string) $row['protocol_version'],
-            versions: $versions,
-            configuration: $configuration,
+            id: Value::string($row['id'] ?? null, 'id'),
+            startedAt: Value::string($row['started_at'] ?? null, 'started_at'),
+            gitCommit: Value::string($row['git_commit'] ?? null, 'git_commit'),
+            datasetHash: Value::string($row['dataset_hash'] ?? null, 'dataset_hash'),
+            protocolVersion: Value::string($row['protocol_version'] ?? null, 'protocol_version'),
+            versions: Value::stringMap($versionsDecoded, 'versions_json'),
+            configuration: Value::configurationMap($configurationDecoded, 'configuration_json'),
         );
     }
 
@@ -129,14 +100,19 @@ final class SqliteRunStore implements RunStore
         );
         $stmt->execute(['run_id' => $runId]);
 
-        /** @var list<array{metric:string,value:string|int|float}> $rows */
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $result = [];
 
         foreach ($rows as $row) {
-            $result[$row['metric']] = is_numeric($row['value'])
-                ? (float) $row['value']
-                : $row['value'];
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $metric = Value::string($row['metric'] ?? null, 'metric');
+            $value = $row['value'] ?? null;
+            $result[$metric] = is_numeric($value)
+                ? Value::float($value, 'value')
+                : Value::string($value, 'value');
         }
 
         return $result;
