@@ -95,18 +95,18 @@ final class InterRaterAgreement
             foreach ($categories as $category) {
                 $countA = $group['countsA'][$category] ?? 0;
                 $countB = $group['countsB'][$category] ?? 0;
-                $expected += ($countA / $total) * ($countB / $total);
+                $expected += ((float) $countA / (float) $total) * ((float) $countB / (float) $total);
                 $categoryResult[$category] = [
                     'reviewerA' => $countA,
                     'reviewerB' => $countB,
                 ];
             }
 
-            $observed = $group['matches'] / $total;
+            $observed = (float) $group['matches'] / (float) $total;
             $denominator = 1.0 - $expected;
             $kappa = abs($denominator) < 1.0e-12
                 ? null
-                : ($observed - $expected) / $denominator;
+                : ($observed - $expected) / (float) $denominator;
 
             $result[$type] = [
                 'sampleSize' => $total,
