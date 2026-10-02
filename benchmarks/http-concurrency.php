@@ -45,6 +45,16 @@ $client = HttpClient::create([
     'timeout' => 10.0,
 ]);
 
+$fdCount = static function (): ?int {
+    if (!is_dir('/proc/self/fd')) {
+        return null;
+    }
+    $items = scandir('/proc/self/fd');
+    return is_array($items) ? max(count($items) - 2, 0) : null;
+};
+
+$usageBefore = getrusage();
+$fdBefore = $fdCount();
 $started = hrtime(true);
 $responses = [];
 for ($i = 0; $i < $requests; $i++) {
@@ -55,6 +65,7 @@ for ($i = 0; $i < $requests; $i++) {
     ));
 }
 
+$fdAfterDispatch = $fdCount();
 $errors = 0;
 $bytes = 0;
 foreach ($client->stream($responses) as $response => $chunk) {
@@ -80,6 +91,8 @@ foreach ($client->stream($responses) as $response => $chunk) {
 }
 
 $finished = hrtime(true);
+$usageAfter = getrusage();
+$fdAfter = $fdCount();
 $server->stop();
 
 $seconds = max(($finished - $started) / 1_000_000_000, 0.000001);
@@ -96,4 +109,16 @@ echo json_encode([
     'requestsPerSecond' => round($requests / $seconds, 2),
     'peakMemoryBytes' => memory_get_peak_usage(true),
     'peakMemoryMiB' => round(memory_get_peak_usage(true) / 1024 / 1024, 2),
+    'fileDescriptors' => [
+        'before' => $fdBefore,
+        'afterDispatch' => $fdAfterDispatch,
+        'after' => $fdAfter,
+        'peakObserved' => max(array_filter([$fdBefore, $fdAfterDispatch, $fdAfter], 'is_int') ?: [0]),
+    ],
+    'cpu' => [
+        'userMicros' => (($usageAfter['ru_utime.tv_sec'] ?? 0) - ($usageBefore['ru_utime.tv_sec'] ?? 0)) * 1_000_000
+            + (($usageAfter['ru_utime.tv_usec'] ?? 0) - ($usageBefore['ru_utime.tv_usec'] ?? 0)),
+        'systemMicros' => (($usageAfter['ru_stime.tv_sec'] ?? 0) - ($usageBefore['ru_stime.tv_sec'] ?? 0)) * 1_000_000
+            + (($usageAfter['ru_stime.tv_usec'] ?? 0) - ($usageBefore['ru_stime.tv_usec'] ?? 0)),
+    ],
 ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL;
