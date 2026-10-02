@@ -47,11 +47,12 @@ final class RunCommand extends Command
         $profiles = DefaultProfileRegistry::create();
 
         $lockPath = $this->projectRoot . '/composer.lock';
+        $lockHash = is_file($lockPath) ? hash_file('sha256', $lockPath) : false;
         $versions = [
             'protocol' => '0.1.0-draft',
             'schema' => '0.1.0-draft',
             'php' => PHP_VERSION,
-            'composer-lock-sha256' => is_file($lockPath) ? hash_file('sha256', $lockPath) ?: 'unknown' : 'missing',
+            'composer-lock-sha256' => is_string($lockHash) ? $lockHash : 'missing',
             'browser-backend' => 'playwright',
         ];
         foreach ($detectors->detectors as $detector) {
