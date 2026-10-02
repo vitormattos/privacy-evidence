@@ -100,6 +100,7 @@ final class SqliteRunStore implements RunStore
         );
         $stmt->execute(['run_id' => $runId]);
 
+        /** @var list<array<string, mixed>> $rows */
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $result = [];
 
