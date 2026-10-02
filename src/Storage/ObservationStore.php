@@ -17,6 +17,16 @@ interface ObservationStore
     public function recordEvidence(string $runId, PrivacyEvidence $evidence): void;
 
     /**
+     * @return list<array<string,mixed>>
+     */
+    public function resourceRecords(string $runId): array;
+
+    /**
+     * @return list<array<string,mixed>>
+     */
+    public function documentRecords(string $runId): array;
+
+    /**
      * @return list<string>
      */
     public function resourceIds(string $runId): array;
