@@ -25,47 +25,91 @@ final class RunComparatorTest extends TestCase
         $observations = new SqliteObservationStore($pdo);
 
         $runs->create(new ResearchRun(
-            'base', '2026-01-01T00:00:00Z', 'a', str_repeat('a', 64), '1.0.0',
-            ['schema' => '1.0.0'], [],
+            'base',
+            '2026-01-01T00:00:00Z',
+            'a',
+            str_repeat('a', 64),
+            '1.0.0',
+            ['schema' => '1.0.0'],
+            [],
         ));
         $runs->create(new ResearchRun(
-            'target', '2026-02-01T00:00:00Z', 'b', str_repeat('b', 64), '1.0.0',
-            ['schema' => '1.0.0'], [],
+            'target',
+            '2026-02-01T00:00:00Z',
+            'b',
+            str_repeat('b', 64),
+            '1.0.0',
+            ['schema' => '1.0.0'],
+            [],
         ));
 
-        $observations->recordResource('base', new ImportedResource(
-            'r1', 'Site', 'https://old.test', 'https://old.test/', ResourceType::InstitutionalWebsite,
-        ));
-        $observations->recordResource('base', new ImportedResource(
-            'removed', 'Removed', 'https://removed.test', 'https://removed.test/', ResourceType::InstitutionalWebsite,
-        ));
-        $observations->recordResource('target', new ImportedResource(
-            'r1', 'Site', 'https://new.test', 'https://new.test/', ResourceType::InstitutionalWebsite,
-        ));
-        $observations->recordResource('target', new ImportedResource(
-            'added', 'Added', 'https://added.test', 'https://added.test/', ResourceType::InstitutionalWebsite,
-        ));
+        $observations->recordResource(
+            'base',
+            new ImportedResource(
+                'r1',
+                'Site',
+                'https://old.test',
+                'https://old.test/',
+                ResourceType::InstitutionalWebsite,
+            ),
+        );
+        $observations->recordResource(
+            'base',
+            new ImportedResource(
+                'removed',
+                'Removed',
+                'https://removed.test',
+                'https://removed.test/',
+                ResourceType::InstitutionalWebsite,
+            ),
+        );
+        $observations->recordResource(
+            'target',
+            new ImportedResource(
+                'r1',
+                'Site',
+                'https://new.test',
+                'https://new.test/',
+                ResourceType::InstitutionalWebsite,
+            ),
+        );
+        $observations->recordResource(
+            'target',
+            new ImportedResource(
+                'added',
+                'Added',
+                'https://added.test',
+                'https://added.test/',
+                ResourceType::InstitutionalWebsite,
+            ),
+        );
 
-        $observations->recordEvidence('base', new PrivacyEvidence(
-            EvidenceType::PrivacyNotice,
-            ObservationState::Absent,
-            'r1',
-            str_repeat('1', 64),
-            'https://old.test/',
-            'test',
-            '1',
-            'fixture',
-        ));
-        $observations->recordEvidence('target', new PrivacyEvidence(
-            EvidenceType::PrivacyNotice,
-            ObservationState::Present,
-            'r1',
-            str_repeat('2', 64),
-            'https://new.test/',
-            'test',
-            '1',
-            'fixture',
-        ));
+        $observations->recordEvidence(
+            'base',
+            new PrivacyEvidence(
+                EvidenceType::PrivacyNotice,
+                ObservationState::Absent,
+                'r1',
+                str_repeat('1', 64),
+                'https://old.test/',
+                'test',
+                '1',
+                'fixture',
+            ),
+        );
+        $observations->recordEvidence(
+            'target',
+            new PrivacyEvidence(
+                EvidenceType::PrivacyNotice,
+                ObservationState::Present,
+                'r1',
+                str_repeat('2', 64),
+                'https://new.test/',
+                'test',
+                '1',
+                'fixture',
+            ),
+        );
 
         $comparison = (new RunComparator($runs, $observations))->compare('base', 'target');
 
@@ -84,12 +128,22 @@ final class RunComparatorTest extends TestCase
         $observations = new SqliteObservationStore($pdo);
 
         $runs->create(new ResearchRun(
-            'a', '2026-01-01T00:00:00Z', 'a', str_repeat('a', 64), '1.0.0',
-            ['schema' => '1.0.0'], [],
+            'a',
+            '2026-01-01T00:00:00Z',
+            'a',
+            str_repeat('a', 64),
+            '1.0.0',
+            ['schema' => '1.0.0'],
+            [],
         ));
         $runs->create(new ResearchRun(
-            'b', '2026-02-01T00:00:00Z', 'b', str_repeat('b', 64), '2.0.0',
-            ['schema' => '1.0.0'], [],
+            'b',
+            '2026-02-01T00:00:00Z',
+            'b',
+            str_repeat('b', 64),
+            '2.0.0',
+            ['schema' => '1.0.0'],
+            [],
         ));
 
         $comparison = (new RunComparator($runs, $observations))->compare('a', 'b');
