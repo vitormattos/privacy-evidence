@@ -26,6 +26,18 @@ final readonly class ConfusionMatrix
         return $denominator === 0 ? null : $this->truePositive / $denominator;
     }
 
+    public function specificity(): ?float
+    {
+        $denominator = $this->trueNegative + $this->falsePositive;
+        return $denominator === 0 ? null : $this->trueNegative / $denominator;
+    }
+
+    public function negativePredictiveValue(): ?float
+    {
+        $denominator = $this->trueNegative + $this->falseNegative;
+        return $denominator === 0 ? null : $this->trueNegative / $denominator;
+    }
+
     public function f1(): ?float
     {
         $precision = $this->precision();
