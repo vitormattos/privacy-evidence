@@ -146,6 +146,27 @@ final class SqliteJobQueue implements JobQueue
         return $result;
     }
 
+
+    public function scheduledCount(
+        string $runId,
+        string $stage,
+        string $deduplicationPrefix,
+    ): int {
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM jobs
+             WHERE run_id = :run_id
+               AND stage = :stage
+               AND deduplication_key LIKE :prefix',
+        );
+        $stmt->execute([
+            'run_id' => $runId,
+            'stage' => $stage,
+            'prefix' => $deduplicationPrefix . '%',
+        ]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
     private function migrate(): void
     {
         $this->pdo->exec(
