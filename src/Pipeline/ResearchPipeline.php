@@ -34,6 +34,7 @@ final readonly class ResearchPipeline
         private ProfileRegistry $profiles,
         private ProfileEvaluator $profileEvaluator = new ProfileEvaluator(),
         private BrowserEscalationPolicy $browserPolicy = new BrowserEscalationPolicy(),
+        private LinkDiscoverer $linkDiscoverer = new LinkDiscoverer(),
         private ?BrowserProvider $browser = null,
         private PipelineConfig $config = new PipelineConfig(),
     ) {
@@ -57,10 +58,12 @@ final readonly class ResearchPipeline
                     id: Uuid::v7()->toRfc4122(),
                     runId: $run->id,
                     stage: 'fetch',
-                    deduplicationKey: $resource->id,
+                    deduplicationKey: $resource->id . '|' . $resource->normalizedUrl,
                     payload: [
                         'resource_id' => $resource->id,
                         'url' => $resource->normalizedUrl,
+                        'depth' => 0,
+                        'crawl_started_at' => time(),
                     ],
                 ),
             );
@@ -83,6 +86,8 @@ final readonly class ResearchPipeline
             try {
                 $resourceId = $this->requiredPayloadString($job, 'resource_id');
                 $url = $this->requiredPayloadString($job, 'url');
+                $depth = $this->payloadInt($job, 'depth', 0);
+                $crawlStartedAt = $this->payloadInt($job, 'crawl_started_at', time());
 
                 $document = $this->fetcher->fetch(
                     resourceId: $resourceId,
@@ -90,6 +95,13 @@ final readonly class ResearchPipeline
                     maxBytes: $this->config->maxBodyBytes,
                 );
                 $this->persistAndAnalyze($runId, $document);
+                $this->scheduleLinks(
+                    runId: $runId,
+                    resourceId: $resourceId,
+                    document: $document,
+                    depth: $depth,
+                    crawlStartedAt: $crawlStartedAt,
+                );
 
                 if ($this->config->enableBrowserEscalation && $this->browser !== null) {
                     $decision = $this->browserPolicy->decide($document);
@@ -132,6 +144,49 @@ final readonly class ResearchPipeline
     {
         $this->runs->setStatus($runId, RunStatus::Running);
         $this->execute($runId);
+    }
+
+
+    private function scheduleLinks(
+        string $runId,
+        string $resourceId,
+        FetchedDocument $document,
+        int $depth,
+        int $crawlStartedAt,
+    ): void {
+        $budget = $this->config->crawlBudget;
+        $usage = $this->observations->resourceUsage($runId, $resourceId);
+
+        if ($depth >= $budget->maxDepth
+            || $usage['pages'] >= $budget->maxPages
+            || $usage['bytes'] >= $budget->maxBytes
+            || (time() - $crawlStartedAt) >= $budget->maxDurationSeconds
+        ) {
+            $this->runs->increment($runId, 'crawl_budget_stops');
+            return;
+        }
+
+        foreach ($this->linkDiscoverer->discover($document) as $candidate) {
+            if ($this->jobs->scheduledCount($runId, 'fetch', $resourceId . '|') >= $budget->maxPages) {
+                $this->runs->increment($runId, 'crawl_page_budget_stops');
+                break;
+            }
+
+            $this->jobs->enqueue(
+                new Job(
+                    id: Uuid::v7()->toRfc4122(),
+                    runId: $runId,
+                    stage: 'fetch',
+                    deduplicationKey: $resourceId . '|' . $candidate->url,
+                    payload: [
+                        'resource_id' => $resourceId,
+                        'url' => $candidate->url,
+                        'depth' => $depth + 1,
+                        'crawl_started_at' => $crawlStartedAt,
+                    ],
+                ),
+            );
+        }
     }
 
     private function persistAndAnalyze(string $runId, FetchedDocument $document): void
@@ -181,6 +236,22 @@ final readonly class ResearchPipeline
                 );
             }
         }
+    }
+
+
+    private function payloadInt(Job $job, string $key, int $default): int
+    {
+        $value = $job->payload[$key] ?? $default;
+
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && ctype_digit($value)) {
+            return (int) $value;
+        }
+
+        return $default;
     }
 
     private function requiredPayloadString(Job $job, string $key): string
