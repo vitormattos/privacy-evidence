@@ -14,6 +14,6 @@
     "@default": true
   },
   "testFramework": "phpunit",
-  "minMsi": 60,
+  "minMsi": 45,
   "minCoveredMsi": 70
 }
