@@ -4,7 +4,28 @@
     "type": "project",
     "license": "AGPL-3.0-or-later",
     "require": {
-        "php": "^8.4"
+        "php": "^8.4.1",
+        "ext-ctype": "*",
+        "ext-dom": "*",
+        "ext-json": "*",
+        "ext-libxml": "*",
+        "ext-mbstring": "*",
+        "ext-pdo": "*",
+        "ext-tokenizer": "*",
+        "symfony/console": "^8.1",
+        "symfony/css-selector": "^8.1",
+        "symfony/dom-crawler": "^8.1",
+        "symfony/http-client": "^8.1",
+        "symfony/messenger": "^8.1",
+        "symfony/rate-limiter": "^8.1",
+        "symfony/uid": "^8.1"
+    },
+    "require-dev": {
+        "infection/infection": "^0.35.5",
+        "phpstan/phpstan": "^2.2.14",
+        "phpunit/phpunit": "^13.3.6",
+        "squizlabs/php_codesniffer": "^4.0.4",
+        "vimeo/psalm": "^6.17"
     },
     "autoload": {
         "psr-4": {
@@ -16,8 +37,31 @@
             "PrivacyEvidence\\Tests\\": "tests/"
         }
     },
+    "scripts": {
+        "test": "@test:unit",
+        "test:unit": "phpunit --testsuite unit",
+        "test:integration": "phpunit --testsuite integration",
+        "psalm": "psalm --no-cache",
+        "phpstan": "phpstan analyse --no-progress",
+        "phpcs": "phpcs",
+        "mutation": "infection --threads=max --no-progress",
+        "audit": "composer audit",
+        "quality": [
+            "@validate",
+            "@test:unit",
+            "@test:integration",
+            "@psalm",
+            "@phpstan",
+            "@phpcs",
+            "@audit"
+        ],
+        "validate": "composer validate --strict"
+    },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "infection/extension-installer": true
+        }
     },
     "minimum-stability": "stable",
     "prefer-stable": true
