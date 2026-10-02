@@ -40,18 +40,29 @@ final readonly class PlaywrightBrowserProvider implements BrowserProvider
             throw new \RuntimeException('Browser worker returned an invalid observation.');
         }
 
+        /** @var string $url */
+        $url = $decoded['url'];
+        /** @var string $html */
+        $html = $decoded['html'];
+        /** @var string $capturedAt */
+        $capturedAt = $decoded['capturedAt'];
+        /** @var string $browserVersion */
+        $browserVersion = $decoded['browserVersion'];
+
+        /** @var array<string, mixed> $metadata */
         $metadata = [];
         foreach (['cookies', 'localStorage', 'sessionStorage', 'requests'] as $key) {
-            if (isset($decoded[$key]) && is_array($decoded[$key])) {
-                $metadata[$key] = $decoded[$key];
+            $value = $decoded[$key] ?? null;
+            if (is_array($value)) {
+                $metadata[$key] = $value;
             }
         }
 
         return new BrowserObservation(
-            url: $decoded['url'],
-            html: $decoded['html'],
-            capturedAt: $decoded['capturedAt'],
-            browserVersion: $decoded['browserVersion'],
+            url: $url,
+            html: $html,
+            capturedAt: $capturedAt,
+            browserVersion: $browserVersion,
             metadata: $metadata,
         );
     }
