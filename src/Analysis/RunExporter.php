@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PrivacyEvidence\Analysis;
 
+use PrivacyEvidence\Core\Value;
 use PrivacyEvidence\Evidence\PrivacyEvidence;
 use PrivacyEvidence\Runtime\RuntimeContext;
 
@@ -64,18 +65,8 @@ final readonly class RunExporter
         $this->csv(
             $directory . '/resources.csv',
             ['id', 'name', 'sourceValue', 'normalizedUrl', 'type'],
-            array_map(
-                static fn (array $record): array => [
-                    $record['id'] ?? null,
-                    $record['name'] ?? null,
-                    $record['sourceValue'] ?? null,
-                    $record['normalizedUrl'] ?? null,
-                    $record['type'] ?? null,
-                ],
-                $resources,
-            ),
+            $this->resourceRows($resources),
         );
-
         $this->csv(
             $directory . '/documents.csv',
             [
@@ -90,23 +81,8 @@ final readonly class RunExporter
                 'truncated',
                 'bodySize',
             ],
-            array_map(
-                static fn (array $record): array => [
-                    $record['artifactHash'] ?? null,
-                    $record['resourceId'] ?? null,
-                    $record['requestedUrl'] ?? null,
-                    $record['finalUrl'] ?? null,
-                    $record['statusCode'] ?? null,
-                    $record['mediaType'] ?? null,
-                    $record['fetchedAt'] ?? null,
-                    $record['acquisitionMode'] ?? null,
-                    ($record['truncated'] ?? false) ? '1' : '0',
-                    $record['bodySize'] ?? null,
-                ],
-                $documents,
-            ),
+            $this->documentRows($documents),
         );
-
         $this->csv(
             $directory . '/evidence.csv',
             [
@@ -122,22 +98,7 @@ final readonly class RunExporter
                 'confidence',
                 'needsReview',
             ],
-            array_map(
-                static fn (array $record): array => [
-                    $record['id'] ?? null,
-                    $record['resourceId'] ?? null,
-                    $record['artifactHash'] ?? null,
-                    $record['type'] ?? null,
-                    $record['state'] ?? null,
-                    $record['sourceUrl'] ?? null,
-                    $record['detector'] ?? null,
-                    $record['detectorVersion'] ?? null,
-                    $record['method'] ?? null,
-                    $record['confidence'] ?? null,
-                    ($record['needsReview'] ?? false) ? '1' : '0',
-                ],
-                $evidence,
-            ),
+            $this->evidenceRows($evidenceObjects),
         );
 
         $this->report(
@@ -151,11 +112,96 @@ final readonly class RunExporter
     }
 
     /**
+     * @param list<array<string,mixed>> $records
+     * @return list<list<scalar|null>>
+     */
+    private function resourceRows(array $records): array
+    {
+        $rows = [];
+        foreach ($records as $record) {
+            $rows[] = [
+                Value::string($record['id'] ?? null, 'resource.id'),
+                Value::string($record['name'] ?? null, 'resource.name'),
+                Value::string($record['sourceValue'] ?? null, 'resource.sourceValue'),
+                Value::nullableString($record['normalizedUrl'] ?? null, 'resource.normalizedUrl'),
+                Value::string($record['type'] ?? null, 'resource.type'),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param list<array<string,mixed>> $records
+     * @return list<list<scalar|null>>
+     */
+    private function documentRows(array $records): array
+    {
+        $rows = [];
+        foreach ($records as $record) {
+            $rows[] = [
+                Value::string($record['artifactHash'] ?? null, 'document.artifactHash'),
+                Value::string($record['resourceId'] ?? null, 'document.resourceId'),
+                Value::string($record['requestedUrl'] ?? null, 'document.requestedUrl'),
+                Value::string($record['finalUrl'] ?? null, 'document.finalUrl'),
+                Value::int($record['statusCode'] ?? null, 'document.statusCode'),
+                Value::string($record['mediaType'] ?? null, 'document.mediaType'),
+                Value::string($record['fetchedAt'] ?? null, 'document.fetchedAt'),
+                Value::string($record['acquisitionMode'] ?? null, 'document.acquisitionMode'),
+                Value::bool($record['truncated'] ?? null, 'document.truncated') ? '1' : '0',
+                Value::int($record['bodySize'] ?? null, 'document.bodySize'),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param list<PrivacyEvidence> $evidence
+     * @return list<list<scalar|null>>
+     */
+    private function evidenceRows(array $evidence): array
+    {
+        $rows = [];
+        foreach ($evidence as $item) {
+            $rows[] = [
+                $item->id(),
+                $item->resourceId,
+                $item->artifactHash,
+                $item->type->value,
+                $item->state->value,
+                $item->sourceUrl,
+                $item->detector,
+                $item->detectorVersion,
+                $item->method,
+                $item->confidence,
+                $item->needsReview ? '1' : '0',
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
      * @param list<array<string,mixed>> $resources
      * @param list<PrivacyEvidence> $evidence
      * @param array<string,int|float|string> $telemetry
      * @param array<string,int> $counts
-     * @return array<string,mixed>
+     * @return array{
+     *   schemaVersion:string,
+     *   runId:string,
+     *   generatedAt:string,
+     *   metrics:array{
+     *     counts:array<string,int>,
+     *     evidenceByType:array<string,array{
+     *       eligibleResources:int,
+     *       observations:int,
+     *       states:array<string,int>
+     *     }>
+     *   },
+     *   failures:array<string,int|float|string>,
+     *   performance:array<string,int|float|string>
+     * }
      */
     private function analysis(
         string $runId,
@@ -166,6 +212,8 @@ final readonly class RunExporter
         array $counts,
     ): array {
         $resourceCount = count($resources);
+
+        /** @var array<string,array{eligibleResources:int,observations:int,states:array<string,int>}> $byType */
         $byType = [];
 
         foreach ($evidence as $item) {
@@ -212,7 +260,21 @@ final readonly class RunExporter
     }
 
     /**
-     * @param array<string,mixed> $analysis
+     * @param array{
+     *   schemaVersion:string,
+     *   runId:string,
+     *   generatedAt:string,
+     *   metrics:array{
+     *     counts:array<string,int>,
+     *     evidenceByType:array<string,array{
+     *       eligibleResources:int,
+     *       observations:int,
+     *       states:array<string,int>
+     *     }>
+     *   },
+     *   failures:array<string,int|float|string>,
+     *   performance:array<string,int|float|string>
+     * } $analysis
      */
     private function report(
         string $path,
@@ -222,10 +284,8 @@ final readonly class RunExporter
         string $datasetHash,
         array $analysis,
     ): void {
-        /** @var array<string,int> $counts */
-        $counts = $analysis['metrics']['counts'] ?? [];
-        /** @var array<string,array<string,mixed>> $byType */
-        $byType = $analysis['metrics']['evidenceByType'] ?? [];
+        $counts = $analysis['metrics']['counts'];
+        $byType = $analysis['metrics']['evidenceByType'];
 
         $lines = [
             '# Privacy Evidence run ' . $runId,
@@ -245,18 +305,16 @@ final readonly class RunExporter
         ];
 
         foreach ($byType as $type => $metric) {
-            /** @var array<string,int> $states */
-            $states = $metric['states'] ?? [];
             $stateSummary = [];
-            foreach ($states as $state => $count) {
+            foreach ($metric['states'] as $state => $count) {
                 $stateSummary[] = $state . '=' . $count;
             }
 
             $lines[] = sprintf(
                 '| %s | %d | %d | %s |',
                 $type,
-                (int) ($metric['eligibleResources'] ?? 0),
-                (int) ($metric['observations'] ?? 0),
+                $metric['eligibleResources'],
+                $metric['observations'],
                 implode(', ', $stateSummary),
             );
         }
@@ -303,7 +361,8 @@ final readonly class RunExporter
                 fputcsv(
                     $handle,
                     array_map(
-                        static fn (mixed $value): string => $value === null ? '' : (string) $value,
+                        static fn (string|int|float|bool|null $value): string =>
+                            $value === null ? '' : (string) $value,
                         $row,
                     ),
                     ',',
