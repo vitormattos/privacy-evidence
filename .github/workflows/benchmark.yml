@@ -23,6 +23,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  http-concurrency:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        concurrency: [1, 2, 4, 8, 16, 32]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, mbstring, dom
+          tools: composer:v2
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Run HTTP concurrency benchmark
+        env:
+          BENCH_CONCURRENCY: ${{ matrix.concurrency }}
+          BENCH_REQUESTS: '200'
+        run: |
+          set -o pipefail
+          mkdir -p benchmark-results
+          php benchmarks/http-concurrency.php | tee "benchmark-results/http-${BENCH_CONCURRENCY}.json"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: http-concurrency-${{ matrix.concurrency }}
+          path: benchmark-results/http-*.json
+
   php-benchmark:
     runs-on: ubuntu-latest
     steps:
