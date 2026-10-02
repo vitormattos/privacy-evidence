@@ -16,6 +16,9 @@ final readonly class ImportedResource
         public ?string $normalizedUrl,
         public ResourceType $type = ResourceType::Unknown,
         public array $metadata = [],
+        public string $classificationRule = 'unspecified',
+        public string $classificationVersion = ResourceClassifier::VERSION,
+        public float $classificationConfidence = 0.0,
     ) {
     }
 
@@ -30,6 +33,11 @@ final readonly class ImportedResource
             'sourceValue' => $this->sourceValue,
             'normalizedUrl' => $this->normalizedUrl,
             'type' => $this->type->value,
+            'classification' => [
+                'rule' => $this->classificationRule,
+                'version' => $this->classificationVersion,
+                'confidence' => $this->classificationConfidence,
+            ],
             'metadata' => $this->metadata,
         ];
     }
