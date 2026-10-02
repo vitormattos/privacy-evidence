@@ -42,9 +42,9 @@ final class SqliteObservationStore implements ObservationStore
         $stmt = $this->pdo->prepare(
             'INSERT OR IGNORE INTO documents
              (run_id, artifact_hash, resource_id, requested_url, final_url, status_code,
-              media_type, fetched_at, acquisition_mode, truncated)
+              media_type, fetched_at, acquisition_mode, truncated, body_size)
              VALUES (:run_id, :artifact_hash, :resource_id, :requested_url, :final_url, :status_code,
-                     :media_type, :fetched_at, :acquisition_mode, :truncated)',
+                     :media_type, :fetched_at, :acquisition_mode, :truncated, :body_size)',
         );
         $stmt->execute([
             'run_id' => $runId,
@@ -57,6 +57,7 @@ final class SqliteObservationStore implements ObservationStore
             'fetched_at' => $document->fetchedAt,
             'acquisition_mode' => $document->acquisitionMode,
             'truncated' => $document->truncated ? 1 : 0,
+            'body_size' => strlen($document->body),
         ]);
     }
 
@@ -170,6 +171,34 @@ final class SqliteObservationStore implements ObservationStore
         ]);
     }
 
+
+    public function resourceUsage(string $runId, string $resourceId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) AS pages,
+                    COALESCE(SUM(body_size), 0) AS bytes,
+                    COALESCE(SUM(CASE WHEN acquisition_mode = "browser" THEN 1 ELSE 0 END), 0)
+                        AS browser_pages
+             FROM documents
+             WHERE run_id = :run_id AND resource_id = :resource_id',
+        );
+        $stmt->execute([
+            'run_id' => $runId,
+            'resource_id' => $resourceId,
+        ]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!is_array($row)) {
+            return ['pages' => 0, 'bytes' => 0, 'browserPages' => 0];
+        }
+
+        return [
+            'pages' => (int) $row['pages'],
+            'bytes' => (int) $row['bytes'],
+            'browserPages' => (int) $row['browser_pages'],
+        ];
+    }
+
     public function counts(string $runId): array
     {
         $result = [];
@@ -212,6 +241,7 @@ final class SqliteObservationStore implements ObservationStore
                 fetched_at TEXT NOT NULL,
                 acquisition_mode TEXT NOT NULL,
                 truncated INTEGER NOT NULL,
+                body_size INTEGER NOT NULL,
                 PRIMARY KEY (run_id, artifact_hash)
             )',
         );
