@@ -84,6 +84,7 @@ final class Value
         }
 
         $result = [];
+        /** @psalm-suppress MixedAssignment */
         foreach ($value as $key => $item) {
             if (is_string($key) && is_string($item)) {
                 $result[$key] = $item;
