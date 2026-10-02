@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e662530b1f2d7010f92ffc1a44962fc3",
+    "content-hash": "540905dae76269dd8e86a62290848ff1",
     "packages": [
         {
             "name": "psr/clock",
@@ -1383,6 +1383,71 @@
                 }
             ],
             "time": "2026-09-24T05:20:52+00:00"
+        },
+        {
+            "name": "symfony/process",
+            "version": "v8.1.7",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/process.git",
+                "reference": "10823b09358e690df4ff943e24e8492bb1019fc3"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/process/zipball/10823b09358e690df4ff943e24e8492bb1019fc3",
+                "reference": "10823b09358e690df4ff943e24e8492bb1019fc3",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.4.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Symfony\\Component\\Process\\": ""
+                },
+                "exclude-from-classmap": [
+                    "/Tests/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Fabien Potencier",
+                    "email": "fabien@symfony.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Executes commands in sub-processes",
+            "homepage": "https://symfony.com",
+            "support": {
+                "source": "https://github.com/symfony/process/tree/v8.1.7"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/nicolas-grekas",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2026-09-02T12:40:29+00:00"
         },
         {
             "name": "symfony/rate-limiter",
@@ -7002,71 +7067,6 @@
             "time": "2026-09-23T22:01:09+00:00"
         },
         {
-            "name": "symfony/process",
-            "version": "v8.1.7",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/symfony/process.git",
-                "reference": "10823b09358e690df4ff943e24e8492bb1019fc3"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/symfony/process/zipball/10823b09358e690df4ff943e24e8492bb1019fc3",
-                "reference": "10823b09358e690df4ff943e24e8492bb1019fc3",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=8.4.1"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "Symfony\\Component\\Process\\": ""
-                },
-                "exclude-from-classmap": [
-                    "/Tests/"
-                ]
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Fabien Potencier",
-                    "email": "fabien@symfony.com"
-                },
-                {
-                    "name": "Symfony Community",
-                    "homepage": "https://symfony.com/contributors"
-                }
-            ],
-            "description": "Executes commands in sub-processes",
-            "homepage": "https://symfony.com",
-            "support": {
-                "source": "https://github.com/symfony/process/tree/v8.1.7"
-            },
-            "funding": [
-                {
-                    "url": "https://symfony.com/sponsor",
-                    "type": "custom"
-                },
-                {
-                    "url": "https://github.com/fabpot",
-                    "type": "github"
-                },
-                {
-                    "url": "https://github.com/nicolas-grekas",
-                    "type": "github"
-                },
-                {
-                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
-                    "type": "tidelift"
-                }
-            ],
-            "time": "2026-09-02T12:40:29+00:00"
-        },
-        {
             "name": "thecodingmachine/safe",
             "version": "v3.4.0",
             "source": {
@@ -7450,14 +7450,14 @@
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
-        "php": "^8.4.1",
         "ext-ctype": "*",
         "ext-dom": "*",
         "ext-json": "*",
         "ext-libxml": "*",
         "ext-mbstring": "*",
         "ext-pdo": "*",
-        "ext-tokenizer": "*"
+        "ext-tokenizer": "*",
+        "php": "^8.4.1"
     },
     "platform-dev": {},
     "plugin-api-version": "2.9.0"
