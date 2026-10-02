@@ -6,12 +6,12 @@ namespace PrivacyEvidence\Review;
 
 interface ReviewQueue
 {
-    public function enqueue(string $evidenceId, string $payload): void;
+    public function enqueue(string $runId, string $evidenceId, string $payload): void;
 
     /**
-     * @return list<array{evidence_id:string,payload:string,status:string}>
+     * @return list<array{run_id:string,evidence_id:string,payload:string,status:string}>
      */
-    public function pending(): array;
+    public function pending(?string $runId = null): array;
 
     public function decide(ReviewDecision $decision): void;
 }
