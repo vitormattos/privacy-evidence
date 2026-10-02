@@ -73,3 +73,12 @@ Re-open this decision if:
 - a PHP-native backend provides equivalent network/storage/context isolation with lower measured operational cost;
 - browser security/maintenance requirements materially change;
 - the project needs a browser engine or platform not supported by the selected worker.
+
+
+## Measured baseline
+
+The 2026-10-02 CI benchmark on Chromium 153.0.8010.12 / Node v24.21.0 measured 10 isolated Playwright contexts at 54.54 ms average context time, 794.17 ms total and approximately 140 MiB maximum RSS. CPU use was 625,985 µs user and 90,276 µs system.
+
+These results establish an initial resource envelope; they do not claim Playwright is faster than Panther or direct CDP. The backend decision remains capability-led and reversible through `BrowserProvider`.
+
+See `docs/development/performance.md` for the complete benchmark baseline.
