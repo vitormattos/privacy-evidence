@@ -36,3 +36,10 @@ path = [
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Vitor Mattos"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+
+[[annotations]]
+path = ["examples/poc/**", ".github/workflows/poc.yml", "skills/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Vitor Mattos"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
