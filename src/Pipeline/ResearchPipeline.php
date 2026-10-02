@@ -48,6 +48,7 @@ final readonly class ResearchPipeline
 
             if ($resource->normalizedUrl === null) {
                 $this->runs->increment($run->id, 'resources_invalid');
+                $this->runs->increment($run->id, 'jobs_skipped');
                 $this->runs->recordEvent(
                     $run->id,
                     'resource_terminal',
@@ -116,6 +117,8 @@ final readonly class ResearchPipeline
 
         $processed = 0;
         $idleRounds = 0;
+        $stageStartedAt = microtime(true);
+        $usageBefore = getrusage();
 
         while ($maxJobs === 0 || $processed < $maxJobs) {
             $job = $this->jobs->reserve(
@@ -176,6 +179,14 @@ final readonly class ResearchPipeline
 
             $processed++;
         }
+
+        $this->recordStagePerformance(
+            $runId,
+            $stage,
+            $processed,
+            $stageStartedAt,
+            $usageBefore,
+        );
 
         return $processed;
     }
@@ -245,6 +256,7 @@ final readonly class ResearchPipeline
                 'browser_pages',
                 $url,
             );
+            $this->runs->increment($runId, 'jobs_skipped');
             return;
         }
 
@@ -423,6 +435,47 @@ final readonly class ResearchPipeline
                 'reason' => $reason,
                 'url' => $url,
             ],
+        );
+    }
+
+    /**
+     * @param array<string,int> $usageBefore
+     */
+    private function recordStagePerformance(
+        string $runId,
+        string $stage,
+        int $processed,
+        float $startedAt,
+        array $usageBefore,
+    ): void {
+        $elapsedMs = max(0.0, (microtime(true) - $startedAt) * 1000);
+        $usageAfter = getrusage();
+
+        $userBefore = ($usageBefore['ru_utime.tv_sec'] ?? 0) * 1_000_000
+            + ($usageBefore['ru_utime.tv_usec'] ?? 0);
+        $userAfter = ($usageAfter['ru_utime.tv_sec'] ?? 0) * 1_000_000
+            + ($usageAfter['ru_utime.tv_usec'] ?? 0);
+        $systemBefore = ($usageBefore['ru_stime.tv_sec'] ?? 0) * 1_000_000
+            + ($usageBefore['ru_stime.tv_usec'] ?? 0);
+        $systemAfter = ($usageAfter['ru_stime.tv_sec'] ?? 0) * 1_000_000
+            + ($usageAfter['ru_stime.tv_usec'] ?? 0);
+
+        $this->runs->increment($runId, 'stage_jobs.' . $stage, $processed);
+        $this->runs->increment($runId, 'stage_elapsed_ms.' . $stage, $elapsedMs);
+        $this->runs->increment(
+            $runId,
+            'cpu_user_us.' . $stage,
+            max(0, $userAfter - $userBefore),
+        );
+        $this->runs->increment(
+            $runId,
+            'cpu_system_us.' . $stage,
+            max(0, $systemAfter - $systemBefore),
+        );
+        $this->runs->setMetric(
+            $runId,
+            'peak_memory_bytes',
+            memory_get_peak_usage(true),
         );
     }
 
