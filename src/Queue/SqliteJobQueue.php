@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PrivacyEvidence\Queue;
 
 use PDO;
+use PrivacyEvidence\Core\Value;
 
 final class SqliteJobQueue implements JobQueue
 {
@@ -18,9 +19,13 @@ final class SqliteJobQueue implements JobQueue
 
     public function enqueue(Job $job): void
     {
-        $count = (int) $this->pdo->query(
+        $countStatement = $this->pdo->query(
             'SELECT COUNT(*) FROM jobs WHERE status IN ("pending", "running")',
-        )->fetchColumn();
+        );
+        if ($countStatement === false) {
+            throw new \RuntimeException('Unable to count queued jobs.');
+        }
+        $count = Value::int($countStatement->fetchColumn(), 'job_count');
 
         if ($count >= $this->maxPending) {
             throw new \RuntimeException('Job queue capacity reached; backpressure applied.');
@@ -72,29 +77,22 @@ final class SqliteJobQueue implements JobQueue
             $this->pdo->commit();
 
             $decoded = json_decode(
-                (string) $row['payload_json'],
+                Value::string($row['payload_json'] ?? null, 'payload_json'),
                 true,
                 flags: JSON_THROW_ON_ERROR,
             );
-            if (!is_array($decoded)) {
-                throw new \RuntimeException('Stored job payload is invalid.');
-            }
-
-            $payload = [];
-            foreach ($decoded as $key => $value) {
-                if (is_string($key) && (is_scalar($value) || $value === null)) {
-                    $payload[$key] = $value;
-                }
-            }
 
             return new Job(
-                id: (string) $row['id'],
-                runId: (string) $row['run_id'],
-                stage: (string) $row['stage'],
-                deduplicationKey: (string) $row['deduplication_key'],
-                payload: $payload,
+                id: Value::string($row['id'] ?? null, 'id'),
+                runId: Value::string($row['run_id'] ?? null, 'run_id'),
+                stage: Value::string($row['stage'] ?? null, 'stage'),
+                deduplicationKey: Value::string(
+                    $row['deduplication_key'] ?? null,
+                    'deduplication_key',
+                ),
+                payload: Value::scalarMap($decoded, 'payload_json'),
                 status: JobStatus::Running,
-                attempts: (int) $row['attempts'] + 1,
+                attempts: Value::int($row['attempts'] ?? null, 'attempts') + 1,
             );
         } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
@@ -140,7 +138,14 @@ final class SqliteJobQueue implements JobQueue
 
         $result = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
-            $result[(string) $row['status']] = (int) $row['count'];
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $result[Value::string($row['status'] ?? null, 'status')] = Value::int(
+                $row['count'] ?? null,
+                'count',
+            );
         }
 
         return $result;
@@ -164,7 +169,7 @@ final class SqliteJobQueue implements JobQueue
             'prefix' => $deduplicationPrefix . '%',
         ]);
 
-        return (int) $stmt->fetchColumn();
+        return Value::int($stmt->fetchColumn(), 'scheduled_count');
     }
 
     private function migrate(): void
