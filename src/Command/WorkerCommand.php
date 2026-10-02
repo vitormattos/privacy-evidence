@@ -32,14 +32,12 @@ final class WorkerCommand extends Command
                 null,
                 InputOption::VALUE_REQUIRED,
                 'Maximum simultaneously reserved jobs per host',
-                '2',
             )
             ->addOption(
                 'min-host-delay-ms',
                 null,
                 InputOption::VALUE_REQUIRED,
                 'Minimum delay between reservations for the same host',
-                '250',
             );
     }
 
@@ -57,20 +55,22 @@ final class WorkerCommand extends Command
         }
 
         $maxJobs = $this->positiveInt($input->getOption('max-jobs'), 'max-jobs');
-        $perHost = $this->positiveInt(
-            $input->getOption('per-host-concurrency'),
-            'per-host-concurrency',
-        );
-        $minDelay = $this->nonNegativeInt(
-            $input->getOption('min-host-delay-ms'),
-            'min-host-delay-ms',
-        );
 
         $runtime = RuntimeFactory::create($this->projectRoot);
-        if ($runtime->runs->get($runId) === null) {
+        $run = $runtime->runs->get($runId);
+        if ($run === null) {
             $output->writeln('<error>Unknown run.</error>');
             return Command::FAILURE;
         }
+
+        $scheduler = $run->configuration['scheduler'] ?? [];
+        $scheduler = is_array($scheduler) ? $scheduler : [];
+        $perHost = $input->getOption('per-host-concurrency') === null
+            ? $this->schedulerInt($scheduler, 'perHostConcurrency', 2)
+            : $this->positiveInt($input->getOption('per-host-concurrency'), 'per-host-concurrency');
+        $minDelay = $input->getOption('min-host-delay-ms') === null
+            ? $this->schedulerInt($scheduler, 'minHostDelayMs', 250, allowZero: true)
+            : $this->nonNegativeInt($input->getOption('min-host-delay-ms'), 'min-host-delay-ms');
 
         $worker = $this->projectRoot . '/browser/src/worker.mjs';
         $browser = is_file($worker) && is_dir($this->projectRoot . '/browser/node_modules/playwright')
@@ -97,6 +97,27 @@ final class WorkerCommand extends Command
         $output->writeln((string) $processed);
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * @param array<array-key,scalar> $scheduler
+     */
+    private function schedulerInt(
+        array $scheduler,
+        string $key,
+        int $default,
+        bool $allowZero = false,
+    ): int {
+        $value = $scheduler[$key] ?? $default;
+        if (!is_int($value)) {
+            return $default;
+        }
+
+        if (($allowZero && $value >= 0) || (!$allowZero && $value > 0)) {
+            return $value;
+        }
+
+        return $default;
     }
 
     private function positiveInt(mixed $value, string $name): int
