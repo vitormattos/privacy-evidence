@@ -13,7 +13,11 @@ final class SqliteJobQueue implements JobQueue
     public function __construct(
         private readonly PDO $pdo,
         private readonly int $maxPending = 10000,
+        private readonly int $retryBaseDelayMs = 500,
     ) {
+        if ($maxPending <= 0 || $retryBaseDelayMs < 0) {
+            throw new \InvalidArgumentException('Invalid queue limits.');
+        }
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->migrate();
     }
@@ -193,7 +197,7 @@ final class SqliteJobQueue implements JobQueue
         $attempts = Value::int($stmt->fetchColumn(), 'attempts');
         $status = $attempts >= $maxAttempts ? JobStatus::Dead : JobStatus::Pending;
         $delayMs = $status === JobStatus::Pending
-            ? min(30_000, 500 * (2 ** max($attempts - 1, 0)))
+            ? min(30_000, $this->retryBaseDelayMs * (2 ** max($attempts - 1, 0)))
             : 0;
 
         $update = $this->pdo->prepare(
