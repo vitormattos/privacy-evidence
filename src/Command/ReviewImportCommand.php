@@ -75,7 +75,6 @@ final class ReviewImportCommand extends Command
             $typeRaw = $case['evidenceType'] ?? null;
             $stateRaw = $case['humanState'] ?? null;
             $rationale = $case['rationale'] ?? null;
-            $reviewedAt = $case['reviewedAt'] ?? null;
 
             if (
                 !is_string($evidenceId)
@@ -101,7 +100,11 @@ final class ReviewImportCommand extends Command
                 state: $state,
                 reviewerType: ReviewerType::Human,
                 reviewerId: $reviewerId,
-                reviewedAt: is_string($reviewedAt) && $reviewedAt !== '' ? $reviewedAt : gmdate(DATE_ATOM),
+                reviewedAt: isset($case['reviewedAt'])
+                    && is_string($case['reviewedAt'])
+                    && $case['reviewedAt'] !== ''
+                        ? $case['reviewedAt']
+                        : gmdate(DATE_ATOM),
                 rationale: $rationale,
             ));
             $imported++;
