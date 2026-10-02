@@ -107,7 +107,7 @@ final class InterRaterAgreement
             $denominator = 1.0 - $expected;
             $kappa = abs($denominator) < 1.0e-12
                 ? null
-                : ($observed - $expected) / (float) $denominator;
+                : ($observed - $expected) / $denominator;
 
             $result[$type] = [
                 'sampleSize' => $total,
