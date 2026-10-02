@@ -93,14 +93,17 @@ final class SqliteJobQueue implements JobQueue
                     ? null
                     : Value::string($row['host'], 'host');
 
-                if ($host !== null && !$this->hostEligible(
-                    $runId,
-                    $stage,
-                    $host,
-                    $perHostConcurrency,
-                    $minHostDelayMs,
-                    $now,
-                )) {
+                if (
+                    $host !== null
+                    && !$this->hostEligible(
+                        $runId,
+                        $stage,
+                        $host,
+                        $perHostConcurrency,
+                        $minHostDelayMs,
+                        $now,
+                    )
+                ) {
                     continue;
                 }
 
@@ -360,13 +363,15 @@ final class SqliteJobQueue implements JobQueue
             )',
         );
 
-        foreach ([
-            'ALTER TABLE jobs ADD COLUMN priority INTEGER NOT NULL DEFAULT 0',
-            'ALTER TABLE jobs ADD COLUMN host TEXT',
-            'ALTER TABLE jobs ADD COLUMN enqueued_at_ms INTEGER NOT NULL DEFAULT 0',
-            'ALTER TABLE jobs ADD COLUMN available_at_ms INTEGER NOT NULL DEFAULT 0',
-            'ALTER TABLE jobs ADD COLUMN reserved_at_ms INTEGER',
-        ] as $alter) {
+        foreach (
+            [
+                'ALTER TABLE jobs ADD COLUMN priority INTEGER NOT NULL DEFAULT 0',
+                'ALTER TABLE jobs ADD COLUMN host TEXT',
+                'ALTER TABLE jobs ADD COLUMN enqueued_at_ms INTEGER NOT NULL DEFAULT 0',
+                'ALTER TABLE jobs ADD COLUMN available_at_ms INTEGER NOT NULL DEFAULT 0',
+                'ALTER TABLE jobs ADD COLUMN reserved_at_ms INTEGER',
+            ] as $alter
+        ) {
             try {
                 $this->pdo->exec($alter);
             } catch (PDOException $e) {
