@@ -36,6 +36,7 @@ jobs:
       - run: composer install --no-interaction --prefer-dist --no-progress
       - name: Run PHP/SQLite/detector benchmark
         run: |
+          set -o pipefail
           mkdir -p benchmark-results
           php benchmarks/pipeline.php | tee benchmark-results/php.json
       - uses: actions/upload-artifact@v7
@@ -64,6 +65,7 @@ jobs:
       - name: Run browser benchmark
         working-directory: browser
         run: |
+          set -o pipefail
           mkdir -p ../benchmark-results
           npm run benchmark --silent | tee ../benchmark-results/browser.json
       - uses: actions/upload-artifact@v7
