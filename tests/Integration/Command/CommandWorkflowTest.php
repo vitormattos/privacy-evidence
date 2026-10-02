@@ -16,7 +16,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 
 final class CommandWorkflowTest extends TestCase
 {
-    private string $projectRoot;
+    private string $projectRoot = '';
 
     protected function setUp(): void
     {
@@ -31,7 +31,7 @@ final class CommandWorkflowTest extends TestCase
 
     public function testSourceImportProducesCanonicalJsonLines(): void
     {
-        $fixture = dirname(__DIR__, 2) . '/Fixtures/sources/valid.csv';
+        $fixture = dirname(__DIR__, 2) . '/Fixtures/sources/sites.csv';
         $tester = new CommandTester(new SourceImportCommand());
 
         $exit = $tester->execute(['dataset' => $fixture]);
@@ -65,9 +65,12 @@ final class CommandWorkflowTest extends TestCase
         /** @var mixed $decoded */
         $decoded = json_decode($tester->getDisplay(), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($decoded);
-        self::assertSame('status-run', $decoded['runId']);
-        self::assertSame('interrupted', $decoded['status']);
-        self::assertSame(3.0, $decoded['telemetry']['jobs_completed']);
+        self::assertSame('status-run', $decoded['runId'] ?? null);
+        self::assertSame('interrupted', $decoded['status'] ?? null);
+
+        $telemetry = $decoded['telemetry'] ?? null;
+        self::assertIsArray($telemetry);
+        self::assertSame(3, $telemetry['jobs_completed'] ?? null);
     }
 
     public function testResumeCompletesInterruptedRunWithNoPendingJobs(): void
