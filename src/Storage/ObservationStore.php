@@ -17,6 +17,11 @@ interface ObservationStore
     public function recordEvidence(string $runId, PrivacyEvidence $evidence): void;
 
     /**
+     * @return list<string>
+     */
+    public function resourceIds(string $runId): array;
+
+    /**
      * @return list<PrivacyEvidence>
      */
     public function evidence(string $runId, ?string $resourceId = null): array;
@@ -31,6 +36,11 @@ interface ObservationStore
         string $profileVersion,
         array $result,
     ): void;
+
+    /**
+     * @return list<array<string,mixed>>
+     */
+    public function profileResults(string $runId): array;
 
     /**
      * @return array{pages:int,bytes:int,browserPages:int}
