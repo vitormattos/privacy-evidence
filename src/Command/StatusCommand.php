@@ -26,7 +26,14 @@ final class StatusCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $runId = (string) $input->getArgument('run-id');
+        $argument = $input->getArgument('run-id');
+        if (!is_string($argument) || $argument === '') {
+            $output->writeln('<error>Run id must be a non-empty string.</error>');
+
+            return Command::INVALID;
+        }
+
+        $runId = $argument;
         $runtime = RuntimeFactory::create($this->projectRoot);
         $run = $runtime->runs->get($runId);
 
@@ -38,7 +45,9 @@ final class StatusCommand extends Command
 
         $status = [
             'runId' => $runId,
-            'status' => $runtime->runs->status($runId)?->value ?? 'unknown',
+            'status' => ($runtime->runs->status($runId) ?? throw new \RuntimeException(
+                sprintf('Run %s has no persisted status.', $runId),
+            ))->value,
             'jobs' => $runtime->jobs->counts($runId),
             'observations' => $runtime->observations->counts($runId),
             'telemetry' => $runtime->runs->telemetry($runId),
