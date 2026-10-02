@@ -14,6 +14,7 @@ path = [
   "README.md",
   "SECURITY.md",
   "SUPPORT.md",
+  "bin/**",
   "browser/**",
   "composer.json",
   "composer.lock",
