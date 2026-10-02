@@ -52,3 +52,19 @@ Do not duplicate canonical rules across many files. Link to the canonical docume
 ## Agent Skills
 
 Project-specific Skills may orchestrate stable workflows later, but they must not replace these repository rules, CI or canonical documentation.
+
+
+## Autonomous backlog execution
+
+The durable execution runbook is issue #88. At the start of an autonomous work session:
+
+1. read this file;
+2. read #88;
+3. inspect all open issues and native blocker relationships;
+4. work from the dependency graph, never by issue number alone;
+5. prioritize unblocked prerequisites that unlock the largest downstream set;
+6. after closing an issue, recompute the graph and record the handoff in the issue completion comment.
+
+A human gate in one branch must not stop unrelated unblocked work.
+
+The final integration target is epic #80 and its PoC issues #81–#87. The initial project is not considered accepted until #87 passes every criterion in #80 from a clean checkout.
