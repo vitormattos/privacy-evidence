@@ -118,10 +118,8 @@ final readonly class ResearchPipeline
         $processed = 0;
         $idleRounds = 0;
         $stageStartedAt = microtime(true);
+        /** @var array<array-key,mixed> $usageBefore */
         $usageBefore = getrusage();
-        if (!is_array($usageBefore)) {
-            $usageBefore = [];
-        }
 
         while ($maxJobs === 0 || $processed < $maxJobs) {
             $job = $this->jobs->reserve(
@@ -447,8 +445,10 @@ final readonly class ResearchPipeline
                 continue;
             }
 
-            $normalizedUrl = $resource['normalizedUrl'] ?? null;
-            $status = $normalizedUrl === null
+            $hasNormalizedUrl = isset($resource['normalizedUrl'])
+                && is_string($resource['normalizedUrl'])
+                && $resource['normalizedUrl'] !== '';
+            $status = !$hasNormalizedUrl
                 ? 'invalid_url'
                 : (isset($failed[$id]) ? 'failed' : 'completed');
 
@@ -492,7 +492,7 @@ final readonly class ResearchPipeline
     }
 
     /**
-     * @param array<string,mixed> $usageBefore
+     * @param array<array-key,mixed> $usageBefore
      */
     private function recordStagePerformance(
         string $runId,
@@ -501,11 +501,9 @@ final readonly class ResearchPipeline
         float $startedAt,
         array $usageBefore,
     ): void {
-        $elapsedMs = max(0.0, (microtime(true) - $startedAt) * 1000);
+        $elapsedMs = max(0.0, (microtime(true) - $startedAt) * 1000.0);
+        /** @var array<array-key,mixed> $usageAfter */
         $usageAfter = getrusage();
-        if (!is_array($usageAfter)) {
-            $usageAfter = [];
-        }
 
         $userBefore = $this->rusageInt($usageBefore, 'ru_utime.tv_sec') * 1_000_000
             + $this->rusageInt($usageBefore, 'ru_utime.tv_usec');
@@ -547,7 +545,7 @@ final readonly class ResearchPipeline
     }
 
     /**
-     * @param array<string,mixed> $usage
+     * @param array<array-key,mixed> $usage
      */
     private function rusageInt(array $usage, string $key): int
     {
