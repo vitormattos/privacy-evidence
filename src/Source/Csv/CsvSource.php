@@ -63,6 +63,8 @@ final class CsvSource implements SourceAdapter
             }
         }
 
+        $seenIds = [];
+
         while (($row = fgetcsv($handle, escape: '')) !== false) {
             if (count($row) === 1 && $row[0] === null) {
                 continue;
@@ -81,6 +83,17 @@ final class CsvSource implements SourceAdapter
 
             /** @var array<string, string> $record */
             $record = array_combine($header, $values);
+            if ($record['id'] === '') {
+                throw new \InvalidArgumentException('CSV record id must not be empty.');
+            }
+
+            if (isset($seenIds[$record['id']])) {
+                throw new \InvalidArgumentException(
+                    sprintf('CSV contains duplicate id "%s".', $record['id']),
+                );
+            }
+            $seenIds[$record['id']] = true;
+
             $sourceValue = $record['url'];
             $normalized = $this->normalizer->normalize($sourceValue);
 
