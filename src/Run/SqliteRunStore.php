@@ -59,11 +59,13 @@ final class SqliteRunStore implements RunStore
             return null;
         }
 
+        /** @psalm-suppress MixedAssignment */
         $versionsDecoded = json_decode(
             Value::string($row['versions_json'] ?? null, 'versions_json'),
             true,
             flags: JSON_THROW_ON_ERROR,
         );
+        /** @psalm-suppress MixedAssignment */
         $configurationDecoded = json_decode(
             Value::string($row['configuration_json'] ?? null, 'configuration_json'),
             true,
@@ -106,10 +108,9 @@ final class SqliteRunStore implements RunStore
 
         foreach ($rows as $row) {
             $metric = Value::string($row['metric'] ?? null, 'metric');
-            $value = $row['value'] ?? null;
-            $result[$metric] = is_numeric($value)
-                ? Value::float($value, 'value')
-                : Value::string($value, 'value');
+            $result[$metric] = is_numeric($row['value'] ?? null)
+                ? Value::float($row['value'] ?? null, 'value')
+                : Value::string($row['value'] ?? null, 'value');
         }
 
         return $result;
