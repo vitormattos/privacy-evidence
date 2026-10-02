@@ -159,5 +159,9 @@ final class SqliteReviewQueue implements ReviewQueue
                 rationale TEXT NOT NULL
             )',
         );
+        $this->pdo->exec(
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_review_decision_reviewer
+             ON review_decisions(run_id, evidence_id, reviewer_type, reviewer_id)',
+        );
     }
 }
