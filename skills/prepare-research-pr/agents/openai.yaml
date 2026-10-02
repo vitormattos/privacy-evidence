@@ -1,0 +1,3 @@
+interface:
+  display_name: "Prepare Research PR"
+  short_description: "Apply research-grade review and quality gates to pull requests."
