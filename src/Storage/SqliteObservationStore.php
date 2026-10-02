@@ -7,6 +7,7 @@ namespace PrivacyEvidence\Storage;
 use PDO;
 use PrivacyEvidence\Acquisition\FetchedDocument;
 use PrivacyEvidence\Core\ObservationState;
+use PrivacyEvidence\Core\Value;
 use PrivacyEvidence\Evidence\EvidenceType;
 use PrivacyEvidence\Evidence\PrivacyEvidence;
 use PrivacyEvidence\Source\ImportedResource;
@@ -100,20 +101,23 @@ final class SqliteObservationStore implements ObservationStore
 
         $records = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
-            $metadata = json_decode(
-                (string) $row['metadata_json'],
-                true,
-                flags: JSON_THROW_ON_ERROR,
+            $metadata = Value::scalarMap(
+                json_decode(
+                    Value::string($row['metadata_json'] ?? null, 'metadata_json'),
+                    true,
+                    flags: JSON_THROW_ON_ERROR,
+                ),
+                'metadata_json',
             );
             $records[] = [
-                'id' => (string) $row['resource_id'],
-                'name' => (string) $row['name'],
-                'sourceValue' => (string) $row['source_value'],
+                'id' => Value::string($row['resource_id'] ?? null, 'resource_id'),
+                'name' => Value::string($row['name'] ?? null, 'name'),
+                'sourceValue' => Value::string($row['source_value'] ?? null, 'source_value'),
                 'normalizedUrl' => $row['normalized_url'] === null
                     ? null
-                    : (string) $row['normalized_url'],
-                'type' => (string) $row['resource_type'],
-                'metadata' => is_array($metadata) ? $metadata : [],
+                    : Value::string($row['normalized_url'] ?? null, 'normalized_url'),
+                'type' => Value::string($row['resource_type'] ?? null, 'resource_type'),
+                'metadata' => $metadata,
             ];
         }
 
@@ -132,16 +136,16 @@ final class SqliteObservationStore implements ObservationStore
         $records = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
             $records[] = [
-                'artifactHash' => (string) $row['artifact_hash'],
-                'resourceId' => (string) $row['resource_id'],
-                'requestedUrl' => (string) $row['requested_url'],
-                'finalUrl' => (string) $row['final_url'],
-                'statusCode' => (int) $row['status_code'],
-                'mediaType' => (string) $row['media_type'],
-                'fetchedAt' => (string) $row['fetched_at'],
-                'acquisitionMode' => (string) $row['acquisition_mode'],
-                'truncated' => (int) $row['truncated'] === 1,
-                'bodySize' => (int) $row['body_size'],
+                'artifactHash' => Value::string($row['artifact_hash'] ?? null, 'artifact_hash'),
+                'resourceId' => Value::string($row['resource_id'] ?? null, 'resource_id'),
+                'requestedUrl' => Value::string($row['requested_url'] ?? null, 'requested_url'),
+                'finalUrl' => Value::string($row['final_url'] ?? null, 'final_url'),
+                'statusCode' => Value::int($row['status_code'] ?? null, 'status_code'),
+                'mediaType' => Value::string($row['media_type'] ?? null, 'media_type'),
+                'fetchedAt' => Value::string($row['fetched_at'] ?? null, 'fetched_at'),
+                'acquisitionMode' => Value::string($row['acquisition_mode'] ?? null, 'acquisition_mode'),
+                'truncated' => Value::int($row['truncated'] ?? null, 'truncated') === 1,
+                'bodySize' => Value::int($row['body_size'] ?? null, 'body_size'),
             ];
         }
 
@@ -157,7 +161,7 @@ final class SqliteObservationStore implements ObservationStore
 
         $ids = [];
         while (($value = $stmt->fetchColumn()) !== false) {
-            $ids[] = (string) $value;
+            $ids[] = Value::string($value, 'resource_id');
         }
 
         return $ids;
@@ -184,33 +188,27 @@ final class SqliteObservationStore implements ObservationStore
 
         $result = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
-            $decoded = json_decode(
-                (string) $row['attributes_json'],
-                true,
-                flags: JSON_THROW_ON_ERROR,
+            $attributes = Value::scalarMap(
+                json_decode(
+                    Value::string($row['attributes_json'] ?? null, 'attributes_json'),
+                    true,
+                    flags: JSON_THROW_ON_ERROR,
+                ),
+                'attributes_json',
             );
 
-            $attributes = [];
-            if (is_array($decoded)) {
-                foreach ($decoded as $key => $value) {
-                    if (is_string($key) && (is_scalar($value) || $value === null)) {
-                        $attributes[$key] = $value;
-                    }
-                }
-            }
-
             $result[] = new PrivacyEvidence(
-                type: EvidenceType::from((string) $row['type']),
-                state: ObservationState::from((string) $row['state']),
-                resourceId: (string) $row['resource_id'],
-                artifactHash: (string) $row['artifact_hash'],
-                sourceUrl: (string) $row['source_url'],
-                detector: (string) $row['detector'],
-                detectorVersion: (string) $row['detector_version'],
-                method: (string) $row['method'],
-                excerpt: $row['excerpt'] === null ? null : (string) $row['excerpt'],
-                confidence: (float) $row['confidence'],
-                needsReview: (int) $row['needs_review'] === 1,
+                type: EvidenceType::from(Value::string($row['type'] ?? null, 'type')),
+                state: ObservationState::from(Value::string($row['state'] ?? null, 'state')),
+                resourceId: Value::string($row['resource_id'] ?? null, 'resource_id'),
+                artifactHash: Value::string($row['artifact_hash'] ?? null, 'artifact_hash'),
+                sourceUrl: Value::string($row['source_url'] ?? null, 'source_url'),
+                detector: Value::string($row['detector'] ?? null, 'detector'),
+                detectorVersion: Value::string($row['detector_version'] ?? null, 'detector_version'),
+                method: Value::string($row['method'] ?? null, 'method'),
+                excerpt: $row['excerpt'] === null ? null : Value::string($row['excerpt'] ?? null, 'excerpt'),
+                confidence: Value::float($row['confidence'] ?? null, 'confidence'),
+                needsReview: Value::int($row['needs_review'] ?? null, 'needs_review') === 1,
                 attributes: $attributes,
             );
         }
@@ -261,14 +259,14 @@ final class SqliteObservationStore implements ObservationStore
         $results = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
             $decoded = json_decode(
-                (string) $row['result_json'],
+                Value::string($row['result_json'] ?? null, 'result_json'),
                 true,
                 flags: JSON_THROW_ON_ERROR,
             );
             $results[] = [
-                'resourceId' => (string) $row['resource_id'],
-                'profile' => (string) $row['profile'],
-                'profileVersion' => (string) $row['profile_version'],
+                'resourceId' => Value::string($row['resource_id'] ?? null, 'resource_id'),
+                'profile' => Value::string($row['profile'] ?? null, 'profile'),
+                'profileVersion' => Value::string($row['profile_version'] ?? null, 'profile_version'),
                 'result' => is_array($decoded) ? $decoded : [],
             ];
         }
@@ -297,9 +295,9 @@ final class SqliteObservationStore implements ObservationStore
         }
 
         return [
-            'pages' => (int) $row['pages'],
-            'bytes' => (int) $row['bytes'],
-            'browserPages' => (int) $row['browser_pages'],
+            'pages' => Value::int($row['pages'] ?? null, 'pages'),
+            'bytes' => Value::int($row['bytes'] ?? null, 'bytes'),
+            'browserPages' => Value::int($row['browser_pages'] ?? null, 'browser_pages'),
         ];
     }
 
@@ -312,7 +310,7 @@ final class SqliteObservationStore implements ObservationStore
                 sprintf('SELECT COUNT(*) FROM %s WHERE run_id = :run_id', $table),
             );
             $stmt->execute(['run_id' => $runId]);
-            $result[$table] = (int) $stmt->fetchColumn();
+            $result[$table] = Value::int($stmt->fetchColumn(), 'count');
         }
 
         return $result;
