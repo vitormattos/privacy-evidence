@@ -1,0 +1,250 @@
+<?php
+
+declare(strict_types=1);
+
+namespace PrivacyEvidence\Storage;
+
+use PDO;
+use PrivacyEvidence\Acquisition\FetchedDocument;
+use PrivacyEvidence\Core\ObservationState;
+use PrivacyEvidence\Evidence\EvidenceType;
+use PrivacyEvidence\Evidence\PrivacyEvidence;
+use PrivacyEvidence\Source\ImportedResource;
+
+final class SqliteObservationStore implements ObservationStore
+{
+    public function __construct(private readonly PDO $pdo)
+    {
+        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->migrate();
+    }
+
+    public function recordResource(string $runId, ImportedResource $resource): void
+    {
+        $stmt = $this->pdo->prepare(
+            'INSERT OR REPLACE INTO resources
+             (run_id, resource_id, name, source_value, normalized_url, resource_type, metadata_json)
+             VALUES (:run_id, :resource_id, :name, :source_value, :normalized_url, :resource_type, :metadata_json)',
+        );
+        $stmt->execute([
+            'run_id' => $runId,
+            'resource_id' => $resource->id,
+            'name' => $resource->name,
+            'source_value' => $resource->sourceValue,
+            'normalized_url' => $resource->normalizedUrl,
+            'resource_type' => $resource->type->value,
+            'metadata_json' => json_encode($resource->metadata, JSON_THROW_ON_ERROR),
+        ]);
+    }
+
+    public function recordDocument(string $runId, FetchedDocument $document): void
+    {
+        $stmt = $this->pdo->prepare(
+            'INSERT OR IGNORE INTO documents
+             (run_id, artifact_hash, resource_id, requested_url, final_url, status_code,
+              media_type, fetched_at, acquisition_mode, truncated)
+             VALUES (:run_id, :artifact_hash, :resource_id, :requested_url, :final_url, :status_code,
+                     :media_type, :fetched_at, :acquisition_mode, :truncated)',
+        );
+        $stmt->execute([
+            'run_id' => $runId,
+            'artifact_hash' => $document->sha256,
+            'resource_id' => $document->resourceId,
+            'requested_url' => $document->requestedUrl,
+            'final_url' => $document->finalUrl,
+            'status_code' => $document->statusCode,
+            'media_type' => $document->mediaType,
+            'fetched_at' => $document->fetchedAt,
+            'acquisition_mode' => $document->acquisitionMode,
+            'truncated' => $document->truncated ? 1 : 0,
+        ]);
+    }
+
+    public function recordEvidence(string $runId, PrivacyEvidence $evidence): void
+    {
+        $stmt = $this->pdo->prepare(
+            'INSERT OR REPLACE INTO evidence
+             (run_id, evidence_id, resource_id, artifact_hash, type, state, source_url,
+              detector, detector_version, method, excerpt, confidence, needs_review, attributes_json)
+             VALUES (:run_id, :evidence_id, :resource_id, :artifact_hash, :type, :state, :source_url,
+                     :detector, :detector_version, :method, :excerpt, :confidence, :needs_review, :attributes_json)',
+        );
+        $stmt->execute([
+            'run_id' => $runId,
+            'evidence_id' => $evidence->id(),
+            'resource_id' => $evidence->resourceId,
+            'artifact_hash' => $evidence->artifactHash,
+            'type' => $evidence->type->value,
+            'state' => $evidence->state->value,
+            'source_url' => $evidence->sourceUrl,
+            'detector' => $evidence->detector,
+            'detector_version' => $evidence->detectorVersion,
+            'method' => $evidence->method,
+            'excerpt' => $evidence->excerpt,
+            'confidence' => $evidence->confidence,
+            'needs_review' => $evidence->needsReview ? 1 : 0,
+            'attributes_json' => json_encode($evidence->attributes, JSON_THROW_ON_ERROR),
+        ]);
+    }
+
+    public function evidence(string $runId, ?string $resourceId = null): array
+    {
+        if ($resourceId === null) {
+            $stmt = $this->pdo->prepare(
+                'SELECT * FROM evidence WHERE run_id = :run_id ORDER BY resource_id, type, evidence_id',
+            );
+            $stmt->execute(['run_id' => $runId]);
+        } else {
+            $stmt = $this->pdo->prepare(
+                'SELECT * FROM evidence
+                 WHERE run_id = :run_id AND resource_id = :resource_id
+                 ORDER BY type, evidence_id',
+            );
+            $stmt->execute([
+                'run_id' => $runId,
+                'resource_id' => $resourceId,
+            ]);
+        }
+
+        $result = [];
+        while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
+            $decoded = json_decode(
+                (string) $row['attributes_json'],
+                true,
+                flags: JSON_THROW_ON_ERROR,
+            );
+
+            $attributes = [];
+            if (is_array($decoded)) {
+                foreach ($decoded as $key => $value) {
+                    if (is_string($key) && (is_scalar($value) || $value === null)) {
+                        $attributes[$key] = $value;
+                    }
+                }
+            }
+
+            $result[] = new PrivacyEvidence(
+                type: EvidenceType::from((string) $row['type']),
+                state: ObservationState::from((string) $row['state']),
+                resourceId: (string) $row['resource_id'],
+                artifactHash: (string) $row['artifact_hash'],
+                sourceUrl: (string) $row['source_url'],
+                detector: (string) $row['detector'],
+                detectorVersion: (string) $row['detector_version'],
+                method: (string) $row['method'],
+                excerpt: $row['excerpt'] === null ? null : (string) $row['excerpt'],
+                confidence: (float) $row['confidence'],
+                needsReview: (int) $row['needs_review'] === 1,
+                attributes: $attributes,
+            );
+        }
+
+        return $result;
+    }
+
+    public function recordProfileResult(
+        string $runId,
+        string $resourceId,
+        string $profile,
+        string $profileVersion,
+        array $result,
+    ): void {
+        $id = hash(
+            'sha256',
+            $runId . '|' . $resourceId . '|' . $profile . '|' . $profileVersion . '|'
+            . json_encode($result, JSON_THROW_ON_ERROR),
+        );
+
+        $stmt = $this->pdo->prepare(
+            'INSERT OR REPLACE INTO profile_results
+             (result_id, run_id, resource_id, profile, profile_version, result_json)
+             VALUES (:result_id, :run_id, :resource_id, :profile, :profile_version, :result_json)',
+        );
+        $stmt->execute([
+            'result_id' => $id,
+            'run_id' => $runId,
+            'resource_id' => $resourceId,
+            'profile' => $profile,
+            'profile_version' => $profileVersion,
+            'result_json' => json_encode($result, JSON_THROW_ON_ERROR),
+        ]);
+    }
+
+    public function counts(string $runId): array
+    {
+        $result = [];
+
+        foreach (['resources', 'documents', 'evidence', 'profile_results'] as $table) {
+            $stmt = $this->pdo->prepare(
+                sprintf('SELECT COUNT(*) FROM %s WHERE run_id = :run_id', $table),
+            );
+            $stmt->execute(['run_id' => $runId]);
+            $result[$table] = (int) $stmt->fetchColumn();
+        }
+
+        return $result;
+    }
+
+    private function migrate(): void
+    {
+        $this->pdo->exec(
+            'CREATE TABLE IF NOT EXISTS resources (
+                run_id TEXT NOT NULL,
+                resource_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                source_value TEXT NOT NULL,
+                normalized_url TEXT,
+                resource_type TEXT NOT NULL,
+                metadata_json TEXT NOT NULL,
+                PRIMARY KEY (run_id, resource_id)
+            )',
+        );
+
+        $this->pdo->exec(
+            'CREATE TABLE IF NOT EXISTS documents (
+                run_id TEXT NOT NULL,
+                artifact_hash TEXT NOT NULL,
+                resource_id TEXT NOT NULL,
+                requested_url TEXT NOT NULL,
+                final_url TEXT NOT NULL,
+                status_code INTEGER NOT NULL,
+                media_type TEXT NOT NULL,
+                fetched_at TEXT NOT NULL,
+                acquisition_mode TEXT NOT NULL,
+                truncated INTEGER NOT NULL,
+                PRIMARY KEY (run_id, artifact_hash)
+            )',
+        );
+
+        $this->pdo->exec(
+            'CREATE TABLE IF NOT EXISTS evidence (
+                run_id TEXT NOT NULL,
+                evidence_id TEXT NOT NULL,
+                resource_id TEXT NOT NULL,
+                artifact_hash TEXT NOT NULL,
+                type TEXT NOT NULL,
+                state TEXT NOT NULL,
+                source_url TEXT NOT NULL,
+                detector TEXT NOT NULL,
+                detector_version TEXT NOT NULL,
+                method TEXT NOT NULL,
+                excerpt TEXT,
+                confidence REAL NOT NULL,
+                needs_review INTEGER NOT NULL,
+                attributes_json TEXT NOT NULL,
+                PRIMARY KEY (run_id, evidence_id)
+            )',
+        );
+
+        $this->pdo->exec(
+            'CREATE TABLE IF NOT EXISTS profile_results (
+                result_id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL,
+                resource_id TEXT NOT NULL,
+                profile TEXT NOT NULL,
+                profile_version TEXT NOT NULL,
+                result_json TEXT NOT NULL
+            )',
+        );
+    }
+}
