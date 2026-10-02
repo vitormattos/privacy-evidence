@@ -1,0 +1,92 @@
+name: End-to-end PoC
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/poc.yml'
+      - 'examples/poc/**'
+
+permissions:
+  contents: read
+
+jobs:
+  poc:
+    name: Run reproducible PoC
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: browser/package-lock.json
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install browser dependencies
+        working-directory: browser
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Preflight
+        run: php bin/privacy-evidence doctor
+
+      - name: Validate source import
+        run: php bin/privacy-evidence source:import examples/poc/sites.csv > /tmp/source-import.jsonl
+
+      - name: Run collection
+        id: run
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ID="$(php bin/privacy-evidence run examples/poc/sites.csv | tail -n 1)"
+          test -n "$RUN_ID"
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$RUN_ID" > /tmp/privacy-evidence-run-id
+
+      - name: Status after acquisition
+        run: |
+          RUN_ID="${{ steps.run.outputs.run_id }}"
+          php bin/privacy-evidence status "$RUN_ID" | tee "/tmp/status.json"
+
+      - name: Apply regulatory profiles
+        run: php bin/privacy-evidence analyze "${{ steps.run.outputs.run_id }}"
+
+      - name: Generate report and exports
+        run: php bin/privacy-evidence report "${{ steps.run.outputs.run_id }}"
+
+      - name: Capture final status and PoC metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ID="${{ steps.run.outputs.run_id }}"
+          EXPORT_DIR="data/exports/$RUN_ID"
+          mkdir -p "$EXPORT_DIR"
+          php bin/privacy-evidence status "$RUN_ID" > "$EXPORT_DIR/status.json"
+          cp /tmp/source-import.jsonl "$EXPORT_DIR/source-import.jsonl"
+          cp /tmp/privacy-evidence-run-id "$EXPORT_DIR/run-id.txt"
+
+      - name: Quality gates
+        run: composer quality
+
+      - name: Publish PoC exports
+        uses: actions/upload-artifact@v6
+        with:
+          name: privacy-evidence-poc-${{ steps.run.outputs.run_id }}
+          path: |
+            data/exports/${{ steps.run.outputs.run_id }}/
+            data/derived/runs/${{ steps.run.outputs.run_id }}/manifest.json
+          if-no-files-found: error
+          retention-days: 14
