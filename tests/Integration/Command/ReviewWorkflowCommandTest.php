@@ -6,6 +6,7 @@ namespace PrivacyEvidence\Tests\Integration\Command;
 
 use PHPUnit\Framework\TestCase;
 use PrivacyEvidence\Command\ReviewAgreementCommand;
+use PrivacyEvidence\Command\ReviewEvaluateCommand;
 use PrivacyEvidence\Command\ReviewImportCommand;
 use PrivacyEvidence\Command\ReviewSampleCommand;
 use PrivacyEvidence\Core\ObservationState;
@@ -127,6 +128,21 @@ final class ReviewWorkflowCommandTest extends TestCase
         self::assertIsArray($privacyNotice);
         self::assertSame(2, $privacyNotice['paired'] ?? null);
         self::assertArrayHasKey('kappa', $privacyNotice);
+
+        $evaluate = new CommandTester(new ReviewEvaluateCommand($this->projectRoot));
+        self::assertSame(Command::SUCCESS, $evaluate->execute([
+            'run-id' => $run->id,
+            'reviewer-id' => 'reviewer-a',
+            'gold-version' => 'gold-test-v1',
+        ]));
+
+        /** @var mixed $evaluation */
+        $evaluation = json_decode($evaluate->getDisplay(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($evaluation);
+        self::assertSame('gold-test-v1', $evaluation['goldDatasetVersion'] ?? null);
+        $signals = $evaluation['signals'] ?? null;
+        self::assertIsArray($signals);
+        self::assertArrayHasKey('privacy_notice', $signals);
     }
 
     private function removeDirectory(string $directory): void
