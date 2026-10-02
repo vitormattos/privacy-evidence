@@ -24,79 +24,98 @@ final class ReviewImportCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setDescription('Import completed review decisions from JSON Lines.')
-            ->addArgument('input', InputArgument::REQUIRED);
+            ->setDescription('Import completed human annotations into the immutable review history.')
+            ->addArgument('package', InputArgument::REQUIRED)
+            ->addArgument('reviewer-id', InputArgument::REQUIRED);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $path = $input->getArgument('input');
-        if (!is_string($path) || $path === '' || !is_file($path)) {
-            $output->writeln('<error>Review input file does not exist.</error>');
+        $path = $input->getArgument('package');
+        $reviewerId = $input->getArgument('reviewer-id');
 
+        if (!is_string($path) || $path === '' || !is_file($path)) {
+            return Command::INVALID;
+        }
+        if (!is_string($reviewerId) || $reviewerId === '' || str_starts_with($reviewerId, 'ai:')) {
+            return Command::INVALID;
+        }
+
+        /** @var mixed $decoded */
+        $decoded = json_decode((string) file_get_contents($path), true, flags: JSON_THROW_ON_ERROR);
+        if (!is_array($decoded)) {
+            return Command::INVALID;
+        }
+
+        $runId = $decoded['runId'] ?? null;
+        $cases = $decoded['cases'] ?? null;
+        if (!is_string($runId) || $runId === '' || !is_array($cases)) {
             return Command::INVALID;
         }
 
         $runtime = RuntimeFactory::create($this->projectRoot);
-        $handle = fopen($path, 'rb');
-        if ($handle === false) {
-            throw new \RuntimeException('Unable to open review input.');
+        if ($runtime->runs->get($runId) === null) {
+            $output->writeln('<error>Unknown run.</error>');
+
+            return Command::FAILURE;
         }
 
-        $count = 0;
-        try {
-            while (($line = fgets($handle)) !== false) {
-                if (trim($line) === '') {
-                    continue;
-                }
+        $evidenceById = [];
+        foreach ($runtime->observations->evidence($runId) as $evidence) {
+            $evidenceById[$evidence->id()] = $evidence;
+        }
 
-                /** @var mixed $record */
-                $record = json_decode($line, true, flags: JSON_THROW_ON_ERROR);
-                if (!is_array($record)) {
-                    throw new \InvalidArgumentException('Review row must be a JSON object.');
-                }
-
-                $decision = $record['decision'] ?? null;
-                if (!is_array($decision)) {
-                    throw new \InvalidArgumentException('Review row is missing decision.');
-                }
-
-                $runId = $this->requiredString($record, 'runId');
-                if ($runtime->runs->get($runId) === null) {
-                    throw new \InvalidArgumentException(sprintf('Unknown run %s.', $runId));
-                }
-
-                $runtime->reviews->decide(new ReviewDecision(
-                    runId: $runId,
-                    evidenceId: $this->requiredString($record, 'evidenceId'),
-                    type: EvidenceType::from($this->requiredString($decision, 'type')),
-                    state: ObservationState::from($this->requiredString($decision, 'state')),
-                    reviewerType: ReviewerType::from($this->requiredString($decision, 'reviewerType')),
-                    reviewerId: $this->requiredString($decision, 'reviewerId'),
-                    reviewedAt: $this->requiredString($decision, 'reviewedAt'),
-                    rationale: $this->requiredString($decision, 'rationale'),
-                ));
-                $count++;
+        $imported = 0;
+        foreach ($cases as $case) {
+            if (!is_array($case)) {
+                return Command::INVALID;
             }
-        } finally {
-            fclose($handle);
+
+            $evidenceId = $case['evidenceId'] ?? null;
+            $typeRaw = $case['evidenceType'] ?? null;
+            $stateRaw = $case['humanState'] ?? null;
+            $rationale = $case['rationale'] ?? null;
+
+            if (
+                !is_string($evidenceId)
+                || !is_string($typeRaw)
+                || !is_string($stateRaw)
+                || !is_string($rationale)
+                || trim($rationale) === ''
+            ) {
+                return Command::INVALID;
+            }
+
+            $sourceEvidence = $evidenceById[$evidenceId] ?? null;
+            $type = EvidenceType::tryFrom($typeRaw);
+            $state = ObservationState::tryFrom($stateRaw);
+            if ($sourceEvidence === null || $type === null || $state === null || $sourceEvidence->type !== $type) {
+                return Command::INVALID;
+            }
+
+            $runtime->reviews->decide(new ReviewDecision(
+                runId: $runId,
+                evidenceId: $evidenceId,
+                type: $type,
+                state: $state,
+                reviewerType: ReviewerType::Human,
+                reviewerId: $reviewerId,
+                reviewedAt: isset($case['reviewedAt'])
+                    && is_string($case['reviewedAt'])
+                    && $case['reviewedAt'] !== ''
+                        ? $case['reviewedAt']
+                        : gmdate(DATE_ATOM),
+                rationale: $rationale,
+            ));
+            $imported++;
         }
 
-        $output->writeln((string) $count);
+        $output->writeln(json_encode([
+            'runId' => $runId,
+            'reviewerId' => $reviewerId,
+            'imported' => $imported,
+        ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 
         return Command::SUCCESS;
-    }
-
-    /**
-     * @param array<array-key,mixed> $record
-     */
-    private function requiredString(array $record, string $key): string
-    {
-        $value = $record[$key] ?? null;
-        if (!is_string($value) || trim($value) === '') {
-            throw new \InvalidArgumentException(sprintf('Missing non-empty %s.', $key));
-        }
-
-        return $value;
     }
 }
