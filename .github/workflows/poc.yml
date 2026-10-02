@@ -112,3 +112,14 @@ jobs:
             data/derived/runs/${{ steps.run.outputs.run_id }}/manifest.json
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish restricted PoC continuation state
+        uses: actions/upload-artifact@v6
+        with:
+          name: privacy-evidence-poc-state-${{ steps.run.outputs.run_id }}
+          path: |
+            data/derived/privacy-evidence.sqlite
+            data/derived/privacy-evidence.sqlite-wal
+            data/derived/privacy-evidence.sqlite-shm
+          if-no-files-found: warn
+          retention-days: 7
