@@ -173,7 +173,8 @@ final class HttpProbe
         if (str_contains($lower, 'resolve') || str_contains($lower, 'dns')) {
             return ProbeFailure::Dns;
         }
-        if (str_contains($lower, 'certificate')
+        if (
+            str_contains($lower, 'certificate')
             || str_contains($lower, 'ssl')
             || str_contains($lower, 'tls')
         ) {
