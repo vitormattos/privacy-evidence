@@ -23,7 +23,10 @@ final readonly class RunExporter
             throw new \RuntimeException('Unable to create export directory.');
         }
 
-        $this->json($directory . '/manifest.json', $run->toArray());
+        $status = $this->runtime->runs->status($runId) ?? throw new \RuntimeException(
+            'Run has no persisted status.',
+        );
+        $this->json($directory . '/manifest.json', $run->toArray($status));
         $this->json($directory . '/resources.json', $this->runtime->observations->resourceRecords($runId));
         $this->json($directory . '/documents.json', $this->runtime->observations->documentRecords($runId));
         $this->json(
