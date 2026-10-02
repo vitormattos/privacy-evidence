@@ -40,7 +40,7 @@ final class HttpFetcher
                 sprintf(
                     'Unable to fetch %s: %s',
                     $url,
-                    $probe->failure?->value ?? 'probe_failed',
+                    $probe->failure !== null ? $probe->failure->value : 'probe_failed',
                 ),
             );
         }
