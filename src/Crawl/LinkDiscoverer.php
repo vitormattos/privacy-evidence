@@ -10,6 +10,39 @@ use Symfony\Component\DomCrawler\Crawler;
 
 final class LinkDiscoverer
 {
+    public const VERSION = '1.0.0';
+
+    /** @var list<string> */
+    private array $privacyTerms;
+
+    /** @var list<string> */
+    private array $controlTerms;
+
+    /** @var list<string> */
+    private array $supportingTerms;
+
+    /**
+     * @param list<string>|null $privacyTerms
+     * @param list<string>|null $controlTerms
+     * @param list<string>|null $supportingTerms
+     */
+    public function __construct(
+        ?array $privacyTerms = null,
+        ?array $controlTerms = null,
+        ?array $supportingTerms = null,
+        private readonly string $version = self::VERSION,
+    ) {
+        $this->privacyTerms = $privacyTerms ?? [
+            'privacy', 'privacidade', 'proteção de dados', 'protecao-de-dados', 'lgpd', 'gdpr',
+        ];
+        $this->controlTerms = $controlTerms ?? [
+            'cookie', 'dpo', 'encarregado', 'direitos', 'rights',
+        ];
+        $this->supportingTerms = $supportingTerms ?? [
+            'contact', 'contato', 'about', 'sobre', 'terms', 'termos', 'legal',
+        ];
+    }
+
     /**
      * @return list<CandidateUrl>
      */
@@ -45,9 +78,16 @@ final class LinkDiscoverer
                 continue;
             }
 
-            $text = strtolower(trim($node->textContent));
-            [$priority, $reason] = $this->priority($absolute, $text);
-            $candidates[$absolute] = new CandidateUrl($absolute, $priority, $reason);
+            $text = trim($node->textContent);
+            [$priority, $reason] = $this->priority($absolute, strtolower($text));
+            $candidates[$absolute] = new CandidateUrl(
+                url: $absolute,
+                priority: $priority,
+                reason: $reason,
+                sourceUrl: $document->finalUrl,
+                anchorText: $text,
+                ruleVersion: $this->version,
+            );
         }
 
         $result = array_values($candidates);
@@ -62,8 +102,12 @@ final class LinkDiscoverer
 
     private function sameHost(string $base, string $candidate): bool
     {
-        return strtolower((string) parse_url($base, PHP_URL_HOST))
-            === strtolower((string) parse_url($candidate, PHP_URL_HOST));
+        $baseHost = parse_url($base, PHP_URL_HOST);
+        $candidateHost = parse_url($candidate, PHP_URL_HOST);
+
+        return is_string($baseHost)
+            && is_string($candidateHost)
+            && strtolower($baseHost) === strtolower($candidateHost);
     }
 
     /**
@@ -73,20 +117,20 @@ final class LinkDiscoverer
     {
         $haystack = strtolower($url . ' ' . $text);
 
-        foreach (['privacy', 'privacidade', 'proteção de dados', 'protecao-de-dados', 'lgpd', 'gdpr'] as $needle) {
-            if (str_contains($haystack, $needle)) {
+        foreach ($this->privacyTerms as $needle) {
+            if ($needle !== '' && str_contains($haystack, $needle)) {
                 return [100, 'privacy'];
             }
         }
 
-        foreach (['cookie', 'dpo', 'encarregado', 'direitos', 'rights'] as $needle) {
-            if (str_contains($haystack, $needle)) {
+        foreach ($this->controlTerms as $needle) {
+            if ($needle !== '' && str_contains($haystack, $needle)) {
                 return [80, 'privacy_control'];
             }
         }
 
-        foreach (['contact', 'contato', 'about', 'sobre', 'terms', 'termos', 'legal'] as $needle) {
-            if (str_contains($haystack, $needle)) {
+        foreach ($this->supportingTerms as $needle) {
+            if ($needle !== '' && str_contains($haystack, $needle)) {
                 return [50, 'supporting'];
             }
         }
