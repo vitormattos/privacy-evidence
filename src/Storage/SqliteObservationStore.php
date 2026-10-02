@@ -89,6 +89,65 @@ final class SqliteObservationStore implements ObservationStore
     }
 
 
+
+    public function resourceRecords(string $runId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT resource_id, name, source_value, normalized_url, resource_type, metadata_json
+             FROM resources WHERE run_id = :run_id ORDER BY resource_id',
+        );
+        $stmt->execute(['run_id' => $runId]);
+
+        $records = [];
+        while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
+            $metadata = json_decode(
+                (string) $row['metadata_json'],
+                true,
+                flags: JSON_THROW_ON_ERROR,
+            );
+            $records[] = [
+                'id' => (string) $row['resource_id'],
+                'name' => (string) $row['name'],
+                'sourceValue' => (string) $row['source_value'],
+                'normalizedUrl' => $row['normalized_url'] === null
+                    ? null
+                    : (string) $row['normalized_url'],
+                'type' => (string) $row['resource_type'],
+                'metadata' => is_array($metadata) ? $metadata : [],
+            ];
+        }
+
+        return $records;
+    }
+
+    public function documentRecords(string $runId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT artifact_hash, resource_id, requested_url, final_url, status_code,
+                    media_type, fetched_at, acquisition_mode, truncated, body_size
+             FROM documents WHERE run_id = :run_id ORDER BY resource_id, fetched_at, artifact_hash',
+        );
+        $stmt->execute(['run_id' => $runId]);
+
+        $records = [];
+        while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
+            $records[] = [
+                'artifactHash' => (string) $row['artifact_hash'],
+                'resourceId' => (string) $row['resource_id'],
+                'requestedUrl' => (string) $row['requested_url'],
+                'finalUrl' => (string) $row['final_url'],
+                'statusCode' => (int) $row['status_code'],
+                'mediaType' => (string) $row['media_type'],
+                'fetchedAt' => (string) $row['fetched_at'],
+                'acquisitionMode' => (string) $row['acquisition_mode'],
+                'truncated' => (int) $row['truncated'] === 1,
+                'bodySize' => (int) $row['body_size'],
+            ];
+        }
+
+        return $records;
+    }
+
     public function resourceIds(string $runId): array
     {
         $stmt = $this->pdo->prepare(
