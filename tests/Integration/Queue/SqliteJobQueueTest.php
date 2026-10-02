@@ -7,11 +7,12 @@ namespace PrivacyEvidence\Tests\Integration\Queue;
 use PDO;
 use PHPUnit\Framework\TestCase;
 use PrivacyEvidence\Queue\Job;
+use PrivacyEvidence\Queue\JobStatus;
 use PrivacyEvidence\Queue\SqliteJobQueue;
 
 final class SqliteJobQueueTest extends TestCase
 {
-    public function testJobsAreIdempotentAndResumable(): void
+    public function testJobsAreIdempotentRetriedWithBackoffAndResumable(): void
     {
         if (!extension_loaded('pdo_sqlite')) {
             self::markTestSkipped('pdo_sqlite not available');
@@ -24,6 +25,7 @@ final class SqliteJobQueueTest extends TestCase
             'fetch',
             'site-1',
             ['url' => 'https://example.test'],
+            host: 'example.test',
         );
 
         $queue->enqueue($job);
@@ -34,6 +36,7 @@ final class SqliteJobQueueTest extends TestCase
                 'fetch',
                 'site-1',
                 ['url' => 'https://example.test'],
+                host: 'example.test',
             ),
         );
 
@@ -41,14 +44,87 @@ final class SqliteJobQueueTest extends TestCase
 
         $reserved = $queue->reserve('r1', 'fetch');
         self::assertSame('j1', $reserved?->id);
+        self::assertNotNull($reserved?->reservedAtMs);
 
-        $queue->fail('j1', 'temporary');
-        self::assertSame(['pending' => 1], $queue->counts('r1'));
+        self::assertSame(JobStatus::Pending, $queue->fail('j1', 'temporary'));
+        self::assertNull($queue->reserve('r1', 'fetch'));
 
+        usleep(550_000);
         $reserved = $queue->reserve('r1', 'fetch');
         self::assertSame(2, $reserved?->attempts);
 
+        self::assertSame(1, $queue->requeueRunning('r1'));
+        self::assertSame(['pending' => 1], $queue->counts('r1'));
+
+        $reserved = $queue->reserve('r1', 'fetch');
+        self::assertSame(3, $reserved?->attempts);
         $queue->complete('j1');
+
         self::assertSame(['completed' => 1], $queue->counts('r1'));
+    }
+
+    public function testPriorityAndPerHostConcurrencyAreAppliedAcrossCandidates(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            self::markTestSkipped('pdo_sqlite not available');
+        }
+
+        $queue = new SqliteJobQueue(new PDO('sqlite::memory:'));
+
+        $queue->enqueue(new Job(
+            'low',
+            'r1',
+            'fetch',
+            'low',
+            ['url' => 'https://a.test/low'],
+            priority: 10,
+            host: 'a.test',
+        ));
+        $queue->enqueue(new Job(
+            'high',
+            'r1',
+            'fetch',
+            'high',
+            ['url' => 'https://a.test/high'],
+            priority: 100,
+            host: 'a.test',
+        ));
+        $queue->enqueue(new Job(
+            'other',
+            'r1',
+            'fetch',
+            'other',
+            ['url' => 'https://b.test/'],
+            priority: 50,
+            host: 'b.test',
+        ));
+
+        $first = $queue->reserve('r1', 'fetch', perHostConcurrency: 1);
+        self::assertSame('high', $first?->id);
+
+        $second = $queue->reserve('r1', 'fetch', perHostConcurrency: 1);
+        self::assertSame('other', $second?->id);
+
+        self::assertSame(['pending' => 1, 'running' => 2], $queue->stageCounts('r1', 'fetch'));
+    }
+
+    public function testDeadLettersAfterMaximumAttempts(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            self::markTestSkipped('pdo_sqlite not available');
+        }
+
+        $queue = new SqliteJobQueue(new PDO('sqlite::memory:'));
+        $queue->enqueue(new Job(
+            'dead',
+            'r1',
+            'fetch',
+            'dead',
+            ['url' => 'https://example.test'],
+        ));
+
+        $queue->reserve('r1', 'fetch');
+        self::assertSame(JobStatus::Dead, $queue->fail('dead', 'fatal', maxAttempts: 1));
+        self::assertSame(['dead' => 1], $queue->counts('r1'));
     }
 }
