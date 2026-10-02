@@ -22,10 +22,26 @@ final readonly class ResearchRun
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array{
+     *   id:string,
+     *   startedAt:string,
+     *   gitCommit:string,
+     *   datasetHash:string,
+     *   protocolVersion:string,
+     *   versions:array<string,string>,
+     *   configuration:array<string, scalar|array<array-key, scalar>|null>
+     * }
      */
     public function toArray(): array
     {
-        return get_object_vars($this);
+        return [
+            'id' => $this->id,
+            'startedAt' => $this->startedAt,
+            'gitCommit' => $this->gitCommit,
+            'datasetHash' => $this->datasetHash,
+            'protocolVersion' => $this->protocolVersion,
+            'versions' => $this->versions,
+            'configuration' => $this->configuration,
+        ];
     }
 }
