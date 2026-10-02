@@ -10,7 +10,7 @@ use PrivacyEvidence\Core\ObservationState;
 abstract class AbstractTextDetector implements Detector
 {
     /**
-     * @return list<array{type: EvidenceType, patterns: list<string>}>
+     * @return list<array{type: EvidenceType, patterns: list<non-empty-string>}>
      */
     abstract protected function patterns(): array;
 
