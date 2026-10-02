@@ -62,10 +62,11 @@ try {
         $responses = [];
 
         foreach ($batch as $url) {
-            $host = parse_url($url, PHP_URL_AUTHORITY);
-            if (!is_string($host)) {
+            $parts = parse_url($url);
+            if (!is_array($parts) || !isset($parts['host'], $parts['port'])) {
                 throw new RuntimeException('Invalid benchmark URL authority.');
             }
+            $host = $parts['host'] . ':' . $parts['port'];
             $hostCounts[$host] = ($hostCounts[$host] ?? 0) + 1;
             if ($hostCounts[$host] > $perHostConcurrency) {
                 throw new RuntimeException('Per-host benchmark concurrency invariant violated.');
