@@ -15,31 +15,43 @@ final class SqliteReviewQueue implements ReviewQueue
         $this->migrate();
     }
 
-    public function enqueue(string $evidenceId, string $payload): void
+    public function enqueue(string $runId, string $evidenceId, string $payload): void
     {
         $stmt = $this->pdo->prepare(
-            'INSERT OR IGNORE INTO review_queue (evidence_id, payload, status) VALUES (:id, :payload, "pending")',
+            'INSERT OR IGNORE INTO review_queue (run_id, evidence_id, payload, status)
+             VALUES (:run_id, :id, :payload, "pending")',
         );
         $stmt->execute([
+            'run_id' => $runId,
             'id' => $evidenceId,
             'payload' => $payload,
         ]);
     }
 
-    public function pending(): array
+    public function pending(?string $runId = null): array
     {
-        $stmt = $this->pdo->query(
-            'SELECT evidence_id, payload, status
-             FROM review_queue
-             WHERE status = "pending"
-             ORDER BY evidence_id',
-        );
+        if ($runId === null) {
+            $stmt = $this->pdo->query(
+                'SELECT run_id, evidence_id, payload, status
+                 FROM review_queue
+                 WHERE status = "pending"
+                 ORDER BY run_id, evidence_id',
+            );
+        } else {
+            $stmt = $this->pdo->prepare(
+                'SELECT run_id, evidence_id, payload, status
+                 FROM review_queue
+                 WHERE run_id = :run_id AND status = "pending"
+                 ORDER BY evidence_id',
+            );
+            $stmt->execute(['run_id' => $runId]);
+        }
 
         if (!$stmt instanceof PDOStatement) {
             throw new \RuntimeException('Unable to query review queue.');
         }
 
-        /** @var list<array{evidence_id:string,payload:string,status:string}> $rows */
+        /** @var list<array{run_id:string,evidence_id:string,payload:string,status:string}> $rows */
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return $rows;
@@ -52,10 +64,12 @@ final class SqliteReviewQueue implements ReviewQueue
         try {
             $stmt = $this->pdo->prepare(
                 'INSERT INTO review_decisions
-                 (evidence_id, type, state, reviewer_type, reviewer_id, reviewed_at, rationale)
-                 VALUES (:evidence_id, :type, :state, :reviewer_type, :reviewer_id, :reviewed_at, :rationale)',
+                 (run_id, evidence_id, type, state, reviewer_type, reviewer_id, reviewed_at, rationale)
+                 VALUES (:run_id, :evidence_id, :type, :state, :reviewer_type,
+                         :reviewer_id, :reviewed_at, :rationale)',
             );
             $stmt->execute([
+                'run_id' => $decision->runId,
                 'evidence_id' => $decision->evidenceId,
                 'type' => $decision->type->value,
                 'state' => $decision->state->value,
@@ -66,9 +80,14 @@ final class SqliteReviewQueue implements ReviewQueue
             ]);
 
             $update = $this->pdo->prepare(
-                'UPDATE review_queue SET status = "reviewed" WHERE evidence_id = :id',
+                'UPDATE review_queue
+                 SET status = "reviewed"
+                 WHERE run_id = :run_id AND evidence_id = :id',
             );
-            $update->execute(['id' => $decision->evidenceId]);
+            $update->execute([
+                'run_id' => $decision->runId,
+                'id' => $decision->evidenceId,
+            ]);
             $this->pdo->commit();
         } catch (\Throwable $e) {
             $this->pdo->rollBack();
@@ -81,15 +100,18 @@ final class SqliteReviewQueue implements ReviewQueue
     {
         $this->pdo->exec(
             'CREATE TABLE IF NOT EXISTS review_queue (
-                evidence_id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL,
+                evidence_id TEXT NOT NULL,
                 payload TEXT NOT NULL,
-                status TEXT NOT NULL
+                status TEXT NOT NULL,
+                PRIMARY KEY (run_id, evidence_id)
             )',
         );
 
         $this->pdo->exec(
             'CREATE TABLE IF NOT EXISTS review_decisions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id TEXT NOT NULL,
                 evidence_id TEXT NOT NULL,
                 type TEXT NOT NULL,
                 state TEXT NOT NULL,
