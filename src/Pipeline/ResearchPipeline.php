@@ -9,10 +9,8 @@ use PrivacyEvidence\Acquisition\FetchedDocument;
 use PrivacyEvidence\Acquisition\HttpFetcher;
 use PrivacyEvidence\Browser\BrowserEscalationPolicy;
 use PrivacyEvidence\Browser\BrowserProvider;
-use PrivacyEvidence\Evidence\PrivacyEvidence;
 use PrivacyEvidence\Queue\Job;
 use PrivacyEvidence\Queue\JobQueue;
-use PrivacyEvidence\Regulatory\ProfileEvaluator;
 use PrivacyEvidence\Review\ReviewQueue;
 use PrivacyEvidence\Run\ResearchRun;
 use PrivacyEvidence\Run\RunStatus;
@@ -31,8 +29,6 @@ final readonly class ResearchPipeline
         private ReviewQueue $reviews,
         private HttpFetcher $fetcher,
         private DetectorRegistry $detectors,
-        private ProfileRegistry $profiles,
-        private ProfileEvaluator $profileEvaluator = new ProfileEvaluator(),
         private BrowserEscalationPolicy $browserPolicy = new BrowserEscalationPolicy(),
         private LinkDiscoverer $linkDiscoverer = new LinkDiscoverer(),
         private ?BrowserProvider $browser = null,
@@ -212,32 +208,7 @@ final readonly class ResearchPipeline
             }
         }
 
-        $this->evaluateProfiles($runId, $document->resourceId, $allEvidence);
     }
-
-    /**
-     * @param list<PrivacyEvidence> $evidence
-     */
-    private function evaluateProfiles(
-        string $runId,
-        string $resourceId,
-        array $evidence,
-    ): void {
-        foreach ($this->profiles->profiles as $profile) {
-            $result = $this->profileEvaluator->evaluate($profile, $evidence);
-
-            foreach ($result as $requirement) {
-                $this->observations->recordProfileResult(
-                    runId: $runId,
-                    resourceId: $resourceId,
-                    profile: $profile->id(),
-                    profileVersion: $profile->version(),
-                    result: $requirement,
-                );
-            }
-        }
-    }
-
 
     private function payloadInt(Job $job, string $key, int $default): int
     {
