@@ -35,4 +35,24 @@ final class ResourceClassifierTest extends TestCase
             (new ResourceClassifier())->classify('example.org', 'https://example.org/'),
         );
     }
+    public function testClassificationCarriesRuleVersionAndConfidence(): void
+    {
+        $classification = (new ResourceClassifier())->classifyDetailed(
+            'instagram.com/example',
+            'https://instagram.com/example',
+        );
+
+        self::assertSame(ResourceType::SocialNetwork, $classification->type);
+        self::assertSame('known_social_host', $classification->rule);
+        self::assertSame(ResourceClassifier::VERSION, $classification->version);
+        self::assertSame(1.0, $classification->confidence);
+    }
+
+    public function testKnownHostedPageIsClassifiedSeparately(): void
+    {
+        self::assertSame(
+            ResourceType::ThirdPartyHostedPage,
+            (new ResourceClassifier())->classify('https://example.wordpress.com', 'https://example.wordpress.com/'),
+        );
+    }
 }
