@@ -104,6 +104,10 @@ final readonly class ResearchPipeline
                     $decision = $this->browserPolicy->decide($document);
                     if ($decision->required) {
                         $this->runs->increment($runId, 'browser_escalations');
+                        $this->runs->increment(
+                            $runId,
+                            'browser_escalation.' . $decision->reason,
+                        );
                         $observation = $this->browser->observe($url);
                         $rendered = new FetchedDocument(
                             resourceId: $resourceId,
@@ -116,6 +120,10 @@ final readonly class ResearchPipeline
                             acquisitionMode: 'browser',
                             metadata: [
                                 'browserVersion' => $observation->browserVersion,
+                                'browserEscalation' => [
+                                    'policyVersion' => $decision->policyVersion,
+                                    'reason' => $decision->reason,
+                                ],
                                 'browser' => $observation->metadata,
                             ],
                         );
