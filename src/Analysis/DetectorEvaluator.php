@@ -25,6 +25,7 @@ final class DetectorEvaluator
         string $protocolVersion,
         string $goldDatasetVersion,
     ): array {
+        /** @var array<string, ReviewDecision> $truthByEvidence */
         $truthByEvidence = [];
         foreach ($groundTruth as $decision) {
             $truthByEvidence[$decision->evidenceId] = $decision;
@@ -97,6 +98,20 @@ final class DetectorEvaluator
         }
 
         ksort($signals);
+        /** @var array<string,array{
+         *   confusionMatrix:array{truePositive:int,falsePositive:int,trueNegative:int,falseNegative:int},
+         *   precision:float|null,
+         *   recall:float|null,
+         *   f1:float|null,
+         *   support:int,
+         *   evaluated:int,
+         *   abstained:int,
+         *   truthUnknown:int,
+         *   coverage:float|null,
+         *   detectors:list<string>,
+         *   falsePositives:list<array<string,string>>,
+         *   falseNegatives:list<array<string,string>>
+         * }> $result */
         $result = [];
 
         foreach ($signals as $type => $signal) {
