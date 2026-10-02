@@ -492,7 +492,7 @@ final readonly class ResearchPipeline
     }
 
     /**
-     * @param array<string,int> $usageBefore
+     * @param array<string,mixed> $usageBefore
      */
     private function recordStagePerformance(
         string $runId,
@@ -507,14 +507,14 @@ final readonly class ResearchPipeline
             $usageAfter = [];
         }
 
-        $userBefore = ($usageBefore['ru_utime.tv_sec'] ?? 0) * 1_000_000
-            + ($usageBefore['ru_utime.tv_usec'] ?? 0);
-        $userAfter = ($usageAfter['ru_utime.tv_sec'] ?? 0) * 1_000_000
-            + ($usageAfter['ru_utime.tv_usec'] ?? 0);
-        $systemBefore = ($usageBefore['ru_stime.tv_sec'] ?? 0) * 1_000_000
-            + ($usageBefore['ru_stime.tv_usec'] ?? 0);
-        $systemAfter = ($usageAfter['ru_stime.tv_sec'] ?? 0) * 1_000_000
-            + ($usageAfter['ru_stime.tv_usec'] ?? 0);
+        $userBefore = $this->rusageInt($usageBefore, 'ru_utime.tv_sec') * 1_000_000
+            + $this->rusageInt($usageBefore, 'ru_utime.tv_usec');
+        $userAfter = $this->rusageInt($usageAfter, 'ru_utime.tv_sec') * 1_000_000
+            + $this->rusageInt($usageAfter, 'ru_utime.tv_usec');
+        $systemBefore = $this->rusageInt($usageBefore, 'ru_stime.tv_sec') * 1_000_000
+            + $this->rusageInt($usageBefore, 'ru_stime.tv_usec');
+        $systemAfter = $this->rusageInt($usageAfter, 'ru_stime.tv_sec') * 1_000_000
+            + $this->rusageInt($usageAfter, 'ru_stime.tv_usec');
 
         $this->runs->increment($runId, 'stage_jobs.' . $stage, $processed);
         $this->runs->increment($runId, 'stage_elapsed_ms.' . $stage, $elapsedMs);
@@ -544,6 +544,16 @@ final readonly class ResearchPipeline
                 (float) $totalJobs / ((float) $totalElapsedMs / 1000.0),
             );
         }
+    }
+
+    /**
+     * @param array<string,mixed> $usage
+     */
+    private function rusageInt(array $usage, string $key): int
+    {
+        $value = $usage[$key] ?? 0;
+
+        return is_int($value) ? $value : 0;
     }
 
     private function payloadInt(Job $job, string $key, int $default): int
