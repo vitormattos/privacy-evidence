@@ -43,6 +43,9 @@ jobs:
       - name: Preflight
         run: php bin/privacy-evidence doctor
 
+      - name: Quality gates before PoC
+        run: composer quality
+
       - name: Validate source import
         run: php bin/privacy-evidence source:import examples/poc/sites.csv > /tmp/source-import.jsonl
 
@@ -88,9 +91,6 @@ jobs:
           php bin/privacy-evidence status "$RUN_ID" > "$EXPORT_DIR/status.json"
           cp /tmp/source-import.jsonl "$EXPORT_DIR/source-import.jsonl"
           cp /tmp/privacy-evidence-run-id "$EXPORT_DIR/run-id.txt"
-
-      - name: Quality gates
-        run: composer quality
 
       - name: Publish PoC exports
         uses: actions/upload-artifact@v6
