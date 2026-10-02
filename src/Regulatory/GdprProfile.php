@@ -8,8 +8,14 @@ use PrivacyEvidence\Evidence\EvidenceType;
 
 final class GdprProfile implements RegulatoryProfile
 {
-    public function id(): string { return 'gdpr'; }
-    public function version(): string { return '1.0.0'; }
+    public function id(): string
+    {
+        return 'gdpr';
+    }
+    public function version(): string
+    {
+        return '1.0.0';
+    }
 
     public function requirements(): array
     {
