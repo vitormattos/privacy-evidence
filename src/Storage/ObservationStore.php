@@ -33,6 +33,11 @@ interface ObservationStore
     ): void;
 
     /**
+     * @return array{pages:int,bytes:int,browserPages:int}
+     */
+    public function resourceUsage(string $runId, string $resourceId): array;
+
+    /**
      * @return array<string,int>
      */
     public function counts(string $runId): array;
