@@ -88,6 +88,22 @@ final class SqliteObservationStore implements ObservationStore
         ]);
     }
 
+
+    public function resourceIds(string $runId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT resource_id FROM resources WHERE run_id = :run_id ORDER BY resource_id',
+        );
+        $stmt->execute(['run_id' => $runId]);
+
+        $ids = [];
+        while (($value = $stmt->fetchColumn()) !== false) {
+            $ids[] = (string) $value;
+        }
+
+        return $ids;
+    }
+
     public function evidence(string $runId, ?string $resourceId = null): array
     {
         if ($resourceId === null) {
@@ -171,6 +187,35 @@ final class SqliteObservationStore implements ObservationStore
         ]);
     }
 
+
+
+    public function profileResults(string $runId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT resource_id, profile, profile_version, result_json
+             FROM profile_results
+             WHERE run_id = :run_id
+             ORDER BY resource_id, profile, result_id',
+        );
+        $stmt->execute(['run_id' => $runId]);
+
+        $results = [];
+        while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
+            $decoded = json_decode(
+                (string) $row['result_json'],
+                true,
+                flags: JSON_THROW_ON_ERROR,
+            );
+            $results[] = [
+                'resourceId' => (string) $row['resource_id'],
+                'profile' => (string) $row['profile'],
+                'profileVersion' => (string) $row['profile_version'],
+                'result' => is_array($decoded) ? $decoded : [],
+            ];
+        }
+
+        return $results;
+    }
 
     public function resourceUsage(string $runId, string $resourceId): array
     {
