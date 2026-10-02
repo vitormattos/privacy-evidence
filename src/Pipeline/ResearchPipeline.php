@@ -549,6 +549,7 @@ final readonly class ResearchPipeline
      */
     private function rusageInt(array $usage, string $key): int
     {
+        /** @psalm-suppress MixedAssignment getrusage() exposes platform-dependent mixed values. */
         $value = $usage[$key] ?? 0;
 
         return is_int($value) ? $value : 0;
