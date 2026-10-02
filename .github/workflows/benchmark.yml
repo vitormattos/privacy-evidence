@@ -1,0 +1,72 @@
+name: Performance benchmark
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/benchmark.yml'
+      - 'benchmarks/**'
+      - 'browser/benchmark.mjs'
+      - 'browser/package.json'
+      - 'browser/package-lock.json'
+      - 'src/Queue/**'
+      - 'src/Evidence/**'
+      - 'src/Pipeline/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: performance-benchmark
+  cancel-in-progress: true
+
+jobs:
+  php-benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, mbstring, dom
+          tools: composer:v2
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Run PHP/SQLite/detector benchmark
+        run: |
+          mkdir -p benchmark-results
+          php benchmarks/pipeline.php | tee benchmark-results/php.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: php-benchmark
+          path: benchmark-results/php.json
+
+  browser-benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: browser/package-lock.json
+      - name: Install browser dependencies
+        working-directory: browser
+        run: npm ci
+      - name: Install Chromium
+        working-directory: browser
+        run: npx playwright install --with-deps chromium
+      - name: Validate browser scripts
+        working-directory: browser
+        run: npm run check
+      - name: Run browser benchmark
+        working-directory: browser
+        run: |
+          mkdir -p ../benchmark-results
+          npm run benchmark --silent | tee ../benchmark-results/browser.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: browser-benchmark
+          path: benchmark-results/browser.json
