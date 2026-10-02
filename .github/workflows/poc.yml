@@ -81,6 +81,16 @@ jobs:
       - name: Generate report and exports
         run: php bin/privacy-evidence report "${{ steps.run.outputs.run_id }}"
 
+      - name: Export independent review packets
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ID="${{ steps.run.outputs.run_id }}"
+          EXPORT_DIR="data/exports/$RUN_ID"
+          mkdir -p "$EXPORT_DIR/review"
+          php bin/privacy-evidence review:export "$RUN_ID" "$EXPORT_DIR/review/reviewer-a.jsonl"
+          cp "$EXPORT_DIR/review/reviewer-a.jsonl" "$EXPORT_DIR/review/reviewer-b.jsonl"
+
       - name: Capture final status and PoC metadata
         shell: bash
         run: |
