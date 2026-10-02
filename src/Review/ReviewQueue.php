@@ -14,4 +14,9 @@ interface ReviewQueue
     public function pending(?string $runId = null): array;
 
     public function decide(ReviewDecision $decision): void;
+
+    /**
+     * @return list<array<string,mixed>>
+     */
+    public function decisions(string $runId): array;
 }
