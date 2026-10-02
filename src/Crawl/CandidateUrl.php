@@ -10,6 +10,9 @@ final readonly class CandidateUrl
         public string $url,
         public int $priority,
         public string $reason,
+        public string $sourceUrl,
+        public string $anchorText,
+        public string $ruleVersion,
     ) {
     }
 }
