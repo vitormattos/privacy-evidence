@@ -110,7 +110,7 @@ final readonly class IpbAnuarioParser
         $email = '';
         $website = '';
 
-        $churchHtml = (string) $churchDiv->html('');
+        $churchHtml = $churchDiv->html('');
 
         if (preg_match('/<br\s*\/?><br\s*\/?>\s*(?<address>[^<]+)<br\s*\/?>/i', $churchHtml, $match) === 1) {
             $address = trim($match['address']);
@@ -172,7 +172,7 @@ final readonly class IpbAnuarioParser
             return null;
         }
 
-        $html = (string) $pastorDiv->html('');
+        $html = $pastorDiv->html('');
 
         return [
             'name' => trim($pastorDiv->filter('b > small')->text('')),
