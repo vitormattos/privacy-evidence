@@ -110,7 +110,11 @@ final readonly class RunComparator
                 continue;
             }
 
-            [$resourceId, $type] = explode('|', $key, 2);
+            $parts = explode('|', $key, 2);
+            if (count($parts) !== 2) {
+                throw new \RuntimeException('Invalid longitudinal evidence key.');
+            }
+            [$resourceId, $type] = $parts;
             $transitions[] = [
                 'resourceId' => $resourceId,
                 'evidenceType' => $type,
