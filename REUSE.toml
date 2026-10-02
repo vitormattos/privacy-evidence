@@ -1,0 +1,19 @@
+version = 1
+
+[[annotations]]
+path = [
+  ".editorconfig",
+  ".gitattributes",
+  ".gitignore",
+  "CITATION.cff",
+  "CHANGELOG.md",
+  "CODE_OF_CONDUCT.md",
+  "CONTRIBUTING.md",
+  "README.md",
+  "SECURITY.md",
+  "SUPPORT.md",
+  "AGENTS.md"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Vitor Mattos"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
