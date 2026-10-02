@@ -1,29 +1,45 @@
 # Human review handoff for the PoC
 
-The PoC workflow exports two **identical reviewer-neutral packets** before any review decision is imported:
+The PoC workflow creates one deterministic, stratified annotation package and copies it **before any human labels exist**:
 
-- `review/reviewer-a.jsonl`
-- `review/reviewer-b.jsonl`
+- `review/gold-poc-v1.json`
+- `review/reviewer-a.json`
+- `review/reviewer-b.json`
 
-Give each file to a different human reviewer. Reviewers must work independently and use `docs/research/annotation-handbook.md`.
+Give `reviewer-a.json` and `reviewer-b.json` to two different human reviewers. They must work independently and use `docs/research/annotation-handbook.md`.
 
-For each JSON line, edit only the `decision` object:
+## What each reviewer edits
 
-- keep `type` unchanged unless the packet is malformed;
-- set `state` to one of the allowed ObservationState values;
-- keep `reviewerType` as `human`;
-- use a stable privacy-preserving reviewer id such as `human:reviewer-a`;
-- set an ISO-8601 `reviewedAt`;
-- write a concise evidence-based `rationale`.
+Inside every entry under `cases`, fill:
 
-Do not share completed files between reviewers before both independent passes are finished.
+- `humanState`;
+- `rationale`;
+- optionally `reviewedAt`.
 
-After both are complete:
+Do not alter evidence identifiers, automated state, source URL, artifact hash, detector metadata, seed or package version.
+
+Do not share completed packages between reviewers before both independent passes are finished.
+
+## Import and agreement
+
+After both packages are complete:
 
 ```bash
-php bin/privacy-evidence review:import reviewer-a.jsonl
-php bin/privacy-evidence review:import reviewer-b.jsonl
+php bin/privacy-evidence review:import reviewer-a.json human:reviewer-a
+php bin/privacy-evidence review:import reviewer-b.json human:reviewer-b
 php bin/privacy-evidence review:agreement RUN_ID human:reviewer-a human:reviewer-b
 ```
 
-Agreement is calculated before adjudication. AI suggestions may assist navigation but do not count as human reviewers.
+Calculate agreement **before adjudication**.
+
+If disagreements require adjudication, make a third copy from the original package, fill the final human states only after reviewing the frozen agreement result, and import it with a separate stable id such as `human:adjudicator-01`.
+
+Then detector evaluation is automatic:
+
+```bash
+php bin/privacy-evidence review:evaluate RUN_ID human:adjudicator-01 gold-poc-v1
+```
+
+If no adjudication is required, designate one explicitly agreed final package/reviewer id according to the documented protocol; the software never silently chooses ground truth.
+
+AI suggestions may assist navigation or constitute a separate experiment, but they do not count as either of the two human reviewers.
