@@ -96,11 +96,14 @@ final class RunExporterTest extends TestCase
         self::assertFileExists($directory . '/evidence.csv');
         self::assertFileExists($directory . '/report.md');
 
-        $analysis = json_decode(
+        /** @var mixed $decoded */
+        $decoded = json_decode(
             (string) file_get_contents($directory . '/analysis.json'),
             true,
             flags: JSON_THROW_ON_ERROR,
         );
+        self::assertIsArray($decoded);
+        $analysis = $decoded;
         self::assertSame('run-export', $analysis['runId']);
         self::assertSame('2026-10-02T00:00:00Z', $analysis['generatedAt']);
         self::assertSame(1, $analysis['metrics']['counts']['resources']);
