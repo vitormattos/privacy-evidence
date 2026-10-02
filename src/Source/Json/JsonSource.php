@@ -39,6 +39,8 @@ final class JsonSource implements SourceAdapter
             throw new \InvalidArgumentException('JSON source must be an array of objects.');
         }
 
+        $seenIds = [];
+
         foreach ($records as $record) {
             if (!is_array($record)) {
                 throw new \InvalidArgumentException('Each JSON record must be an object.');
@@ -53,6 +55,17 @@ final class JsonSource implements SourceAdapter
             }
 
             $id = (string) $record['id'];
+            if ($id === '') {
+                throw new \InvalidArgumentException('JSON record id must not be empty.');
+            }
+
+            if (isset($seenIds[$id])) {
+                throw new \InvalidArgumentException(
+                    sprintf('JSON contains duplicate id "%s".', $id),
+                );
+            }
+            $seenIds[$id] = true;
+
             $name = (string) $record['name'];
             $sourceValue = (string) $record['url'];
             $normalized = $this->normalizer->normalize($sourceValue);
