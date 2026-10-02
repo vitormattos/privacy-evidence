@@ -99,3 +99,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: fsfe/reuse-action@v6
+
+
+  container-smoke:
+    name: Container smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build reproducible application and browser images
+        run: docker compose build app browser
+      - name: Run application preflight
+        run: docker compose run --rm app doctor
+      - name: Run representative source-import fixture
+        run: docker compose run --rm app source:import tests/Fixtures/sources/sites.csv
