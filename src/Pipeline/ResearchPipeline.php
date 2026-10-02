@@ -201,6 +201,7 @@ final readonly class ResearchPipeline
 
                 if ($evidence->needsReview) {
                     $this->reviews->enqueue(
+                        $runId,
                         $evidence->id(),
                         json_encode($evidence->toArray(), JSON_THROW_ON_ERROR),
                     );
