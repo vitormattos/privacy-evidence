@@ -6,6 +6,7 @@ namespace PrivacyEvidence\Command;
 
 use PrivacyEvidence\Browser\PlaywrightBrowserProvider;
 use PrivacyEvidence\Pipeline\PipelineConfig;
+use PrivacyEvidence\Run\RunManifestWriter;
 use PrivacyEvidence\Runtime\RuntimeFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -33,7 +34,8 @@ final class ResumeCommand extends Command
         }
 
         $runtime = RuntimeFactory::create($this->projectRoot);
-        if ($runtime->runs->get($value) === null) {
+        $run = $runtime->runs->get($value);
+        if ($run === null) {
             $output->writeln('<error>Unknown run.</error>');
 
             return Command::FAILURE;
@@ -49,6 +51,15 @@ final class ResumeCommand extends Command
             new PipelineConfig(enableBrowserEscalation: $browser !== null),
             $browser,
         )->resume($value);
+
+        $status = $runtime->runs->status($value) ?? throw new \RuntimeException(
+            'Run status disappeared after resume.',
+        );
+        (new RunManifestWriter())->write(
+            $run,
+            $this->projectRoot . '/data/derived/runs/' . $value . '/manifest.json',
+            $status,
+        );
 
         return Command::SUCCESS;
     }
