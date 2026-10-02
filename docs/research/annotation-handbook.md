@@ -1,6 +1,6 @@
 # Annotation handbook
 
-Handbook version: **0.1.0-draft**
+Handbook version: **1.0.0**
 
 ## General rules
 
@@ -60,3 +60,23 @@ Separate static interface evidence from behavior:
 Each decision records reviewer type, stable reviewer id, timestamp, label, evidence reference and rationale.
 
 AI-generated suggestions must use reviewer type `ai_suggestion`, never `human`.
+
+
+## Independent-review protocol
+
+For the designated reliability subset:
+
+1. generate one deterministic annotation package with `review:sample`;
+2. provide identical copies to at least two actual human reviewers;
+3. reviewers work independently and do not inspect one another's labels before import;
+4. each reviewer fills `humanState`, `rationale`, and optionally `reviewedAt`;
+5. import each completed copy under a distinct stable reviewer id with `review:import`;
+6. calculate agreement with `review:agreement` before any adjudication;
+7. preserve both original review records unchanged;
+8. if adjudication is needed, create a separate final human annotation package/reviewer id after the agreement result is frozen.
+
+AI suggestions may be used as a separate experimental condition but never as one of the two human reviewers.
+
+## Ground-truth evaluation
+
+Use `review:evaluate RUN_ID REVIEWER_ID GOLD_VERSION` with the explicitly designated final human/adjudicated reviewer id. The command never silently chooses among competing reviewers.
