@@ -39,7 +39,7 @@ SQLite queue reservations use an immediate transaction and conditional pendingâ†
 - retry availability time;
 - dead-letter state after maximum attempts.
 
-The queue applies bounded capacity/backpressure and exponential retry delay. A resumed interrupted run requeues jobs that were left in `running`.
+The runtime configures SQLite in WAL mode with a finite busy timeout so independent worker processes serialize short write transactions instead of failing immediately on transient writer contention. The queue applies bounded capacity/backpressure and exponential retry delay. Duplicate delivery remains a no-op even when capacity is full. A resumed interrupted run requeues jobs that were left in `running`.
 
 ## Host fairness and politeness
 
