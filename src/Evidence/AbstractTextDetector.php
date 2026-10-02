@@ -10,7 +10,7 @@ use PrivacyEvidence\Core\ObservationState;
 abstract class AbstractTextDetector implements Detector
 {
     /**
-     * @return array<EvidenceType, list<string>>
+     * @return list<array{type: EvidenceType, patterns: list<string>}>
      */
     abstract protected function patterns(): array;
 
@@ -19,9 +19,9 @@ abstract class AbstractTextDetector implements Detector
         $text = $this->normalizedText($document->body);
         $evidence = [];
 
-        foreach ($this->patterns() as $type => $patterns) {
+        foreach ($this->patterns() as $definition) {
             $matches = [];
-            foreach ($patterns as $pattern) {
+            foreach ($definition['patterns'] as $pattern) {
                 if (preg_match($pattern, $text, $match) === 1) {
                     $matches[] = $match[0];
                 }
@@ -29,7 +29,7 @@ abstract class AbstractTextDetector implements Detector
 
             $present = $matches !== [];
             $evidence[] = new PrivacyEvidence(
-                type: $type,
+                type: $definition['type'],
                 state: $present ? ObservationState::Present : ObservationState::Absent,
                 resourceId: $document->resourceId,
                 artifactHash: $document->sha256,
