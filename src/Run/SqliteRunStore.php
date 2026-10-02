@@ -134,6 +134,21 @@ final class SqliteRunStore implements RunStore
         ]);
     }
 
+    public function setMetric(string $runId, string $metric, int|float $value): void
+    {
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO run_telemetry (run_id, metric, value)
+             VALUES (:run_id, :metric, :value)
+             ON CONFLICT(run_id, metric)
+             DO UPDATE SET value = excluded.value',
+        );
+        $stmt->execute([
+            'run_id' => $runId,
+            'metric' => $metric,
+            'value' => $value,
+        ]);
+    }
+
     public function recordEvent(
         string $runId,
         string $type,
