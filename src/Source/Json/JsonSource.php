@@ -23,6 +23,7 @@ final class JsonSource implements SourceAdapter
         if ($contents === false) {
             throw new \RuntimeException(sprintf('Unable to read JSON source: %s', $path));
         }
+
         $this->contents = $contents;
     }
 
@@ -39,19 +40,37 @@ final class JsonSource implements SourceAdapter
         }
 
         foreach ($records as $record) {
-            if (!is_array($record) || !isset($record['id'], $record['name'], $record['url'])) {
-                throw new \InvalidArgumentException('Each JSON record requires id, name and url.');
+            if (!is_array($record)) {
+                throw new \InvalidArgumentException('Each JSON record must be an object.');
             }
 
+            foreach (['id', 'name', 'url'] as $field) {
+                if (!array_key_exists($field, $record) || !is_scalar($record[$field])) {
+                    throw new \InvalidArgumentException(
+                        sprintf('Each JSON record requires scalar %s.', $field),
+                    );
+                }
+            }
+
+            $id = (string) $record['id'];
+            $name = (string) $record['name'];
             $sourceValue = (string) $record['url'];
             $normalized = $this->normalizer->normalize($sourceValue);
-            $metadata = $record;
-            unset($metadata['id'], $metadata['name'], $metadata['url']);
 
-            /** @var array<string, scalar|null> $metadata */
+            $metadata = [];
+            foreach ($record as $key => $value) {
+                if (in_array((string) $key, ['id', 'name', 'url'], true)) {
+                    continue;
+                }
+
+                if (is_scalar($value) || $value === null) {
+                    $metadata[(string) $key] = $value;
+                }
+            }
+
             yield new ImportedResource(
-                id: (string) $record['id'],
-                name: (string) $record['name'],
+                id: $id,
+                name: $name,
                 sourceValue: $sourceValue,
                 normalizedUrl: $normalized,
                 type: $this->classifier->classify($sourceValue, $normalized),
@@ -62,9 +81,11 @@ final class JsonSource implements SourceAdapter
 
     public function snapshot(): SourceSnapshot
     {
+        $mtime = filemtime($this->path);
+
         return new SourceSnapshot(
             sourceId: $this->sourceId(),
-            capturedAt: gmdate(DATE_ATOM, (int) filemtime($this->path)),
+            capturedAt: gmdate(DATE_ATOM, $mtime === false ? 0 : $mtime),
             sha256: hash('sha256', $this->contents),
             mediaType: 'application/json',
             location: $this->path,
