@@ -24,8 +24,10 @@ final class SqliteObservationStore implements ObservationStore
     {
         $stmt = $this->pdo->prepare(
             'INSERT OR REPLACE INTO resources
-             (run_id, resource_id, name, source_value, normalized_url, resource_type, metadata_json)
-             VALUES (:run_id, :resource_id, :name, :source_value, :normalized_url, :resource_type, :metadata_json)',
+             (run_id, resource_id, name, source_value, normalized_url, resource_type,
+              classification_rule, classification_version, classification_confidence, metadata_json)
+             VALUES (:run_id, :resource_id, :name, :source_value, :normalized_url, :resource_type,
+                     :classification_rule, :classification_version, :classification_confidence, :metadata_json)',
         );
         $stmt->execute([
             'run_id' => $runId,
@@ -34,6 +36,9 @@ final class SqliteObservationStore implements ObservationStore
             'source_value' => $resource->sourceValue,
             'normalized_url' => $resource->normalizedUrl,
             'resource_type' => $resource->type->value,
+            'classification_rule' => $resource->classificationRule,
+            'classification_version' => $resource->classificationVersion,
+            'classification_confidence' => $resource->classificationConfidence,
             'metadata_json' => json_encode($resource->metadata, JSON_THROW_ON_ERROR),
         ]);
     }
@@ -94,7 +99,8 @@ final class SqliteObservationStore implements ObservationStore
     public function resourceRecords(string $runId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT resource_id, name, source_value, normalized_url, resource_type, metadata_json
+            'SELECT resource_id, name, source_value, normalized_url, resource_type,
+                    classification_rule, classification_version, classification_confidence, metadata_json
              FROM resources WHERE run_id = :run_id ORDER BY resource_id',
         );
         $stmt->execute(['run_id' => $runId]);
@@ -117,6 +123,14 @@ final class SqliteObservationStore implements ObservationStore
                     ? null
                     : Value::string($row['normalized_url'], 'normalized_url'),
                 'type' => Value::string($row['resource_type'] ?? null, 'resource_type'),
+                'classification' => [
+                    'rule' => Value::string($row['classification_rule'] ?? null, 'classification_rule'),
+                    'version' => Value::string($row['classification_version'] ?? null, 'classification_version'),
+                    'confidence' => Value::float(
+                        $row['classification_confidence'] ?? null,
+                        'classification_confidence',
+                    ),
+                ],
                 'metadata' => $metadata,
             ];
         }
@@ -327,6 +341,9 @@ final class SqliteObservationStore implements ObservationStore
                 source_value TEXT NOT NULL,
                 normalized_url TEXT,
                 resource_type TEXT NOT NULL,
+                classification_rule TEXT NOT NULL DEFAULT "unspecified",
+                classification_version TEXT NOT NULL DEFAULT "1.0.0",
+                classification_confidence REAL NOT NULL DEFAULT 0,
                 metadata_json TEXT NOT NULL,
                 PRIMARY KEY (run_id, resource_id)
             )',
