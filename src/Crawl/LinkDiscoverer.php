@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PrivacyEvidence\Crawl;
 
+use DOMElement;
 use PrivacyEvidence\Acquisition\FetchedDocument;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -22,13 +23,20 @@ final class LinkDiscoverer
         $candidates = [];
 
         foreach ($crawler->filter('a[href]') as $node) {
-            $href = trim((string) $node->getAttribute('href'));
+            if (!$node instanceof DOMElement) {
+                continue;
+            }
+
+            $href = trim($node->getAttribute('href'));
             if ($href === '') {
                 continue;
             }
 
             try {
-                $absolute = (new Crawler($node, $document->finalUrl))->filter('a')->link()->getUri();
+                $absolute = (new Crawler($node, $document->finalUrl))
+                    ->filter('a')
+                    ->link()
+                    ->getUri();
             } catch (\Throwable) {
                 continue;
             }
@@ -37,20 +45,25 @@ final class LinkDiscoverer
                 continue;
             }
 
-            $text = strtolower(trim((string) $node->textContent));
+            $text = strtolower(trim($node->textContent));
             [$priority, $reason] = $this->priority($absolute, $text);
             $candidates[$absolute] = new CandidateUrl($absolute, $priority, $reason);
         }
 
         $result = array_values($candidates);
-        usort($result, static fn (CandidateUrl $a, CandidateUrl $b): int => $b->priority <=> $a->priority ?: strcmp($a->url, $b->url));
+        usort(
+            $result,
+            static fn (CandidateUrl $a, CandidateUrl $b): int => $b->priority <=> $a->priority
+                ?: strcmp($a->url, $b->url),
+        );
 
         return $result;
     }
 
     private function sameHost(string $base, string $candidate): bool
     {
-        return strtolower((string) parse_url($base, PHP_URL_HOST)) === strtolower((string) parse_url($candidate, PHP_URL_HOST));
+        return strtolower((string) parse_url($base, PHP_URL_HOST))
+            === strtolower((string) parse_url($candidate, PHP_URL_HOST));
     }
 
     /**
