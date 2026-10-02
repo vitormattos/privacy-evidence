@@ -29,10 +29,11 @@ final readonly class ResearchRun
      *   datasetHash:string,
      *   protocolVersion:string,
      *   versions:array<string,string>,
-     *   configuration:array<string, scalar|array<array-key, scalar>|null>
+     *   configuration:array<string, scalar|array<array-key, scalar>|null>,
+     *   status:string
      * }
      */
-    public function toArray(): array
+    public function toArray(RunStatus $status = RunStatus::Created): array
     {
         return [
             'id' => $this->id,
@@ -42,6 +43,7 @@ final readonly class ResearchRun
             'protocolVersion' => $this->protocolVersion,
             'versions' => $this->versions,
             'configuration' => $this->configuration,
+            'status' => $status->value,
         ];
     }
 }
