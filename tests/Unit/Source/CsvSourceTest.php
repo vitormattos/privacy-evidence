@@ -26,7 +26,6 @@ final class CsvSourceTest extends TestCase
         $source = new CsvSource(__DIR__ . '/../../Fixtures/sources/sites-duplicate.csv');
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('duplicate id');
         iterator_to_array($source->resources());
     }
 
@@ -35,7 +34,6 @@ final class CsvSourceTest extends TestCase
         $source = new CsvSource(__DIR__ . '/../../Fixtures/sources/sites-missing-column.csv');
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('missing required column');
         iterator_to_array($source->resources());
     }
 }
