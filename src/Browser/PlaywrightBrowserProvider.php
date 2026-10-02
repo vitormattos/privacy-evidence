@@ -31,7 +31,8 @@ final readonly class PlaywrightBrowserProvider implements BrowserProvider
 
         /** @var mixed $decoded */
         $decoded = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
-        if (!is_array($decoded)
+        if (
+            !is_array($decoded)
             || !is_string($decoded['url'] ?? null)
             || !is_string($decoded['html'] ?? null)
             || !is_string($decoded['capturedAt'] ?? null)
