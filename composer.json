@@ -10,6 +10,7 @@
         "ext-libxml": "*",
         "ext-mbstring": "*",
         "ext-pdo": "*",
+        "ext-pdo_sqlite": "*",
         "ext-tokenizer": "*",
         "php": "^8.4.1",
         "symfony/console": "^8.1",
@@ -65,5 +66,8 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "bin": [
+        "bin/privacy-evidence"
+    ]
 }
