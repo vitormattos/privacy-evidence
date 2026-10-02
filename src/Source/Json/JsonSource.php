@@ -71,6 +71,7 @@ final class JsonSource implements SourceAdapter
             $normalized = $this->normalizer->normalize($sourceValue);
 
             $metadata = [];
+            /** @psalm-suppress MixedAssignment */
             foreach ($record as $key => $value) {
                 if (!is_string($key)) {
                     continue;
