@@ -1,0 +1,31 @@
+name: Regulatory profile
+description: Add or revise an evidence-to-regulation mapping
+title: "[Regulatory] "
+labels: ["regulatory", "area:privacy"]
+body:
+  - type: input
+    id: regime
+    attributes:
+      label: Regulation or guidance
+      placeholder: LGPD, GDPR, ePrivacy, ANPD guidance...
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Authoritative source
+      description: Cite the provision or authoritative guidance supporting the proposed mapping.
+    validations:
+      required: true
+  - type: textarea
+    id: observable
+    attributes:
+      label: Observable evidence
+      description: State exactly what can be observed on a public digital resource.
+    validations:
+      required: true
+  - type: textarea
+    id: limitations
+    attributes:
+      label: Applicability and limitations
+      description: Identify conditions that cannot be verified from the public website.
