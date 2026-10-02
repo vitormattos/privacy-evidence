@@ -51,6 +51,9 @@ final class HttpFetcher
                 'User-Agent' => 'PrivacyEvidence/0.x research crawler',
             ],
         ]);
+        // Explicitly consume the status first so 4xx/5xx responses remain
+        // observable HTTP results instead of becoming retryable transport failures.
+        $response->getStatusCode();
 
         $body = '';
         $truncated = false;
