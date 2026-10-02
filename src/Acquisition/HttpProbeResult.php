@@ -15,6 +15,9 @@ final readonly class HttpProbeResult
         public ?int $statusCode,
         public ?string $contentType,
         public array $redirectChain = [],
+        public string $dnsState = 'not_observed',
+        public string $tlsState = 'not_applicable',
+        public string $transportState = 'not_attempted',
         public ?ProbeFailure $failure = null,
         public ?string $failureDetail = null,
     ) {
