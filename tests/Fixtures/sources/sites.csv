@@ -1,0 +1,4 @@
+id,name,url,group
+1,Example,example.com,control
+2,Instagram,https://instagram.com/example,social
+3,Malformed,not a valid host,invalid
