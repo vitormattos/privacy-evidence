@@ -70,13 +70,18 @@ final readonly class IpbAnuarioParser
                 ]),
             );
 
+            $classification = $this->classifier->classifyDetailed($sourceValue, $normalized);
+
             $resources[] = new ImportedResource(
                 id: 'ipb-' . substr($stableId, 0, 20),
                 name: $church['name'],
                 sourceValue: $sourceValue,
                 normalizedUrl: $normalized,
-                type: $this->classifier->classify($sourceValue, $normalized),
+                type: $classification->type,
                 metadata: $metadata,
+                classificationRule: $classification->rule,
+                classificationVersion: $classification->version,
+                classificationConfidence: $classification->confidence,
             );
         }
 
