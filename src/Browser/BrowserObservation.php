@@ -7,7 +7,7 @@ namespace PrivacyEvidence\Browser;
 final readonly class BrowserObservation
 {
     /**
-     * @param array<string, scalar|array<array-key, scalar>|null> $metadata
+     * @param array<string, mixed> $metadata
      */
     public function __construct(
         public string $url,
