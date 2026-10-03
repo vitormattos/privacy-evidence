@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Vitor Mattos -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+
 # Hacktoberfest PHP-native ML demo
 
 This is a deterministic, network-free demonstration of the experimental PHP-native ML path.
