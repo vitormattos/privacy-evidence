@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Vitor Mattos -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+
 # Live IPB validation demo
 
 This demo runs the real Privacy Evidence acquisition, detector, review-queue and regulatory-analysis pipeline against a small curated set of public Igreja Presbiteriana do Brasil websites.
