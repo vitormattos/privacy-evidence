@@ -131,7 +131,15 @@ final class ExternalDatasetSplitter
             throw new \RuntimeException('Dataset manifest must decode to an object.');
         }
 
-        return $decoded;
+        $manifest = [];
+        /** @psalm-suppress MixedAssignment */
+        foreach ($decoded as $key => $value) {
+            if (is_string($key)) {
+                $manifest[$key] = $value;
+            }
+        }
+
+        return $manifest;
     }
 
     /**
