@@ -8,18 +8,6 @@ use PrivacyEvidence\Core\ObservationState;
 use PrivacyEvidence\Evidence\PrivacyEvidence;
 use PrivacyEvidence\Experiment\Rubix\RubixSignalPrediction;
 
-final readonly class MlReviewAssessment
-{
-    public function __construct(
-        public ObservationState $mlState,
-        public bool $disagreesWithRule,
-        public bool $lowConfidence,
-        public bool $needsReview,
-        public int $priority,
-    ) {
-    }
-}
-
 final class MlReviewPolicy
 {
     public function __construct(private readonly float $uncertaintyMargin = 0.15)
