@@ -128,7 +128,7 @@ final readonly class IpbAnuarioParser
             }
         }
 
-        if (preg_match('/<br\s*\/?>CEP:\s*(?<postal>[\d.\-]*)<br\s*\/?>/i', $churchHtml, $match) === 1) {
+        if (preg_match('/\\bCEP:\\s*(?<postal>[\\d.\\-]+)/i', $churchHtml, $match) === 1) {
             $postalCode = trim($match['postal']);
         }
 
