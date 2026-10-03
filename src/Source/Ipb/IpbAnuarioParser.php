@@ -170,7 +170,7 @@ final readonly class IpbAnuarioParser
             static fn (Crawler $node): bool => str_contains(
                 $node->attr('style') ?? '',
                 'background-color: rgba(0,0,0,0.05);',
-            ),
+            ) && $node->filter('b > small')->count() > 0,
         )->first();
 
         if ($pastorDiv->count() === 0) {
