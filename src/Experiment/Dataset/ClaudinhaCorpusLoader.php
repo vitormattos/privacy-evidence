@@ -19,7 +19,24 @@ final readonly class ClaudinhaCorpusLoader
     ) {
     }
 
-    /** @return array<string,mixed> */
+    /**
+     * @return array{
+     *   datasetId:string,
+     *   datasetVersion:string,
+     *   doi:string,
+     *   license:string,
+     *   downloadUrl:string,
+     *   sourceFile:string,
+     *   sourceChecksums:array{md5:string,sha256:string},
+     *   canonicalFile:string,
+     *   canonicalSha256:string,
+     *   language:string,
+     *   records:int,
+     *   distinctParagraphs:int,
+     *   excludedColumns:list<string>,
+     *   purpose:string
+     * }
+     */
     public function prepare(string $sourcePath, string $outputDirectory): array
     {
         if (!is_file($sourcePath)) {
@@ -68,8 +85,12 @@ final readonly class ClaudinhaCorpusLoader
                 }
             }
 
-            while (($record = fgetcsv($input, escape: '')) !== false) {
-                if ($record === [null] || $record === []) {
+            while (($rawRecord = fgetcsv($input, escape: '')) !== false) {
+                $record = array_map(
+                    static fn (mixed $value): string => is_string($value) ? $value : '',
+                    $rawRecord,
+                );
+                if (count($record) === 1 && $record[0] === '') {
                     continue;
                 }
 
@@ -142,7 +163,7 @@ final readonly class ClaudinhaCorpusLoader
     }
 
     /**
-     * @param array<int,string|null> $record
+     * @param array<int,string> $record
      * @param array<string,int> $columns
      */
     private function field(array $record, array $columns, string $name): string
