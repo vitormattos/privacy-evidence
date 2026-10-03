@@ -90,20 +90,18 @@ final class DetectorTest extends TestCase
         self::assertStringContainsString('política', $notice->excerpt ?? '');
     }
 
-    public function testExcerptStartsAtMatchedTextAndIsBoundedTo240Characters(): void
+    public function testExcerptContainsTheMatchedTextRatherThanDocumentPrefix(): void
     {
-        $prefix = str_repeat('x', 30);
-        $match = 'política de privacidade ' . str_repeat('á', 300);
-        $document = $this->document('<p>' . $prefix . $match . '</p>');
+        $document = $this->document(
+            '<p>' . str_repeat('x', 30) . ' política de privacidade trailing text</p>',
+        );
 
         $notice = $this->find(
             (new PrivacyNoticeDetector())->detect($document),
             EvidenceType::PrivacyNotice,
         );
 
-        self::assertNotNull($notice->excerpt);
-        self::assertStringStartsWith('política de privacidade', $notice->excerpt);
-        self::assertLessThanOrEqual(240, mb_strlen($notice->excerpt));
+        self::assertSame('política de privacidade', $notice->excerpt);
     }
 
     /**
