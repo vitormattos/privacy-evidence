@@ -9,8 +9,10 @@ namespace PrivacyEvidence\Experiment\Text;
  *
  * This class is intentionally dependency-free and is not a production detector.
  */
-final class MultinomialNaiveBayes
+final class MultinomialNaiveBayes implements TextClassifier
 {
+    public const CLASSIFIER_ID = 'dependency-free-multinomial-naive-bayes';
+    public const CLASSIFIER_VERSION = '1.0.0';
     /** @var array<string,array<string,int>> */
     private array $tokenCounts = [];
 
@@ -57,10 +59,7 @@ final class MultinomialNaiveBayes
         }
     }
 
-    /**
-     * @return array{label:string,scores:array<string,float>}
-     */
-    public function predict(string $text): array
+    public function classify(string $text): TextClassificationResult
     {
         if ($this->documents === 0) {
             throw new \LogicException('Classifier must be trained before prediction.');
@@ -87,7 +86,22 @@ final class MultinomialNaiveBayes
             throw new \LogicException('Classifier produced no label.');
         }
 
-        return ['label' => $label, 'scores' => $scores];
+        return new TextClassificationResult(
+            $label,
+            $scores,
+            self::CLASSIFIER_ID,
+            self::CLASSIFIER_VERSION,
+        );
+    }
+
+    /**
+     * @return array{label:string,scores:array<string,float>}
+     */
+    public function predict(string $text): array
+    {
+        $result = $this->classify($text);
+
+        return ['label' => $result->label, 'scores' => $result->scores];
     }
 
     /**
