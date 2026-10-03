@@ -1,0 +1,22 @@
+name: Generate Rubix lock
+
+on:
+  push:
+    branches:
+      - agent/rubix-backend-100
+
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+      - name: Resolve Rubix dependencies
+        run: composer update rubix/ml --with-all-dependencies --no-interaction
+      - uses: actions/upload-artifact@v4
+        with:
+          name: composer-lock
+          path: composer.lock
