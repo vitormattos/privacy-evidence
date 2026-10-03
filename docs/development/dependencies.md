@@ -18,9 +18,10 @@ Held or ignored versions require an inline rationale in dependency configuration
 
 ## Experimental PHP-native ML dependencies
 
-The PHP-native ML experiment uses exact RC constraints for `rubix/ml` and `rubix/tensor`; the root
-requirements and `composer.lock` both pin `3.0.0-rc4` and `4.0.0-rc2`
-respectively, and those versions are recorded in the experimental backend metadata.
+The PHP-native ML experiment uses bounded RC constraints for `rubix/ml` and
+`rubix/tensor`; the exact resolved versions are pinned by `composer.lock` and
+recorded in the experimental backend metadata (`3.0.0-rc4` and `4.0.0-rc2`
+for this implementation).
 
 The explicit Tensor root constraint is intentional: Rubix ML 3.0.0-rc4
 requires the pre-release Tensor 4.0.0-rc2, while the repository keeps
