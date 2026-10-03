@@ -39,12 +39,14 @@ final class ExternalDatasetSplitterTest extends TestCase
         $splitter = new ExternalDatasetSplitter();
 
         $first = $splitter->split($canonical, $manifest, $this->root . '/first', 'seed-42');
-        $firstHash = $first['split']['splitSha256'] ?? null;
+        $firstSplit = $this->splitMetadata($first);
+        $firstHash = $firstSplit['splitSha256'];
 
         [$canonical2, $manifest2] = $this->writeDataset($rows, 'second-source');
         $second = $splitter->split($canonical2, $manifest2, $this->root . '/second', 'seed-42');
+        $secondSplit = $this->splitMetadata($second);
 
-        self::assertSame($firstHash, $second['split']['splitSha256'] ?? null);
+        self::assertSame($firstHash, $secondSplit['splitSha256']);
 
         $all = $this->readPartitions($this->root . '/first');
         self::assertCount(7, $all);
@@ -56,19 +58,22 @@ final class ExternalDatasetSplitterTest extends TestCase
             $p1[0]['externalLabels'],
         );
 
+        /** @var array<string,list<string>> $companyPartitions */
         $companyPartitions = [];
         foreach ($all as $sample) {
-            $companyPartitions[$sample['companyId']][] = $sample['_partition'];
+            $companyId = $sample['companyId'] ?? null;
+            $partition = $sample['_partition'] ?? null;
+            self::assertIsString($companyId);
+            self::assertIsString($partition);
+            $companyPartitions[$companyId][] = $partition;
         }
 
         foreach ($companyPartitions as $partitions) {
             self::assertCount(1, array_unique($partitions));
         }
 
-        $split = $first['split'] ?? null;
-        self::assertIsArray($split);
-        self::assertSame('1.0.0', $split['mappingVersion'] ?? null);
-        self::assertArrayHasKey('partitions', $split);
+        self::assertSame('1.0.0', $firstSplit['mappingVersion']);
+        self::assertArrayHasKey('partitions', $firstSplit);
     }
 
     public function testDetectsDuplicateNormalizedTextAcrossSourceGroups(): void
@@ -166,14 +171,48 @@ final class ExternalDatasetSplitterTest extends TestCase
             self::assertIsArray($lines);
 
             foreach ($lines as $line) {
-                $sample = json_decode($line, true, flags: JSON_THROW_ON_ERROR);
-                self::assertIsArray($sample);
+                $decoded = json_decode($line, true, flags: JSON_THROW_ON_ERROR);
+                self::assertIsArray($decoded);
+                $sample = [];
+                /** @psalm-suppress MixedAssignment */
+                foreach ($decoded as $key => $value) {
+                    if (is_string($key)) {
+                        $sample[$key] = $value;
+                    }
+                }
                 $sample['_partition'] = $partition;
                 $samples[] = $sample;
             }
         }
 
         return $samples;
+    }
+
+    /**
+     * @param array<string,mixed> $manifest
+     * @return array{
+     *   splitSha256:string,
+     *   mappingVersion:string,
+     *   partitions:array<mixed>
+     * }
+     */
+    private function splitMetadata(array $manifest): array
+    {
+        $split = $manifest['split'] ?? null;
+        self::assertIsArray($split);
+
+        $splitSha256 = $split['splitSha256'] ?? null;
+        $mappingVersion = $split['mappingVersion'] ?? null;
+        $partitions = $split['partitions'] ?? null;
+        self::assertIsString($splitSha256);
+        self::assertIsString($mappingVersion);
+        self::assertIsArray($partitions);
+
+        return [
+            'splitSha256' => $splitSha256,
+            'mappingVersion' => $mappingVersion,
+            'partitions' => $partitions,
+        ];
     }
 
     /**
