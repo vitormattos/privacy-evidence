@@ -49,6 +49,12 @@ Privacy Evidence is in its initial architecture and research-protocol phase.
 
 The project originates from a 2025 academic case study of websites declared by churches of the Igreja Presbiteriana do Brasil. That historical implementation remains preserved in the separate `webscraping-anuario-igrejas-ipb` repository and is treated as a legacy research artifact, not as this project's codebase.
 
+## Hacktoberfest Weekend Challenge 2026
+
+The challenge code boundary is frozen at commit `c80503f3adcbe2422ca583d9de51bbe5bb4b35a6`, created during the official October 2–5 entry window. Commits after that SHA are outside the frozen entry unless the boundary is explicitly updated before submission.
+
+See `docs/challenge/hacktoberfest-weekend-2026.md` for the exact timestamps, boundary rules and included capabilities. The reproducible local ML demo is in `examples/hacktoberfest/`.
+
 ## High-level pipeline
 
 ```text
