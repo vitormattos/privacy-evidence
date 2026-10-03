@@ -6,6 +6,7 @@ namespace PrivacyEvidence\Experiment\Text;
 
 final readonly class TextClassificationResult
 {
+    /** @param array<string,float> $scores */
     public function __construct(
         public string $label,
         public array $scores,
