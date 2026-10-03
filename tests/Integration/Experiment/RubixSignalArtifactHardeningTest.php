@@ -19,9 +19,12 @@ final class RubixSignalArtifactHardeningTest extends TestCase
 
     protected function tearDown(): void
     {
-        foreach (glob($this->root . '/*') ?: [] as $path) {
-            if (is_file($path)) {
-                unlink($path);
+        $paths = glob($this->root . '/*');
+        if ($paths !== false) {
+            foreach ($paths as $path) {
+                if (is_file($path)) {
+                    unlink($path);
+                }
             }
         }
         if (is_dir($this->root)) {
