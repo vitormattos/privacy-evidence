@@ -40,7 +40,7 @@ final class DatasetPrepareClaudinhaCommand extends Command
 
         try {
             $manifest = $this->loader->prepare($source, $outputDirectory);
-        } catch (\InvalidArgumentException|\RuntimeException $exception) {
+        } catch (\InvalidArgumentException | \RuntimeException $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
 
             return Command::FAILURE;
