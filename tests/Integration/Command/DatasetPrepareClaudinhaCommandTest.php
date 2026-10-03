@@ -46,7 +46,9 @@ final class DatasetPrepareClaudinhaCommandTest extends TestCase
         $manifest = json_decode($tester->getDisplay(), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($manifest);
         self::assertSame('claudinha-lgpd-corpus', $manifest['datasetId'] ?? null);
-        self::assertArrayHasKey('sha256', $manifest['sourceChecksums'] ?? []);
+        $sourceChecksums = $manifest['sourceChecksums'] ?? null;
+        self::assertIsArray($sourceChecksums);
+        self::assertArrayHasKey('sha256', $sourceChecksums);
         self::assertArrayHasKey('canonicalSha256', $manifest);
         self::assertFileExists($output . '/claudinha-v1.jsonl');
         self::assertFileExists($output . '/claudinha-v1.manifest.json');
