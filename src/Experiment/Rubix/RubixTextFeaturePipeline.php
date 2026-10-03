@@ -18,6 +18,8 @@ final class RubixTextFeaturePipeline implements Persistable
 {
     public const VERSION = '1.0.0';
     public const DEFAULT_MAX_VOCABULARY_SIZE = 2048;
+    public const MAX_VOCABULARY_SIZE = 8192;
+    public const MAX_TEXT_BYTES = 65536;
 
     private MultibyteTextNormalizer $normalizer;
     private WordCountVectorizer $vectorizer;
@@ -27,8 +29,10 @@ final class RubixTextFeaturePipeline implements Persistable
     public function __construct(
         private readonly int $maxVocabularySize = self::DEFAULT_MAX_VOCABULARY_SIZE,
     ) {
-        if ($this->maxVocabularySize < 1) {
-            throw new \InvalidArgumentException('Maximum vocabulary size must be greater than zero.');
+        if ($this->maxVocabularySize < 1 || $this->maxVocabularySize > self::MAX_VOCABULARY_SIZE) {
+            throw new \InvalidArgumentException(
+                'Maximum vocabulary size must be between 1 and ' . self::MAX_VOCABULARY_SIZE . '.',
+            );
         }
 
         $this->normalizer = new MultibyteTextNormalizer();
@@ -56,9 +60,11 @@ final class RubixTextFeaturePipeline implements Persistable
         }
 
         foreach ($texts as $text) {
-            if (trim($text) === '') {
-                throw new \InvalidArgumentException('Training text cannot be empty.');
-            }
+            $this->validateText($text, false);
+        }
+
+        foreach ($texts as $text) {
+            $this->validateText($text, true);
         }
 
         $dataset = $this->dataset($texts);
@@ -86,6 +92,10 @@ final class RubixTextFeaturePipeline implements Persistable
 
         if ($texts === []) {
             return [];
+        }
+
+        foreach ($texts as $text) {
+            $this->validateText($text, true);
         }
 
         $dataset = $this->dataset($texts);
@@ -154,6 +164,19 @@ final class RubixTextFeaturePipeline implements Persistable
         }
 
         return $persistable;
+    }
+
+    private function validateText(string $text, bool $allowEmpty): void
+    {
+        if (!$allowEmpty && trim($text) === '') {
+            throw new \InvalidArgumentException('Training text cannot be empty.');
+        }
+
+        if (strlen($text) > self::MAX_TEXT_BYTES) {
+            throw new \InvalidArgumentException(
+                'Text exceeds the maximum of ' . self::MAX_TEXT_BYTES . ' bytes.',
+            );
+        }
     }
 
     /**
