@@ -72,7 +72,9 @@ final class HacktoberfestDemoCommandTest extends TestCase
         $suggestions = $review['suggestions'] ?? null;
         self::assertIsArray($suggestions);
         self::assertCount(1, $suggestions);
-        self::assertSame('ai_suggestion', $suggestions[0]['reviewerType'] ?? null);
+        $suggestion = $suggestions[0] ?? null;
+        self::assertIsArray($suggestion);
+        self::assertSame('ai_suggestion', $suggestion['reviewerType'] ?? null);
     }
 
     public function testDemoFailsWhenModelArtifactIsAbsent(): void
