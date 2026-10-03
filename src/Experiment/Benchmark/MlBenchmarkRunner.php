@@ -169,8 +169,8 @@ final class MlBenchmarkRunner
             'rule' => $this->evaluate(
                 $cases,
                 $rulePredictions,
-                (string) $ruleIdentity,
-                hash('sha256', (string) $ruleIdentity),
+                $ruleIdentity,
+                hash('sha256', $ruleIdentity),
             ),
             'internalNaiveBayes' => $this->evaluate(
                 $cases,
