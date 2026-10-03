@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PrivacyEvidence\Tests\Unit\Experiment\Dataset;
 
 use PHPUnit\Framework\TestCase;
+use PrivacyEvidence\Core\Value;
 use PrivacyEvidence\Experiment\Dataset\ClaudinhaCorpusLoader;
 
 final class ClaudinhaCorpusLoaderTest extends TestCase
@@ -57,23 +58,13 @@ final class ClaudinhaCorpusLoaderTest extends TestCase
         }
     }
 
-    /** @return array<string,mixed> */
+    /** @return array<string,scalar|null> */
     private function decodeRow(string $line): array
     {
-        $value = json_decode($line, true, flags: JSON_THROW_ON_ERROR);
-        if (!is_array($value)) {
-            throw new \RuntimeException('Canonical fixture row must be an array.');
-        }
-
-        $row = [];
-        foreach ($value as $key => $item) {
-            if (!is_string($key)) {
-                throw new \RuntimeException('Canonical fixture keys must be strings.');
-            }
-            $row[$key] = $item;
-        }
-
-        return $row;
+        return Value::scalarMap(
+            json_decode($line, true, flags: JSON_THROW_ON_ERROR),
+            'canonical Claudinha fixture row',
+        );
     }
 
     private function removeDirectory(string $directory): void
