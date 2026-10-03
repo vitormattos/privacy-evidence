@@ -24,12 +24,14 @@ final class CookieInterfaceDetectorTest extends TestCase
             ),
         );
 
-        foreach ([
-            EvidenceType::CookieNotice,
-            EvidenceType::CookieAcceptControl,
-            EvidenceType::CookieRejectControl,
-            EvidenceType::CookiePreferencesControl,
-        ] as $type) {
+        foreach (
+            [
+                EvidenceType::CookieNotice,
+                EvidenceType::CookieAcceptControl,
+                EvidenceType::CookieRejectControl,
+                EvidenceType::CookiePreferencesControl,
+            ] as $type
+        ) {
             self::assertSame(ObservationState::Present, $byType[$type->value]->state);
             self::assertSame(0.8, $byType[$type->value]->confidence);
             self::assertFalse($byType[$type->value]->needsReview);
@@ -56,12 +58,14 @@ final class CookieInterfaceDetectorTest extends TestCase
             (new CookieInterfaceDetector())->detect($this->document('<p>Hello</p>')),
         );
 
-        foreach ([
-            EvidenceType::CookieNotice,
-            EvidenceType::CookieAcceptControl,
-            EvidenceType::CookieRejectControl,
-            EvidenceType::CookiePreferencesControl,
-        ] as $type) {
+        foreach (
+            [
+                EvidenceType::CookieNotice,
+                EvidenceType::CookieAcceptControl,
+                EvidenceType::CookieRejectControl,
+                EvidenceType::CookiePreferencesControl,
+            ] as $type
+        ) {
             self::assertSame(ObservationState::Absent, $byType[$type->value]->state);
             self::assertSame(0.65, $byType[$type->value]->confidence);
             self::assertTrue($byType[$type->value]->needsReview);
@@ -74,10 +78,12 @@ final class CookieInterfaceDetectorTest extends TestCase
             (new CookieInterfaceDetector())->detect($this->document('<p>Cookies</p>')),
         );
 
-        foreach ([
-            EvidenceType::NonEssentialStorageBeforeConsent,
-            EvidenceType::ThirdPartyRequestsBeforeConsent,
-        ] as $type) {
+        foreach (
+            [
+                EvidenceType::NonEssentialStorageBeforeConsent,
+                EvidenceType::ThirdPartyRequestsBeforeConsent,
+            ] as $type
+        ) {
             $item = $byType[$type->value];
             self::assertSame(ObservationState::Unknown, $item->state);
             self::assertSame('browser_observation_required', $item->method);
