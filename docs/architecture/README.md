@@ -1,5 +1,6 @@
 # Architecture
 
-Canonical architecture documentation will describe source adapters, acquisition, crawling, evidence, review, regulatory profiles, analysis, concurrency and storage.
+Canonical architecture documentation describes source adapters, acquisition, crawling, evidence, review, regulatory profiles, analysis, concurrency, storage and experimental analysis boundaries.
 
 - [Concurrency and worker pools](concurrency.md)
+- [PHP-native machine-learning architecture](machine-learning.md)
