@@ -128,7 +128,7 @@ final readonly class IpbAnuarioParser
             }
         }
 
-        if (preg_match('/<br\s*\/?>CEP:\s*(?<postal>[\d.\-]*)<br\s*\/?>/i', $churchHtml, $match) === 1) {
+        if (preg_match('/\\bCEP:\\s*(?<postal>[\\d.\\-]+)/i', $churchHtml, $match) === 1) {
             $postalCode = trim($match['postal']);
         }
 
@@ -170,7 +170,7 @@ final readonly class IpbAnuarioParser
             static fn (Crawler $node): bool => str_contains(
                 $node->attr('style') ?? '',
                 'background-color: rgba(0,0,0,0.05);',
-            ),
+            ) && $node->filter('b > small')->count() > 0,
         )->first();
 
         if ($pastorDiv->count() === 0) {

@@ -24,7 +24,12 @@ final class UrlNormalizerTest extends TestCase
         yield ['example.com', 'https://example.com/'];
         yield [' HTTPS://Example.COM/path?q=1 ', 'https://example.com/path?q=1'];
         yield ['http://example.com', 'http://example.com/'];
+        yield ['https://Example.COM.:8443/path?q=1#fragment', 'https://example.com:8443/path?q=1'];
+        yield ['https://example.com?x=1', 'https://example.com/?x=1'];
+        yield ['foo https://example.com', null];
+        yield ['mailto:user@example.com', null];
         yield ['ftp://example.com/file', null];
+        yield ['   ', null];
         yield ['', null];
         yield ['not a valid host', null];
     }
