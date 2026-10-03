@@ -112,11 +112,9 @@ final class RubixSignalClassifier implements Persistable
         }
 
         $probability = $distribution[self::POSITIVE_LABEL] ?? null;
-        if (!is_float($probability) && !is_int($probability)) {
+        if (!is_float($probability)) {
             throw new \RuntimeException('Rubix classifier returned no positive-class probability.');
         }
-
-        $probability = (float) $probability;
 
         return new RubixSignalPrediction(
             $this->signal->value,
