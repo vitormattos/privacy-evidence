@@ -57,15 +57,13 @@ final class MlSignalCommandTest extends TestCase
         $inferOutput = json_decode($infer->getDisplay(), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($inferOutput);
         self::assertSame('experimental', $inferOutput['status'] ?? null);
-        self::assertIsArray($inferOutput['prediction'] ?? null);
-        self::assertSame(
-            'controller_identity',
-            $inferOutput['prediction']['signal'] ?? null,
-        );
-        self::assertSame(
-            'fixture-v1',
-            $inferOutput['prediction']['model']['datasetVersion'] ?? null,
-        );
+        $prediction = $inferOutput['prediction'] ?? null;
+        self::assertIsArray($prediction);
+        self::assertSame('controller_identity', $prediction['signal'] ?? null);
+
+        $model = $prediction['model'] ?? null;
+        self::assertIsArray($model);
+        self::assertSame('fixture-v1', $model['datasetVersion'] ?? null);
     }
 
     public function testTrainingRejectsManifestOutsideExternalDevelopmentPurpose(): void
