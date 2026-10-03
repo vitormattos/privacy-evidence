@@ -6,6 +6,8 @@ declare(strict_types=1);
 use PrivacyEvidence\Command\AnalyzeCommand;
 use PrivacyEvidence\Command\DatasetPrepareClaudinhaCommand;
 use PrivacyEvidence\Command\DoctorCommand;
+use PrivacyEvidence\Command\HacktoberfestDemoBuildCommand;
+use PrivacyEvidence\Command\HacktoberfestDemoCommand;
 use PrivacyEvidence\Command\MlInferSignalCommand;
 use PrivacyEvidence\Command\MlTrainSignalCommand;
 use PrivacyEvidence\Command\ReportCommand;
@@ -27,6 +29,8 @@ require $projectRoot . '/vendor/autoload.php';
 
 $application = new Application('Privacy Evidence', '0.1.0-dev');
 $application->addCommand(new DoctorCommand($projectRoot));
+$application->addCommand(new HacktoberfestDemoBuildCommand());
+$application->addCommand(new HacktoberfestDemoCommand());
 $application->addCommand(new DatasetPrepareClaudinhaCommand());
 $application->addCommand(new MlTrainSignalCommand());
 $application->addCommand(new MlInferSignalCommand());
