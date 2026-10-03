@@ -66,7 +66,9 @@ final class MlReviewIntegratorTest extends TestCase
         self::assertSame(ReviewerType::AiSuggestion->value, $decisions[0]['reviewerType'] ?? null);
         self::assertSame(ObservationState::Present->value, $decisions[0]['state'] ?? null);
 
-        $rationale = json_decode((string) ($decisions[0]['rationale'] ?? ''), true, flags: JSON_THROW_ON_ERROR);
+        $rationaleJson = $decisions[0]['rationale'] ?? null;
+        self::assertIsString($rationaleJson);
+        $rationale = json_decode($rationaleJson, true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($rationale);
         self::assertTrue($rationale['disagreesWithRule'] ?? false);
         self::assertSame(str_repeat('d', 64), $rationale['artifactSha256'] ?? null);
