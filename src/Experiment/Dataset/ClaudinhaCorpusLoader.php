@@ -86,14 +86,7 @@ final readonly class ClaudinhaCorpusLoader
             }
 
             while (($rawRecord = fgetcsv($input, escape: '')) !== false) {
-                if (!is_array($rawRecord)) {
-                    continue;
-                }
-
-                $record = array_map(
-                    static fn (mixed $value): string => is_string($value) ? $value : '',
-                    $rawRecord,
-                );
+                $record = $this->normalizeCsvRow($rawRecord);
                 if (count($record) === 1 && $record[0] === '') {
                     continue;
                 }
@@ -164,6 +157,24 @@ final readonly class ClaudinhaCorpusLoader
         }
 
         return $manifest;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeCsvRow(mixed $row): array
+    {
+        if (!is_array($row)) {
+            throw new \RuntimeException('Malformed Claudinha CSV row.');
+        }
+
+        $record = [];
+        /** @psalm-suppress MixedAssignment */
+        foreach ($row as $value) {
+            $record[] = is_string($value) ? $value : '';
+        }
+
+        return $record;
     }
 
     /**
