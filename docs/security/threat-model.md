@@ -61,3 +61,7 @@ Raw HTML/screenshots/cookies/storage are research artifacts subject to #57. They
 ## Verification
 
 Integration tests must include private-IP/loopback rejection, unsafe schemes, redirect-to-private target and oversized/resource-limit behavior.
+
+
+### PHP-native ML
+Experimental ML dataset/model inputs are also a trust boundary. Text, vocabulary, training-set and artifact sizes are bounded before expensive operations. RBX artifacts are checksum-verified against their project metadata before deserialization; downloaded or otherwise untrusted model artifacts must not bypass these checks. See `docs/security/php-native-ml.md`.

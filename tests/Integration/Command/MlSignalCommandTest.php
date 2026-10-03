@@ -95,7 +95,7 @@ final class MlSignalCommandTest extends TestCase
             'artifact' => $artifact,
             'text' => 'controller identity',
         ]));
-        self::assertStringContainsString('metadata sidecar is missing', $tester->getDisplay());
+        self::assertStringContainsString('metadata is missing or unreadable', $tester->getDisplay());
     }
 
     /**

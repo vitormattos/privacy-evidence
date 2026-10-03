@@ -19,6 +19,9 @@ final class RubixSignalClassifier implements Persistable
     public const VERSION = '1.0.0';
     private const POSITIVE_LABEL = 'present';
     private const NEGATIVE_LABEL = 'absent';
+    public const MAX_TRAINING_EXAMPLES = 10000;
+    public const MAX_ARTIFACT_BYTES = 16777216;
+    public const MAX_METADATA_BYTES = 262144;
 
     private ?string $artifactSha256 = null;
 
@@ -46,6 +49,12 @@ final class RubixSignalClassifier implements Persistable
     ): self {
         if ($examples === []) {
             throw new \InvalidArgumentException('Signal classifier requires training examples.');
+        }
+
+        if (count($examples) > self::MAX_TRAINING_EXAMPLES) {
+            throw new \InvalidArgumentException(
+                'Signal classifier exceeds the maximum training examples: ' . self::MAX_TRAINING_EXAMPLES . '.',
+            );
         }
 
         $texts = [];
@@ -162,7 +171,11 @@ final class RubixSignalClassifier implements Persistable
 
     public static function load(string $path): self
     {
+        self::assertBoundedReadableFile($path, self::MAX_ARTIFACT_BYTES, 'Model artifact');
+
         $metadataPath = $path . '.metadata.json';
+        self::assertBoundedReadableFile($metadataPath, self::MAX_METADATA_BYTES, 'Model artifact metadata');
+
         $encodedMetadata = @file_get_contents($metadataPath);
         if (!is_string($encodedMetadata)) {
             throw new \RuntimeException('Model artifact metadata sidecar is missing.');
@@ -199,5 +212,23 @@ final class RubixSignalClassifier implements Persistable
         $persistable->artifactSha256 = $actualHash;
 
         return $persistable;
+    }
+
+    private static function assertBoundedReadableFile(string $path, int $maximumBytes, string $name): void
+    {
+        if (!is_file($path) || !is_readable($path)) {
+            throw new \RuntimeException($name . ' is missing or unreadable.');
+        }
+
+        $size = filesize($path);
+        if (!is_int($size)) {
+            throw new \RuntimeException('Unable to determine ' . strtolower($name) . ' size.');
+        }
+
+        if ($size <= 0 || $size > $maximumBytes) {
+            throw new \RuntimeException(
+                $name . ' size must be between 1 and ' . $maximumBytes . ' bytes.',
+            );
+        }
     }
 }
