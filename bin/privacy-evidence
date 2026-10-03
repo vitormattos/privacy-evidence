@@ -4,6 +4,7 @@
 declare(strict_types=1);
 
 use PrivacyEvidence\Command\AnalyzeCommand;
+use PrivacyEvidence\Command\DatasetPrepareClaudinhaCommand;
 use PrivacyEvidence\Command\DoctorCommand;
 use PrivacyEvidence\Command\ReportCommand;
 use PrivacyEvidence\Command\ReviewAgreementCommand;
@@ -24,6 +25,7 @@ require $projectRoot . '/vendor/autoload.php';
 
 $application = new Application('Privacy Evidence', '0.1.0-dev');
 $application->addCommand(new DoctorCommand($projectRoot));
+$application->addCommand(new DatasetPrepareClaudinhaCommand());
 $application->addCommand(new SourceImportCommand());
 $application->addCommand(new RunCommand($projectRoot));
 $application->addCommand(new ResumeCommand($projectRoot));
