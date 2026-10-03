@@ -325,6 +325,7 @@ final class ExternalDatasetSplitter
                 throw new \LogicException('Canonical reconstructed sample has invalid labels.');
             }
 
+            /** @psalm-suppress MixedAssignment */
             foreach ($labels as $label) {
                 if (!is_string($label)) {
                     throw new \LogicException('Canonical reconstructed sample has non-string label.');
