@@ -33,4 +33,4 @@ The frozen code includes:
 
 The challenge submission must not claim later repository work as part of the frozen entry.
 
-The real-person "Build for a Friend" story is a separate factual requirement tracked in issue #114. It must be supplied truthfully before the final DEV post; this boundary document does not invent that information.
+The real-person "Build for a Friend" use case is documented in `docs/challenge/hacktoberfest-real-user-use-case.md`. It is based on the actual research workflow that motivated the project and does not invent user feedback.

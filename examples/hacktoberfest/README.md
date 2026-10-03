@@ -27,4 +27,4 @@ The synthetic examples are part of this repository and covered by the repository
 
 This is an experimental evidence-classification demonstration. It does not make a legal-compliance determination and it does not replace human review.
 
-The real-person story required by the Weekend Challenge is tracked separately in issue #114 and must be filled with truthful user information before the submission is frozen.
+The real-user story required by the Weekend Challenge is documented in `docs/challenge/hacktoberfest-real-user-use-case.md`. It comes from the actual research workflow that motivated Privacy Evidence.
