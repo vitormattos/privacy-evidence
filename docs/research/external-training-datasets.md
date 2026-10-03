@@ -37,8 +37,7 @@ external semantic category. They are not project gold labels.
 
 ### Reproducible preparation
 
-Download the exact v1 CSV from the recorded Zenodo URL, then prepare it with
-`ClaudinhaCorpusLoader`. The loader produces:
+Download the exact v1 CSV from the recorded Zenodo URL, then prepare it through the CLI:\n\n```bash\nbin/privacy-evidence experiment:dataset:prepare-claudinha \\\n  /path/to/corpus_data_privacy.csv \\\n  data/derived/experiments/claudinha-v1\n```\n\nThe command performs no network access and prints the generated manifest as JSON only after successful preparation. Internally it delegates to `ClaudinhaCorpusLoader`; parsing and checksum validation are not duplicated in the CLI layer. The loader produces:
 
 - `claudinha-v1.jsonl` — canonical development rows;
 - `claudinha-v1.manifest.json` — DOI/license/source checksums, canonical
