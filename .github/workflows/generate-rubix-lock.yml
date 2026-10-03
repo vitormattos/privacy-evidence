@@ -1,12 +1,18 @@
 name: Generate Rubix lock
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - agent/rubix-backend-100
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   lock:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -15,8 +21,12 @@ jobs:
           php-version: '8.4'
           tools: composer:v2
       - name: Resolve Rubix dependencies
-        run: composer update rubix/ml --with-all-dependencies --no-interaction
-      - uses: actions/upload-artifact@v4
+        run: composer update rubix/ml rubix/tensor --with-all-dependencies --no-interaction
+      - uses: peter-evans/create-pull-request@v7
         with:
-          name: composer-lock
-          path: composer.lock
+          commit-message: build: lock Rubix ML dependencies
+          title: build: lock Rubix ML dependencies
+          body: Generated Composer lock update for issue #100.
+          branch: agent/rubix-lock-generated
+          base: agent/rubix-backend-100
+          add-paths: composer.lock
