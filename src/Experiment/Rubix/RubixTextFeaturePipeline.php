@@ -11,6 +11,7 @@ use Rubix\ML\Serializers\RBX;
 use Rubix\ML\Transformers\MultibyteTextNormalizer;
 use Rubix\ML\Transformers\TfIdfTransformer;
 use Rubix\ML\Transformers\WordCountVectorizer;
+
 use const Rubix\ML\VERSION as RUBIX_VERSION;
 
 final class RubixTextFeaturePipeline implements Persistable
