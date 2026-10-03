@@ -65,7 +65,15 @@ final class ClaudinhaCorpusLoaderTest extends TestCase
             throw new \RuntimeException('Canonical fixture row must be an array.');
         }
 
-        return $value;
+        $row = [];
+        foreach ($value as $key => $item) {
+            if (!is_string($key)) {
+                throw new \RuntimeException('Canonical fixture keys must be strings.');
+            }
+            $row[$key] = $item;
+        }
+
+        return $row;
     }
 
     private function removeDirectory(string $directory): void
