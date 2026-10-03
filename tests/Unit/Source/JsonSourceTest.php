@@ -10,6 +10,20 @@ use PrivacyEvidence\Source\Json\JsonSource;
 
 final class JsonSourceTest extends TestCase
 {
+    /** @var list<string> */
+    private array $temporaryFiles = [];
+
+    protected function tearDown(): void
+    {
+        foreach ($this->temporaryFiles as $path) {
+            if (is_file($path)) {
+                unlink($path);
+            }
+        }
+
+        parent::tearDown();
+    }
+
     public function testImportsJsonRecordsAndPreservesOnlyScalarMetadata(): void
     {
         $path = $this->temporaryJson([
@@ -44,31 +58,24 @@ final class JsonSourceTest extends TestCase
 
     public function testRejectsDuplicateIds(): void
     {
-        $source = new JsonSource(__DIR__ . '/../../Fixtures/sources/sites-duplicate.json');
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('duplicate id');
-        iterator_to_array($source->resources());
+        $this->assertInvalidSource(
+            new JsonSource(__DIR__ . '/../../Fixtures/sources/sites-duplicate.json'),
+            'duplicate id',
+        );
     }
 
     public function testRejectsMissingRequiredField(): void
     {
-        $source = new JsonSource(__DIR__ . '/../../Fixtures/sources/sites-missing-field.json');
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('requires scalar');
-        iterator_to_array($source->resources());
+        $this->assertInvalidSource(
+            new JsonSource(__DIR__ . '/../../Fixtures/sources/sites-missing-field.json'),
+            'requires scalar',
+        );
     }
 
     #[DataProvider('invalidDocuments')]
     public function testRejectsInvalidJsonShapes(mixed $document, string $message): void
     {
-        $path = $this->temporaryJson($document);
-        $source = new JsonSource($path);
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage($message);
-        iterator_to_array($source->resources());
+        $this->assertInvalidSource(new JsonSource($this->temporaryJson($document)), $message);
     }
 
     /**
@@ -76,10 +83,19 @@ final class JsonSourceTest extends TestCase
      */
     public static function invalidDocuments(): iterable
     {
-        yield 'object instead of list' => [['id' => 'one', 'name' => 'Example', 'url' => 'example.com'], 'array of objects'];
+        yield 'object instead of list' => [
+            ['id' => 'one', 'name' => 'Example', 'url' => 'example.com'],
+            'array of objects',
+        ];
         yield 'scalar record' => [[1], 'record must be an object'];
-        yield 'empty id' => [[['id' => '', 'name' => 'Example', 'url' => 'example.com']], 'id must not be empty'];
-        yield 'non scalar name' => [[['id' => 'one', 'name' => ['bad'], 'url' => 'example.com']], 'requires scalar name'];
+        yield 'empty id' => [
+            [['id' => '', 'name' => 'Example', 'url' => 'example.com']],
+            'id must not be empty',
+        ];
+        yield 'non scalar name' => [
+            [['id' => 'one', 'name' => ['bad'], 'url' => 'example.com']],
+            'requires scalar name',
+        ];
     }
 
     private function temporaryJson(mixed $data): string
@@ -87,16 +103,18 @@ final class JsonSourceTest extends TestCase
         $path = tempnam(sys_get_temp_dir(), 'privacy-evidence-json-');
         self::assertNotFalse($path);
         file_put_contents($path, json_encode($data, JSON_THROW_ON_ERROR));
-        $this->registerTemporaryFile($path);
+        $this->temporaryFiles[] = $path;
 
         return $path;
     }
 
-    private function registerTemporaryFile(string $path): void
+    private function assertInvalidSource(JsonSource $source, string $message): void
     {
-        $this->addToAssertionCount(1);
-        register_shutdown_function(static function () use ($path): void {
-            @unlink($path);
-        });
+        try {
+            iterator_to_array($source->resources());
+            self::fail('Expected invalid JSON source to throw.');
+        } catch (\InvalidArgumentException $exception) {
+            self::assertStringContainsString($message, $exception->getMessage());
+        }
     }
 }
