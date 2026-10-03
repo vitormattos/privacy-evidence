@@ -88,15 +88,20 @@ final class ExternalDatasetSplitterTest extends TestCase
 
         [$canonical, $manifest] = $this->writeDataset($rows);
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Duplicate normalized text crosses partitions');
-
-        (new ExternalDatasetSplitter())->split(
-            $canonical,
-            $manifest,
-            $this->root . '/leak',
-            $seed,
-        );
+        try {
+            (new ExternalDatasetSplitter())->split(
+                $canonical,
+                $manifest,
+                $this->root . '/leak',
+                $seed,
+            );
+            self::fail('Expected duplicate normalized text leakage to be rejected.');
+        } catch (\RuntimeException $exception) {
+            self::assertStringContainsString(
+                'Duplicate normalized text crosses partitions',
+                $exception->getMessage(),
+            );
+        }
     }
 
     /**
