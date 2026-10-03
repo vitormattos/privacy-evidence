@@ -64,8 +64,10 @@ final class RubixTextFeaturePipeline implements Persistable
         $dataset = $this->dataset($texts);
         $dataset
             ->apply($this->normalizer)
-            ->apply($this->vectorizer)
-            ->apply($this->weighting);
+            ->apply($this->vectorizer);
+
+        $dataset = Unlabeled::quick($this->numericSamples($dataset->samples()));
+        $dataset->apply($this->weighting);
 
         $this->dimensions = $dataset->numFeatures();
 
@@ -89,8 +91,10 @@ final class RubixTextFeaturePipeline implements Persistable
         $dataset = $this->dataset($texts);
         $dataset
             ->apply($this->normalizer)
-            ->apply($this->vectorizer)
-            ->apply($this->weighting);
+            ->apply($this->vectorizer);
+
+        $dataset = Unlabeled::quick($this->numericSamples($dataset->samples()));
+        $dataset->apply($this->weighting);
 
         if ($dataset->numFeatures() !== $this->dimensions) {
             throw new \RuntimeException('Feature dimension changed after fitted-pipeline inference.');
@@ -131,6 +135,7 @@ final class RubixTextFeaturePipeline implements Persistable
         }
 
         $serializer = new RBX();
+        /** @psalm-suppress InternalMethod Rubix documents RBX as the public persistence format. */
         $serializer->serialize($this)->saveTo(new Filesystem($path));
     }
 
@@ -174,6 +179,7 @@ final class RubixTextFeaturePipeline implements Persistable
 
         foreach ($samples as $sample) {
             $row = [];
+            /** @psalm-suppress MixedAssignment Rubix dataset samples are intentionally mixed at the boundary. */
             foreach ($sample as $value) {
                 if (!is_int($value) && !is_float($value)) {
                     throw new \RuntimeException('Feature pipeline produced a non-numeric value.');
