@@ -90,15 +90,17 @@ final class SqliteReviewQueue implements ReviewQueue
                 'rationale' => $decision->rationale,
             ]);
 
-            $update = $this->pdo->prepare(
-                'UPDATE review_queue
-                 SET status = "reviewed"
-                 WHERE run_id = :run_id AND evidence_id = :id',
-            );
-            $update->execute([
-                'run_id' => $decision->runId,
-                'id' => $decision->evidenceId,
-            ]);
+            if ($decision->reviewerType !== ReviewerType::AiSuggestion) {
+                $update = $this->pdo->prepare(
+                    'UPDATE review_queue
+                     SET status = "reviewed"
+                     WHERE run_id = :run_id AND evidence_id = :id',
+                );
+                $update->execute([
+                    'run_id' => $decision->runId,
+                    'id' => $decision->evidenceId,
+                ]);
+            }
             $this->pdo->commit();
         } catch (\Throwable $e) {
             $this->pdo->rollBack();
