@@ -14,3 +14,22 @@ Dependency pull requests must run the same deterministic CI checks as ordinary p
 Do not introduce Renovate while Dependabot owns these ecosystems unless an ADR explicitly changes the policy. If the policy changes, remove overlapping automation before enabling the replacement.
 
 Held or ignored versions require an inline rationale in dependency configuration or an ADR when the constraint is architectural.
+
+
+## Experimental PHP-native ML dependencies
+
+The PHP-native ML experiment uses bounded RC constraints for `rubix/ml` and
+`rubix/tensor`; the exact resolved versions are pinned by `composer.lock` and
+recorded in the experimental backend metadata (`3.0.0-rc4` and `4.0.0-rc2`
+for this implementation).
+
+The explicit Tensor root constraint is intentional: Rubix ML 3.0.0-rc4
+requires the pre-release Tensor 4.0.0-rc2, while the repository keeps
+`minimum-stability: stable` for all other dependencies. Do not relax the
+repository-wide stability policy merely to install the experiment.
+
+Both versions are recorded in experimental backend metadata. Upgrades require
+rerunning the deterministic Rubix smoke test and the project quality suite.
+Until a stable Rubix 3 release is evaluated, these packages remain an
+experimental infrastructure dependency and must not alter deterministic
+acquisition or evidence semantics.
