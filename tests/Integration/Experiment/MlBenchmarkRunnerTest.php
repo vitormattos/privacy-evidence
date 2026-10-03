@@ -20,9 +20,12 @@ final class MlBenchmarkRunnerTest extends TestCase
 
     protected function tearDown(): void
     {
-        foreach (glob($this->root . '/*') ?: [] as $path) {
-            if (is_file($path)) {
-                unlink($path);
+        $paths = glob($this->root . '/*');
+        if ($paths !== false) {
+            foreach ($paths as $path) {
+                if (is_file($path)) {
+                    unlink($path);
+                }
             }
         }
         if (is_dir($this->root)) {
@@ -63,7 +66,9 @@ final class MlBenchmarkRunnerTest extends TestCase
                 self::assertArrayHasKey('support', $metrics);
                 self::assertSame(1.0, $metrics['coverage'] ?? null);
                 self::assertSame(0, $metrics['abstained'] ?? null);
-                self::assertMatchesRegularExpression('/^[a-f0-9]{64}$/D', (string) ($metrics['modelSha256'] ?? ''));
+                $modelSha256 = $metrics['modelSha256'] ?? null;
+                self::assertIsString($modelSha256);
+                self::assertMatchesRegularExpression('/^[a-f0-9]{64}$/D', $modelSha256);
             }
         }
     }
