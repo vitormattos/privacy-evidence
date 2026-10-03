@@ -13,7 +13,16 @@ final class UrlNormalizer
             return null;
         }
 
-        if (!preg_match('~^[a-z][a-z0-9+.-]*://~i', $value)) {
+        if (preg_match('~^(?<scheme>[a-z][a-z0-9+.-]*):~i', $value, $match) === 1) {
+            $scheme = strtolower($match['scheme']);
+            $looksLikeHostWithPort = preg_match('~^[^/:]+:\d+(?:/|$)~', $value) === 1;
+
+            if (!in_array($scheme, ['http', 'https'], true) && !$looksLikeHostWithPort) {
+                return null;
+            }
+        }
+
+        if (!preg_match('~^https?://~i', $value)) {
             $value = 'https://' . $value;
         }
 
