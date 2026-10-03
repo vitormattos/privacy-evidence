@@ -33,7 +33,7 @@ final class ClaudinhaCorpusLoaderTest extends TestCase
             self::assertIsArray($lines);
             self::assertCount(2, $lines);
 
-            $first = json_decode($lines[0], true, flags: JSON_THROW_ON_ERROR);
+            $first = $this->decodeRow($lines[0]);
             self::assertSame('cookie', $first['externalLabel']);
             self::assertArrayNotHasKey('compliance_degree', $first);
             self::assertArrayNotHasKey('non_compliant_clause', $first);
@@ -57,6 +57,17 @@ final class ClaudinhaCorpusLoaderTest extends TestCase
         }
     }
 
+    /** @return array<string,mixed> */
+    private function decodeRow(string $line): array
+    {
+        $value = json_decode($line, true, flags: JSON_THROW_ON_ERROR);
+        if (!is_array($value)) {
+            throw new \RuntimeException('Canonical fixture row must be an array.');
+        }
+
+        return $value;
+    }
+
     private function removeDirectory(string $directory): void
     {
         if (!is_dir($directory)) {
@@ -64,7 +75,7 @@ final class ClaudinhaCorpusLoaderTest extends TestCase
         }
 
         $items = scandir($directory);
-        if (!is_array($items)) {
+        if ($items === false) {
             return;
         }
 
