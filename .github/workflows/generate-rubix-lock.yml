@@ -24,9 +24,9 @@ jobs:
         run: composer update rubix/ml rubix/tensor --with-all-dependencies --no-interaction
       - uses: peter-evans/create-pull-request@v7
         with:
-          commit-message: build: lock Rubix ML dependencies
-          title: build: lock Rubix ML dependencies
-          body: Generated Composer lock update for issue #100.
+          commit-message: "build: lock Rubix ML dependencies"
+          title: "build: lock Rubix ML dependencies"
+          body: "Generated Composer lock update for issue #100."
           branch: agent/rubix-lock-generated
           base: agent/rubix-backend-100
           add-paths: composer.lock
