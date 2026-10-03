@@ -19,6 +19,7 @@ final readonly class ClaudinhaCorpusLoader
     ) {
     }
 
+    /** @return array<string,mixed> */
     public function prepare(string $sourcePath, string $outputDirectory): array
     {
         if (!is_file($sourcePath)) {
@@ -47,6 +48,7 @@ final readonly class ClaudinhaCorpusLoader
         }
 
         $rows = 0;
+        /** @var array<string,bool> $paragraphs */
         $paragraphs = [];
 
         try {
@@ -55,6 +57,10 @@ final readonly class ClaudinhaCorpusLoader
                 throw new \RuntimeException('Claudinha source CSV has no header.');
             }
 
+            $header = array_map(
+                static fn (mixed $value): string => is_string($value) ? $value : '',
+                $header,
+            );
             $columns = array_flip($header);
             foreach (['id', 'uid', 'id_clause', 'id_company', 'clause', 'compliance_category'] as $required) {
                 if (!array_key_exists($required, $columns)) {
@@ -135,6 +141,10 @@ final readonly class ClaudinhaCorpusLoader
         return $manifest;
     }
 
+    /**
+     * @param array<int,string|null> $record
+     * @param array<string,int> $columns
+     */
     private function field(array $record, array $columns, string $name): string
     {
         $offset = $columns[$name] ?? null;
