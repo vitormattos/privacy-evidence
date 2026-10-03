@@ -86,6 +86,10 @@ final readonly class ClaudinhaCorpusLoader
             }
 
             while (($rawRecord = fgetcsv($input, escape: '')) !== false) {
+                if (!is_array($rawRecord)) {
+                    continue;
+                }
+
                 $record = array_map(
                     static fn (mixed $value): string => is_string($value) ? $value : '',
                     $rawRecord,
