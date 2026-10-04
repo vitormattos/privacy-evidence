@@ -359,11 +359,10 @@ final readonly class RunExporter
 
         $summary = [];
         foreach ($groups as $group) {
-            $counts = $group['requirements'];
-            if (!is_array($counts)) {
-                $counts = [];
-            }
-            $total = (int) $group['totalRequirements'];
+            /** @psalm-suppress MixedAssignment */
+            $countsValue = $group['requirements'] ?? [];
+            $counts = is_array($countsValue) ? $countsValue : [];
+            $total = $this->intValue($group['totalRequirements'] ?? 0);
 
             $observed = $this->intValue($counts['observed_support'] ?? 0);
             $partial = $this->intValue($counts['partial_observed_support'] ?? 0);
@@ -392,8 +391,14 @@ final readonly class RunExporter
         usort(
             $summary,
             static fn (array $a, array $b): int =>
-                strcmp((string) $a['resourceId'], (string) $b['resourceId'])
-                ?: strcmp((string) $a['profile'], (string) $b['profile']),
+                strcmp(
+                    Value::string($a['resourceId'] ?? null, 'profileSummary.resourceId'),
+                    Value::string($b['resourceId'] ?? null, 'profileSummary.resourceId'),
+                )
+                ?: strcmp(
+                    Value::string($a['profile'] ?? null, 'profileSummary.profile'),
+                    Value::string($b['profile'] ?? null, 'profileSummary.profile'),
+                ),
         );
 
         return $summary;
@@ -543,8 +548,6 @@ final readonly class RunExporter
      *   failures:array<string,mixed>,
      *   performance:array<string,int|float|string>
      * } $analysis
-     */
-    /**
      * @param list<array<string,mixed>> $profileSummary
      */
     private function report(
