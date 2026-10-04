@@ -93,27 +93,44 @@ final class SourceSampleWebsitesCommand extends Command
                 fclose($handle);
             }
 
-            $manifest = [
-                'sourceId' => $source->sourceId(),
-                'sourceSnapshotSha256' => $source->snapshot()->sha256,
-                'resourceClassifier' => 'institutional_website',
+            $sampleSha256 = hash_file('sha256', $target);
+            if (!is_string($sampleSha256)) {
+                throw new \RuntimeException('Unable to hash sampled dataset.');
+            }
+
+            $provenance = [
+                'schemaVersion' => '1.0.0',
+                'producer' => 'privacy-evidence-source-sampler',
+                'producerVersion' => '1.0.0',
+                'inputDataset' => [
+                    'sourceId' => $source->sourceId(),
+                    'sha256' => $source->snapshot()->sha256,
+                ],
                 'sampling' => [
                     'strategy' => 'sha256-seeded-order-v1',
+                    'resourceClassifier' => 'institutional_website',
                     'seed' => $seed,
                     'limit' => $limit,
                     'eligible' => count($candidates),
                     'selected' => count($selected),
                 ],
-                'sampleSha256' => hash_file('sha256', $target),
+                'dataset' => [
+                    'path' => $target,
+                    'format' => 'privacy-evidence-csv-v1',
+                    'sha256' => $sampleSha256,
+                ],
             ];
 
             file_put_contents(
-                $target . '.manifest.json',
-                json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL,
+                $target . '.provenance.json',
+                json_encode($provenance, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL,
                 LOCK_EX,
             );
 
-            $output->writeln(json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+            $output->writeln(json_encode(
+                $provenance,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+            ));
 
             return Command::SUCCESS;
         } catch (\InvalidArgumentException | \RuntimeException | \JsonException $exception) {
