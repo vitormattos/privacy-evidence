@@ -31,7 +31,7 @@ final class RunCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setDescription('Start and execute a research run for a CSV, JSON, or IPB HTML source.')
+            ->setDescription('Start and execute a research run for a canonical CSV or JSON dataset.')
             ->addArgument('dataset', InputArgument::REQUIRED)
             ->addOption(
                 'max-jobs',
