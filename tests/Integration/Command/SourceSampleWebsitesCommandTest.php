@@ -76,9 +76,15 @@ final class SourceSampleWebsitesCommandTest extends TestCase
             flags: JSON_THROW_ON_ERROR,
         );
         self::assertIsArray($document);
-        self::assertSame(hash_file('sha256', $population), $document['inputDataset']['sha256'] ?? null);
-        self::assertSame('fixed-seed', $document['sampling']['seed'] ?? null);
-        self::assertSame(3, $document['sampling']['eligible'] ?? null);
-        self::assertSame(2, $document['sampling']['selected'] ?? null);
+
+        $inputDataset = $document['inputDataset'] ?? null;
+        self::assertIsArray($inputDataset);
+        self::assertSame(hash_file('sha256', $population), $inputDataset['sha256'] ?? null);
+
+        $sampling = $document['sampling'] ?? null;
+        self::assertIsArray($sampling);
+        self::assertSame('fixed-seed', $sampling['seed'] ?? null);
+        self::assertSame(3, $sampling['eligible'] ?? null);
+        self::assertSame(2, $sampling['selected'] ?? null);
     }
 }
