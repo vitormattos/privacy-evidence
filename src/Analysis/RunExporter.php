@@ -432,7 +432,9 @@ final readonly class RunExporter
      *       eligibleResources:int,
      *       observations:int,
      *       states:array<string,int>
-     *     }>
+     *     }>,
+     *     regulatoryResults:int,
+     *     profileSummary:list<array<string,mixed>>
      *   },
      *   failures:array<string,mixed>,
      *   performance:array<string,int|float|string>
@@ -508,9 +510,11 @@ final readonly class RunExporter
      *       eligibleResources:int,
      *       observations:int,
      *       states:array<string,int>
-     *     }>
+     *     }>,
+     *     regulatoryResults:int,
+     *     profileSummary:list<array<string,mixed>>
      *   },
-     *   failures:array<string,int|float|string>,
+     *   failures:array<string,mixed>,
      *   performance:array<string,int|float|string>
      * } $analysis
      */
