@@ -12,9 +12,11 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 final class SourceFetchCommand extends Command
 {
-    public function __construct(
-        private readonly SourceProviderRegistry $providers = new SourceProviderRegistry(),
-    ) {
+    private readonly SourceProviderRegistry $providers;
+
+    public function __construct(?SourceProviderRegistry $providers = null)
+    {
+        $this->providers = $providers ?? SourceProviderRegistry::defaults();
         parent::__construct('source:fetch');
     }
 
