@@ -3,26 +3,39 @@
 
 # Live IPB validation demo
 
-This demo runs the real Privacy Evidence acquisition, detector, review-queue and regulatory-analysis pipeline against a small curated set of public Igreja Presbiteriana do Brasil websites.
+This demo starts from the same kind of source that motivated the original research: the official IPB church directory exposed through the IPB/iCalvinus integration.
+
+The official IPB website links its **Igrejas** section to the iCalvinus church directory. Privacy Evidence already has an IPB source adapter for that directory, so the demo now begins from the complete current source rather than from a hand-picked list of church websites.
 
 It is intended for **capability validation and challenge demonstration**, not for estimating how common any privacy practice is across the IPB.
 
-## Dataset
+## Reproducible source path
 
-`ipb-live-demo-sites.csv` contains eight public websites:
+The demo executes this pipeline:
 
-1. the national IPB website;
-2. Igreja Presbiteriana de Vila Jardim (RJ);
-3. Igreja Presbiteriana de Madureira (RJ);
-4. Igreja Presbiteriana Libertas (RJ);
-5. Igreja Presbiteriana em Parque Aurora (RJ);
-6. Igreja Presbiteriana do Brasil em Serra Negra (SP);
-7. Igreja Presbiteriana do Brasil em Alterosa (MG);
-8. Igreja Presbiteriana do Brasil em Nova Metrópole (CE).
+```text
+official IPB/iCalvinus directory
+        ↓
+preserved HTML snapshot + SHA-256
+        ↓
+IPB source adapter
+        ↓
+URL normalization and resource classification
+        ↓
+institutional websites only
+        ↓
+deterministic seeded sample
+        ↓
+live acquisition / evidence detectors
+        ↓
+review queue
+        ↓
+LGPD / GDPR / cookie profiles
+        ↓
+report / replication package
+```
 
-The sample is deliberately small and curated. It was chosen to exercise the actual research workflow on sites from the population that motivated the project, not to provide a statistically representative sample or a legal-compliance ranking.
-
-The URLs were publicly reachable when the demo dataset was prepared on 2026-10-03. Live-web availability and content are expected to change.
+This intentionally reproduces a key part of the original research problem: the source directory can contain entries that are not directly usable institutional websites. Privacy Evidence preserves the original source value and classifies social networks, video platforms, link aggregators, hosted pages, malformed values and institutional websites instead of silently cleaning the list by hand.
 
 ## Run
 
@@ -32,37 +45,46 @@ After `composer install`:
 examples/hacktoberfest/run-ipb-live-demo.sh
 ```
 
-The script executes the real project commands in sequence:
+The script:
 
-```text
-source:import
-    ↓
-run
-    ↓
-status
-    ↓
-analyze
-    ↓
-report
-```
+1. downloads and preserves the current official IPB/iCalvinus church-directory snapshot;
+2. runs `source:import` over the complete snapshot so the source hash and classifications are visible;
+3. deterministically selects 8 entries classified as `institutional_website` using seed `hacktoberfest-ipb-v1`;
+4. records a sample manifest containing the original source snapshot SHA-256, classifier type, seed, eligible count and selected count;
+5. runs acquisition and evidence detection on that generated sample;
+6. shows durable run status;
+7. applies all versioned regulatory profiles;
+8. generates the export/report package.
 
-The output includes the durable ResearchRun id and the generated export directory.
+The 8 sites are therefore **not chosen manually**. Given the same preserved directory snapshot, classifier version, seed and limit, the same website sample is selected.
 
-If the optional Playwright browser dependencies are installed, browser escalation is available for pages that need it. Without Playwright, the same demo still exercises the HTTP acquisition path.
+If the optional Playwright browser dependencies are installed, browser escalation is available for pages that need it. Without Playwright, the demo still exercises the HTTP acquisition path.
+
+## Why snapshot first
+
+The live IPB directory can change. A future run may contain different churches or website values.
+
+The demo therefore saves the exact directory response before parsing it. The snapshot SHA-256 becomes part of the sample provenance. This makes it possible to distinguish:
+
+- **reproduction**: rerun deterministic parsing/classification/sampling from the same preserved snapshot;
+- **replication**: download the current directory again and measure the websites as they exist at a later date.
 
 ## What to show in a video
 
-A useful challenge recording can show:
+A strong challenge recording can show:
 
-1. the CSV input;
-2. `source:import` preserving the dataset snapshot hash and normalized resources;
-3. the live `run` producing a ResearchRun id;
-4. `status` showing jobs, observations and pending human reviews;
-5. `analyze` applying the same generic evidence to the versioned LGPD/GDPR/cookie profiles;
-6. `report` producing the replication/export package;
-7. the separate model-required demo in `run-demo.sh`, showing the PHP-native ML second opinion and auditable rule/ML disagreement.
+1. the official IPB **Igrejas** page as the research source;
+2. `source:fetch-ipb` saving the exact source snapshot and SHA-256;
+3. `source:import` classifying the complete directory instead of manually deleting unsuitable entries;
+4. `source:sample-websites` generating the 8-site sample and manifest from a fixed seed;
+5. the resulting CSV, proving that the input to the crawl is derived rather than hand-picked;
+6. the live `run` producing a ResearchRun id;
+7. `status` showing jobs, observations and pending human reviews;
+8. `analyze` applying the same generic evidence to LGPD/GDPR/cookie profiles;
+9. `report` producing the replication/export package;
+10. the separate model-required demo in `run-demo.sh`, showing the PHP-native ML second opinion and auditable rule/ML disagreement.
 
-This combination demonstrates both sides of the project: a real live-web research pipeline and the challenge-specific local open-source ML capability.
+This demonstrates the exact progression that was difficult to reproduce in the original study: source population → classification → sample → crawl → evidence → analysis.
 
 ## Interpretation boundary
 
@@ -70,8 +92,10 @@ The demo reports **observable evidence and profile support states**. It does not
 
 For example, finding a privacy notice, DPO contact or cookie control is evidence about the measured public resource. Missing evidence on that resource is not proof that the organization fails a legal obligation.
 
+The generated sample is a demonstration sample, not a statistically representative estimate of the IPB population.
+
 ## Reproducibility
 
-A live run is a **replication**, not a byte-identical reproduction: websites can change between runs.
+Pure parsing, URL normalization, classification and seeded selection are deterministic for the same preserved snapshot and versions.
 
-Privacy Evidence therefore records the dataset hash, source snapshot, code/protocol/detector/profile versions, acquired artifact hashes and run configuration. Deterministic processing can be reproduced from the same preserved inputs; a new live crawl is a new temporal observation.
+Live website acquisition is externally variable. Websites can disappear, redirect or change content. Each acquired artifact is therefore hashed and tied to the ResearchRun so later replications can explain differences rather than pretending the live web is immutable.
