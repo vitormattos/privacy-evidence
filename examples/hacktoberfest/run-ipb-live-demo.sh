@@ -20,7 +20,7 @@ printf '%s\n' 'Source of truth: official IPB/iCalvinus church directory.'
 printf '%s\n' 'This is a live replication run; directory and website content can change.'
 
 printf '\n%s\n' '== 1. Preserve the current official directory snapshot =='
-bin/privacy-evidence source:fetch-ipb "$SNAPSHOT"
+bin/privacy-evidence source:fetch ipb-icalvinus "$SNAPSHOT"
 
 printf '\n%s\n' '== 2. Inspect and classify the full directory =='
 bin/privacy-evidence source:import "$SNAPSHOT"
