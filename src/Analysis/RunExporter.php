@@ -698,11 +698,17 @@ final readonly class RunExporter
         $lines[] = '| Profile | Requirement | Measurable / total | Full observed support | Rate |';
         $lines[] = '| --- | --- | ---: | ---: | ---: |';
         foreach ($profileMetrics as $metric) {
+            /** @psalm-suppress MixedAssignment */
             $profile = $metric['profile'] ?? null;
+            /** @psalm-suppress MixedAssignment */
             $requirement = $metric['requirementId'] ?? null;
+            /** @psalm-suppress MixedAssignment */
             $measurable = $metric['measurableResources'] ?? null;
+            /** @psalm-suppress MixedAssignment */
             $total = $metric['totalResources'] ?? null;
+            /** @psalm-suppress MixedAssignment */
             $support = $metric['observedSupport'] ?? null;
+            /** @psalm-suppress MixedAssignment */
             $rate = $metric['fullObservedSupportRate'] ?? null;
             if (
                 !is_string($profile)
@@ -721,7 +727,7 @@ final readonly class RunExporter
                 $measurable,
                 $total,
                 $support,
-                $rate === null ? 'n/a' : sprintf('%.1f%%', $rate * 100),
+                $rate === null ? 'n/a' : sprintf('%.1f%%', $rate * 100.0),
             );
         }
         $lines[] = '';

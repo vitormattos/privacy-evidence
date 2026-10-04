@@ -105,14 +105,8 @@ final class RegulatoryMetrics
         }
         unset($group);
 
-        $result = array_values($groups);
-        usort(
-            $result,
-            static fn (array $a, array $b): int =>
-                strcmp($a['profile'], $b['profile'])
-                ?: strcmp($a['requirementId'], $b['requirementId']),
-        );
+        ksort($groups);
 
-        return $result;
+        return array_values($groups);
     }
 }
