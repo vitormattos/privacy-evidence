@@ -151,6 +151,7 @@ final class RunExporterTest extends TestCase
         );
         self::assertIsArray($summaryDecoded);
         $lgpdSummary = null;
+        /** @psalm-suppress MixedAssignment */
         foreach ($summaryDecoded as $item) {
             if (
                 is_array($item)
