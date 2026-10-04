@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PrivacyEvidence\Command;
 
+use PrivacyEvidence\Analysis\RegulatoryAnalysisService;
 use PrivacyEvidence\Browser\PlaywrightBrowserProvider;
 use PrivacyEvidence\Pipeline\DefaultDetectorRegistry;
 use PrivacyEvidence\Pipeline\DefaultProfileRegistry;
@@ -184,6 +185,13 @@ final class RunCommand extends Command
         $status = $runtime->runs->status($run->id) ?? throw new \RuntimeException(
             'Run status disappeared after execution.',
         );
+        if ($status === RunStatus::Completed) {
+            (new RegulatoryAnalysisService(
+                $runtime->observations,
+                $profiles,
+            ))->analyze($run->id);
+        }
+
         (new RunManifestWriter())->write(
             $run,
             $this->projectRoot . '/data/derived/runs/' . $run->id . '/manifest.json',

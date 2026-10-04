@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace PrivacyEvidence\Command;
 
+use PrivacyEvidence\Analysis\RegulatoryAnalysisService;
 use PrivacyEvidence\Browser\PlaywrightBrowserProvider;
+use PrivacyEvidence\Pipeline\DefaultProfileRegistry;
 use PrivacyEvidence\Pipeline\PipelineConfig;
 use PrivacyEvidence\Run\RunManifestWriter;
+use PrivacyEvidence\Run\RunStatus;
 use PrivacyEvidence\Runtime\RuntimeFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -55,12 +58,21 @@ final class ResumeCommand extends Command
         $status = $runtime->runs->status($value) ?? throw new \RuntimeException(
             'Run status disappeared after resume.',
         );
+        if ($status === RunStatus::Completed) {
+            (new RegulatoryAnalysisService(
+                $runtime->observations,
+                DefaultProfileRegistry::create(),
+            ))->analyze($value);
+        }
+
         (new RunManifestWriter())->write(
             $run,
             $this->projectRoot . '/data/derived/runs/' . $value . '/manifest.json',
             $status,
         );
 
-        return Command::SUCCESS;
+        return $status === RunStatus::Failed
+            ? Command::FAILURE
+            : Command::SUCCESS;
     }
 }

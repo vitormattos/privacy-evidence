@@ -23,6 +23,13 @@ final readonly class RegulatoryAnalysisService
             $evidence = $this->store->evidence($runId, $resourceId);
 
             foreach ($this->profiles->profiles as $profile) {
+                $this->store->clearProfileResults(
+                    $runId,
+                    $resourceId,
+                    $profile->id(),
+                    $profile->version(),
+                );
+
                 foreach ($this->evaluator->evaluate($profile, $evidence) as $result) {
                     $this->store->recordProfileResult(
                         runId: $runId,

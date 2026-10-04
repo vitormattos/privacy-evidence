@@ -272,6 +272,27 @@ final class SqliteObservationStore implements ObservationStore
 
 
 
+    public function clearProfileResults(
+        string $runId,
+        string $resourceId,
+        string $profile,
+        string $profileVersion,
+    ): void {
+        $stmt = $this->pdo->prepare(
+            'DELETE FROM profile_results
+             WHERE run_id = :run_id
+               AND resource_id = :resource_id
+               AND profile = :profile
+               AND profile_version = :profile_version',
+        );
+        $stmt->execute([
+            'run_id' => $runId,
+            'resource_id' => $resourceId,
+            'profile' => $profile,
+            'profile_version' => $profileVersion,
+        ]);
+    }
+
     public function profileResults(string $runId): array
     {
         $stmt = $this->pdo->prepare(
