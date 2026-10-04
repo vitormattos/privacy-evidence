@@ -43,9 +43,8 @@ jobs:
           cat "$OUT/source-import.jsonl" >> "$OUT/full-run.log"
 
           echo '== 4. Select every institutional website (no sampling) ==' | tee -a "$OUT/full-run.log"
-          php bin/privacy-evidence source:sample-websites "$OUT/ipb-population.csv" "$OUT/ipb-sites.csv" \
-            --limit=100000 \
-            --seed=ipb-full-validation-v1 2>&1 | tee -a "$OUT/full-run.log"
+          php bin/privacy-evidence source:select "$OUT/ipb-population.csv" "$OUT/ipb-sites.csv" \
+            --type=institutional_website 2>&1 | tee -a "$OUT/full-run.log"
 
           printf 'population_rows=%s\n' "$(( $(wc -l < "$OUT/ipb-population.csv") - 1 ))" | tee -a "$OUT/full-run.log"
           printf 'selected_rows=%s\n' "$(( $(wc -l < "$OUT/ipb-sites.csv") - 1 ))" | tee -a "$OUT/full-run.log"
