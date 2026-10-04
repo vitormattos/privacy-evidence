@@ -21,7 +21,7 @@ final class SourceImportCommand extends Command
     {
         $this
             ->setDescription('Normalize and inspect a source dataset without running acquisition.')
-            ->addArgument('dataset', InputArgument::REQUIRED, 'CSV, JSON, or IPB HTML snapshot.');
+            ->addArgument('dataset', InputArgument::REQUIRED, 'Canonical CSV or JSON dataset.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
