@@ -172,6 +172,7 @@ final class RunCommand extends Command
                     'maxBytes' => 5000000,
                     'maxDurationSeconds' => 60,
                     'maxBrowserPages' => 3,
+                    'minLinkPriority' => 50,
                 ],
             ],
         );

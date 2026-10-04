@@ -399,6 +399,11 @@ final readonly class ResearchPipeline
         }
 
         foreach ($this->linkDiscoverer->discover($document) as $candidate) {
+            if ($candidate->priority < $budget->minLinkPriority) {
+                $this->runs->increment($runId, 'crawl_candidates_skipped_irrelevant');
+                continue;
+            }
+
             if ($this->jobs->scheduledCount($runId, 'fetch', $resourceId . '|') >= $budget->maxPages) {
                 $this->recordBudgetStop(
                     $runId,
