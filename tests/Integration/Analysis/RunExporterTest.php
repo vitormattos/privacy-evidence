@@ -7,10 +7,12 @@ namespace PrivacyEvidence\Tests\Integration\Analysis;
 use PDO;
 use PHPUnit\Framework\TestCase;
 use PrivacyEvidence\Acquisition\FetchedDocument;
+use PrivacyEvidence\Analysis\RegulatoryAnalysisService;
 use PrivacyEvidence\Analysis\RunExporter;
 use PrivacyEvidence\Core\ObservationState;
 use PrivacyEvidence\Evidence\EvidenceType;
 use PrivacyEvidence\Evidence\PrivacyEvidence;
+use PrivacyEvidence\Pipeline\DefaultProfileRegistry;
 use PrivacyEvidence\Queue\SqliteJobQueue;
 use PrivacyEvidence\Review\SqliteReviewQueue;
 use PrivacyEvidence\Run\ResearchRun;
@@ -79,6 +81,11 @@ final class RunExporterTest extends TestCase
             method: 'fixture',
         ));
 
+        (new RegulatoryAnalysisService(
+            $observations,
+            DefaultProfileRegistry::create(),
+        ))->analyze($run->id);
+
         $directory = sys_get_temp_dir() . '/privacy-evidence-export-' . bin2hex(random_bytes(4));
         $runtime = new RuntimeContext(
             runs: $runs,
@@ -94,6 +101,10 @@ final class RunExporterTest extends TestCase
         self::assertFileExists($directory . '/resources.csv');
         self::assertFileExists($directory . '/documents.csv');
         self::assertFileExists($directory . '/evidence.csv');
+        self::assertFileExists($directory . '/profiles.csv');
+        self::assertFileExists($directory . '/profile-summary.csv');
+        self::assertFileExists($directory . '/profile-summary.json');
+        self::assertFileExists($directory . '/failures.json');
         self::assertFileExists($directory . '/report.md');
 
         /** @var mixed $decoded */
@@ -121,5 +132,12 @@ final class RunExporterTest extends TestCase
         $report = (string) file_get_contents($directory . '/report.md');
         self::assertStringContainsString('not a legal-compliance certification', $report);
         self::assertStringContainsString('Eligible resources', $report);
+        self::assertStringContainsString('Regulatory public-evidence summary', $report);
+        self::assertStringContainsString('lgpd', $report);
+
+        $summaryCsv = (string) file_get_contents($directory . '/profile-summary.csv');
+        self::assertStringContainsString('publicEvidenceState', $summaryCsv);
+        self::assertStringContainsString('site-1', $summaryCsv);
+        self::assertStringContainsString('lgpd', $summaryCsv);
     }
 }

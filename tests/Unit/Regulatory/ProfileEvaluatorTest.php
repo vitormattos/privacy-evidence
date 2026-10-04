@@ -9,10 +9,40 @@ use PrivacyEvidence\Core\ObservationState;
 use PrivacyEvidence\Evidence\EvidenceType;
 use PrivacyEvidence\Evidence\PrivacyEvidence;
 use PrivacyEvidence\Regulatory\GdprProfile;
+use PrivacyEvidence\Regulatory\LgpdProfile;
 use PrivacyEvidence\Regulatory\ProfileEvaluator;
 
 final class ProfileEvaluatorTest extends TestCase
 {
+    public function testUnavailableMeasurementIsNotReportedAsNoObservedSupport(): void
+    {
+        $results = (new ProfileEvaluator())->evaluate(new LgpdProfile(), []);
+
+        self::assertNotEmpty($results);
+        foreach ($results as $result) {
+            self::assertSame('unavailable', $result['state']);
+            self::assertSame([], $result['present']);
+            self::assertNotEmpty($result['unavailable']);
+        }
+    }
+
+    public function testPartialRequirementKeepsObservedAndMissingSignalsDistinct(): void
+    {
+        $evidence = [
+            new PrivacyEvidence(EvidenceType::PrivacyNotice, ObservationState::Present, 'x', str_repeat('a', 64), 'https://e.test', 'd', '1', 'rule'),
+            new PrivacyEvidence(EvidenceType::PurposeDisclosure, ObservationState::Absent, 'x', str_repeat('a', 64), 'https://e.test', 'd', '1', 'rule'),
+            new PrivacyEvidence(EvidenceType::ControllerIdentity, ObservationState::Absent, 'x', str_repeat('a', 64), 'https://e.test', 'd', '1', 'rule'),
+        ];
+
+        $results = (new ProfileEvaluator())->evaluate(new LgpdProfile(), $evidence);
+
+        self::assertSame('lgpd-transparency', $results[0]['id']);
+        self::assertSame('partial_observed_support', $results[0]['state']);
+        self::assertSame(['privacy_notice'], $results[0]['present']);
+        self::assertContains('purpose_disclosure', $results[0]['absent']);
+        self::assertContains('controller_identity', $results[0]['absent']);
+    }
+
     public function testMapsGenericEvidenceWithoutProducingComplianceVerdict(): void
     {
         $evidence = [
