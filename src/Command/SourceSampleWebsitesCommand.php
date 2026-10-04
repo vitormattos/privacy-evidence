@@ -33,7 +33,9 @@ final class SourceSampleWebsitesCommand extends Command
     {
         $dataset = $input->getArgument('dataset');
         $target = $input->getArgument('output');
+        /** @psalm-suppress MixedAssignment Symfony InputInterface returns mixed by contract. */
         $limitValue = $input->getOption('limit');
+        /** @psalm-suppress MixedAssignment Symfony InputInterface returns mixed by contract. */
         $seed = $input->getOption('seed');
 
         if (!is_string($dataset) || $dataset === '' || !is_string($target) || $target === '') {
@@ -50,6 +52,7 @@ final class SourceSampleWebsitesCommand extends Command
 
         try {
             $source = DatasetSourceFactory::fromPath($dataset);
+            /** @var list<array{score:string,id:string,name:string,url:string}> $candidates */
             $candidates = [];
 
             foreach ($source->resources() as $resource) {
