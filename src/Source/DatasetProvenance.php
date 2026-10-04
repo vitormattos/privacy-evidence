@@ -52,13 +52,25 @@ final readonly class DatasetProvenance
         $producerVersion = $decoded['producerVersion'] ?? null;
         $schemaVersion = $decoded['schemaVersion'] ?? null;
 
+        foreach ([
+            'schemaVersion' => $schemaVersion,
+            'producer' => $producer,
+            'producerVersion' => $producerVersion,
+        ] as $field => $value) {
+            if (!is_string($value) || trim($value) === '') {
+                throw new \InvalidArgumentException(
+                    'Dataset provenance sidecar has no valid ' . $field . '.',
+                );
+            }
+        }
+
         return new self(
             path: $path,
             sha256: hash('sha256', $contents),
             summary: [
-                'schemaVersion' => is_string($schemaVersion) ? $schemaVersion : null,
-                'producer' => is_string($producer) ? $producer : null,
-                'producerVersion' => is_string($producerVersion) ? $producerVersion : null,
+                'schemaVersion' => $schemaVersion,
+                'producer' => $producer,
+                'producerVersion' => $producerVersion,
                 'datasetSha256' => $expectedSha256,
             ],
         );
