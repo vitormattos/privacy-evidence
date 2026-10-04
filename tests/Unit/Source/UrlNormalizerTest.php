@@ -30,6 +30,7 @@ final class UrlNormalizerTest extends TestCase
         yield ['mailto:user@example.com', null];
         yield ['http://church@gmail.com', null];
         yield ['http://name@blogspot.com', null];
+        yield ['http://facebook/@example', null];
         yield ['ftp://example.com/file', null];
         yield ['   ', null];
         yield ['', null];

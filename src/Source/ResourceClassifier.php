@@ -6,7 +6,7 @@ namespace PrivacyEvidence\Source;
 
 final class ResourceClassifier
 {
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.1.0';
 
     /** @var list<string> */
     private const SOCIAL_HOSTS = [
@@ -22,6 +22,7 @@ final class ResourceClassifier
     /** @var list<string> */
     private const THIRD_PARTY_HOSTS = [
         'sites.google.com', 'wordpress.com', 'wixsite.com', 'weebly.com', 'notion.site', 'carrd.co',
+        'blogspot.com', 'blogspot.com.br',
     ];
 
     public function classify(string $sourceValue, ?string $normalizedUrl): ResourceType
@@ -43,6 +44,10 @@ final class ResourceClassifier
         }
         $host = strtolower($host);
 
+        if ($this->looksLikeSpoofedKnownHost($host)) {
+            return new ResourceClassification(ResourceType::Malformed, 'spoofed_known_host_prefix', self::VERSION, 1.0);
+        }
+
         if ($this->matchesHost($host, self::SOCIAL_HOSTS)) {
             return new ResourceClassification(ResourceType::SocialNetwork, 'known_social_host', self::VERSION, 1.0);
         }
@@ -57,6 +62,27 @@ final class ResourceClassifier
         }
 
         return new ResourceClassification(ResourceType::InstitutionalWebsite, 'default_web_host', self::VERSION, 0.8);
+    }
+
+    private function looksLikeSpoofedKnownHost(string $host): bool
+    {
+        $host = preg_replace('/^www\./', '', $host) ?? $host;
+        $knownHosts = [
+            ...self::SOCIAL_HOSTS,
+            ...self::VIDEO_HOSTS,
+            ...self::LINK_AGGREGATORS,
+        ];
+
+        foreach ($knownHosts as $candidate) {
+            if (
+                str_starts_with($host, $candidate . '.')
+                && !$this->matchesHost($host, [$candidate])
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

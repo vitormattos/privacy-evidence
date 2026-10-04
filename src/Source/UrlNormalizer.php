@@ -52,6 +52,11 @@ final class UrlNormalizer
             return null;
         }
 
+        $isIp = filter_var($host, FILTER_VALIDATE_IP) !== false;
+        if (!$isIp && !str_contains($host, '.')) {
+            return null;
+        }
+
         $port = isset($parts['port']) ? ':' . $parts['port'] : '';
         $path = $parts['path'] ?? '/';
         if ($path === '') {
