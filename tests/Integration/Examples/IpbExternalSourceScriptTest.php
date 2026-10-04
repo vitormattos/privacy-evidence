@@ -86,9 +86,11 @@ final class IpbExternalSourceScriptTest extends TestCase
 
         file_put_contents($dataset, "tampered\n", FILE_APPEND);
 
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('does not match');
-
-        DatasetProvenance::discover($dataset);
+        try {
+            DatasetProvenance::discover($dataset);
+            self::fail('Expected tampered dataset provenance to be rejected.');
+        } catch (\InvalidArgumentException $exception) {
+            self::assertStringContainsString('does not match', $exception->getMessage());
+        }
     }
 }
