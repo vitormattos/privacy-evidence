@@ -40,6 +40,8 @@ final readonly class RunExporter
         );
         $reviews = $this->runtime->reviews->decisions($runId);
         $profiles = $this->runtime->observations->profileResults($runId);
+        $profileSummary = $this->profileSummary($resources, $profiles);
+        $jobFailures = $this->runtime->jobs->failures($runId);
         $telemetry = $this->runtime->runs->telemetry($runId);
         $events = $this->runtime->runs->events($runId);
         $counts = $this->runtime->observations->counts($runId);
@@ -49,6 +51,9 @@ final readonly class RunExporter
             generatedAt: $run->startedAt,
             resources: $resources,
             evidence: $evidenceObjects,
+            profiles: $profiles,
+            profileSummary: $profileSummary,
+            jobFailures: $jobFailures,
             telemetry: $telemetry,
             counts: $counts,
         );
@@ -59,6 +64,8 @@ final readonly class RunExporter
         $this->json($directory . '/evidence.json', $evidence);
         $this->json($directory . '/reviews.json', $reviews);
         $this->json($directory . '/profiles.json', $profiles);
+        $this->json($directory . '/profile-summary.json', $profileSummary);
+        $this->json($directory . '/failures.json', $jobFailures);
         $this->json($directory . '/telemetry.json', $telemetry);
         $this->json($directory . '/events.json', $events);
         $this->json($directory . '/counts.json', $counts);
@@ -102,6 +109,42 @@ final readonly class RunExporter
             ],
             $this->evidenceRows($evidenceObjects),
         );
+        $this->csv(
+            $directory . '/profiles.csv',
+            [
+                'resourceId',
+                'profile',
+                'profileVersion',
+                'requirementId',
+                'requirementTitle',
+                'state',
+                'present',
+                'absent',
+                'unknown',
+                'unavailable',
+                'notApplicable',
+            ],
+            $this->profileRows($profiles),
+        );
+        $this->csv(
+            $directory . '/profile-summary.csv',
+            [
+                'resourceId',
+                'name',
+                'normalizedUrl',
+                'profile',
+                'profileVersion',
+                'publicEvidenceState',
+                'observedSupport',
+                'partialObservedSupport',
+                'noObservedSupport',
+                'indeterminate',
+                'unavailable',
+                'notApplicable',
+                'totalRequirements',
+            ],
+            $this->profileSummaryRows($profileSummary),
+        );
 
         $this->report(
             $directory . '/report.md',
@@ -110,6 +153,7 @@ final readonly class RunExporter
             $run->gitCommit,
             $run->datasetHash,
             $analysis,
+            $profileSummary,
         );
     }
 
@@ -185,8 +229,194 @@ final readonly class RunExporter
     }
 
     /**
+     * @param list<array<string,mixed>> $records
+     * @return list<list<scalar|null>>
+     */
+    private function profileRows(array $records): array
+    {
+        $rows = [];
+        foreach ($records as $record) {
+            $result = $record['result'] ?? null;
+            if (!is_array($result)) {
+                continue;
+            }
+
+            $rows[] = [
+                Value::string($record['resourceId'] ?? null, 'profile.resourceId'),
+                Value::string($record['profile'] ?? null, 'profile.profile'),
+                Value::string($record['profileVersion'] ?? null, 'profile.profileVersion'),
+                Value::string($result['id'] ?? null, 'profile.requirementId'),
+                is_string($result['title'] ?? null) ? $result['title'] : '',
+                Value::string($result['state'] ?? null, 'profile.state'),
+                $this->stringList($result['present'] ?? []),
+                $this->stringList($result['absent'] ?? []),
+                $this->stringList($result['unknown'] ?? []),
+                $this->stringList($result['unavailable'] ?? []),
+                $this->stringList($result['notApplicable'] ?? []),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param list<array<string,mixed>> $summary
+     * @return list<list<scalar|null>>
+     */
+    private function profileSummaryRows(array $summary): array
+    {
+        $rows = [];
+        foreach ($summary as $row) {
+            $counts = $row['requirements'] ?? [];
+            if (!is_array($counts)) {
+                $counts = [];
+            }
+
+            $rows[] = [
+                Value::string($row['resourceId'] ?? null, 'profileSummary.resourceId'),
+                Value::string($row['name'] ?? null, 'profileSummary.name'),
+                Value::nullableString($row['normalizedUrl'] ?? null, 'profileSummary.normalizedUrl'),
+                Value::string($row['profile'] ?? null, 'profileSummary.profile'),
+                Value::string($row['profileVersion'] ?? null, 'profileSummary.profileVersion'),
+                Value::string($row['publicEvidenceState'] ?? null, 'profileSummary.publicEvidenceState'),
+                (int) ($counts['observed_support'] ?? 0),
+                (int) ($counts['partial_observed_support'] ?? 0),
+                (int) ($counts['no_observed_support'] ?? 0),
+                (int) ($counts['indeterminate'] ?? 0),
+                (int) ($counts['unavailable'] ?? 0),
+                (int) ($counts['not_applicable'] ?? 0),
+                (int) ($row['totalRequirements'] ?? 0),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param list<array<string,mixed>> $resources
+     * @param list<array<string,mixed>> $profiles
+     * @return list<array<string,mixed>>
+     */
+    private function profileSummary(array $resources, array $profiles): array
+    {
+        $resourceById = [];
+        foreach ($resources as $resource) {
+            $id = $resource['id'] ?? null;
+            if (is_string($id)) {
+                $resourceById[$id] = $resource;
+            }
+        }
+
+        /** @var array<string,array<string,mixed>> $groups */
+        $groups = [];
+        foreach ($profiles as $profileResult) {
+            $resourceId = $profileResult['resourceId'] ?? null;
+            $profile = $profileResult['profile'] ?? null;
+            $profileVersion = $profileResult['profileVersion'] ?? null;
+            $result = $profileResult['result'] ?? null;
+
+            if (
+                !is_string($resourceId)
+                || !is_string($profile)
+                || !is_string($profileVersion)
+                || !is_array($result)
+            ) {
+                continue;
+            }
+
+            $key = $resourceId . '|' . $profile . '|' . $profileVersion;
+            if (!isset($groups[$key])) {
+                $resource = $resourceById[$resourceId] ?? [];
+                $groups[$key] = [
+                    'resourceId' => $resourceId,
+                    'name' => is_string($resource['name'] ?? null) ? $resource['name'] : $resourceId,
+                    'normalizedUrl' => is_string($resource['normalizedUrl'] ?? null)
+                        ? $resource['normalizedUrl']
+                        : null,
+                    'profile' => $profile,
+                    'profileVersion' => $profileVersion,
+                    'requirements' => [],
+                    'totalRequirements' => 0,
+                ];
+            }
+
+            $state = $result['state'] ?? null;
+            if (!is_string($state)) {
+                continue;
+            }
+
+            $counts = $groups[$key]['requirements'];
+            if (!is_array($counts)) {
+                $counts = [];
+            }
+            $counts[$state] = (int) ($counts[$state] ?? 0) + 1;
+            $groups[$key]['requirements'] = $counts;
+            $groups[$key]['totalRequirements'] = (int) $groups[$key]['totalRequirements'] + 1;
+        }
+
+        $summary = [];
+        foreach ($groups as $group) {
+            $counts = $group['requirements'];
+            if (!is_array($counts)) {
+                $counts = [];
+            }
+            $total = (int) $group['totalRequirements'];
+
+            $observed = (int) ($counts['observed_support'] ?? 0);
+            $partial = (int) ($counts['partial_observed_support'] ?? 0);
+            $noSupport = (int) ($counts['no_observed_support'] ?? 0);
+            $unresolved = (int) ($counts['indeterminate'] ?? 0)
+                + (int) ($counts['unavailable'] ?? 0)
+                + (int) ($counts['not_applicable'] ?? 0);
+
+            if ($total > 0 && $observed === $total) {
+                $state = 'complete_observed_support';
+            } elseif ($total > 0 && $unresolved === $total) {
+                $state = 'unavailable_or_indeterminate';
+            } elseif ($total > 0 && $noSupport === $total) {
+                $state = 'no_observed_support';
+            } elseif ($observed > 0 || $partial > 0 || $noSupport > 0) {
+                $state = 'mixed_observed_support';
+            } else {
+                $state = 'unavailable_or_indeterminate';
+            }
+
+            $group['publicEvidenceState'] = $state;
+            $summary[] = $group;
+        }
+
+        usort(
+            $summary,
+            static fn (array $a, array $b): int =>
+                strcmp((string) $a['resourceId'], (string) $b['resourceId'])
+                ?: strcmp((string) $a['profile'], (string) $b['profile']),
+        );
+
+        return $summary;
+    }
+
+    private function stringList(mixed $value): string
+    {
+        if (!is_array($value)) {
+            return '';
+        }
+
+        $strings = [];
+        foreach ($value as $item) {
+            if (is_string($item)) {
+                $strings[] = $item;
+            }
+        }
+
+        return implode(';', $strings);
+    }
+
+    /**
      * @param list<array<string,mixed>> $resources
      * @param list<PrivacyEvidence> $evidence
+     * @param list<array<string,mixed>> $profiles
+     * @param list<array<string,mixed>> $profileSummary
+     * @param list<array{id:string,stage:string,status:string,attempts:int,url:string|null,resourceId:string|null,error:string}> $jobFailures
      * @param array<string,int|float|string> $telemetry
      * @param array<string,int> $counts
      * @return array{
@@ -201,7 +431,7 @@ final readonly class RunExporter
      *       states:array<string,int>
      *     }>
      *   },
-     *   failures:array<string,int|float|string>,
+     *   failures:array<string,mixed>,
      *   performance:array<string,int|float|string>
      * }
      */
@@ -210,6 +440,9 @@ final readonly class RunExporter
         string $generatedAt,
         array $resources,
         array $evidence,
+        array $profiles,
+        array $profileSummary,
+        array $jobFailures,
         array $telemetry,
         array $counts,
     ): array {
@@ -240,13 +473,11 @@ final readonly class RunExporter
         }
         unset($metric);
 
-        $failures = [];
-        foreach ($telemetry as $name => $value) {
-            if (str_starts_with($name, 'failure.') || str_starts_with($name, 'failed.')) {
-                $failures[$name] = $value;
-            }
-        }
-        ksort($failures);
+        $failures = [
+            'resourceAcquisitionFailures' => (int) ($telemetry['resource_acquisition_failures'] ?? 0),
+            'terminalPipelineFailures' => (int) ($telemetry['terminal_failures'] ?? 0),
+            'jobs' => $jobFailures,
+        ];
 
         return [
             'schemaVersion' => self::SCHEMA_VERSION,
@@ -255,6 +486,8 @@ final readonly class RunExporter
             'metrics' => [
                 'counts' => $counts,
                 'evidenceByType' => $byType,
+                'regulatoryResults' => count($profiles),
+                'profileSummary' => $profileSummary,
             ],
             'failures' => $failures,
             'performance' => $telemetry,
@@ -285,6 +518,7 @@ final readonly class RunExporter
         string $gitCommit,
         string $datasetHash,
         array $analysis,
+        array $profileSummary,
     ): void {
         $counts = $analysis['metrics']['counts'];
         $byType = $analysis['metrics']['evidenceByType'];
@@ -321,6 +555,29 @@ final readonly class RunExporter
             );
         }
 
+        $profileStates = [];
+        foreach ($profileSummary as $item) {
+            $profile = $item['profile'] ?? null;
+            $state = $item['publicEvidenceState'] ?? null;
+            if (!is_string($profile) || !is_string($state)) {
+                continue;
+            }
+            $profileStates[$profile][$state] = ($profileStates[$profile][$state] ?? 0) + 1;
+        }
+
+        $lines[] = '';
+        $lines[] = '## Regulatory public-evidence summary';
+        $lines[] = '';
+        $lines[] = '| Profile | Public-evidence state | Resources |';
+        $lines[] = '| --- | --- | ---: |';
+        foreach ($profileStates as $profile => $states) {
+            ksort($states);
+            foreach ($states as $state => $count) {
+                $lines[] = sprintf('| %s | %s | %d |', $profile, $state, $count);
+            }
+        }
+        $lines[] = '';
+        $lines[] = 'Per-resource results are exported in `profile-summary.csv`; requirement-level results are in `profiles.csv`.';
         $lines[] = '';
         $lines[] = '## Interpretation boundary';
         $lines[] = '';
