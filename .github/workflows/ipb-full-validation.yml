@@ -40,7 +40,8 @@ jobs:
 
           echo '== 3. Inspect/classify complete population ==' | tee -a "$OUT/full-run.log"
           php bin/privacy-evidence source:import "$OUT/ipb-population.csv" > "$OUT/source-import.jsonl"
-          cat "$OUT/source-import.jsonl" >> "$OUT/full-run.log"
+          php bin/privacy-evidence source:stats "$OUT/ipb-population.csv" \
+            | tee "$OUT/source-stats.json" | tee -a "$OUT/full-run.log"
 
           echo '== 4. Select every institutional website (no sampling) ==' | tee -a "$OUT/full-run.log"
           php bin/privacy-evidence source:select "$OUT/ipb-population.csv" "$OUT/ipb-sites.csv" \
