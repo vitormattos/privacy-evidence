@@ -36,7 +36,10 @@ php bin/privacy-evidence source:sample-websites "$POPULATION" "$SAMPLE" \
 cat "$SAMPLE"
 
 printf '\n%s\n' '== 5. Generic core: run acquisition and evidence detectors =='
+set +e
 RUN_ID=$(php bin/privacy-evidence run "$SAMPLE")
+RUN_EXIT=$?
+set -e
 printf 'Run ID: %s\n' "$RUN_ID"
 
 printf '\n%s\n' '== 6. Show durable run status =='
@@ -52,3 +55,8 @@ printf 'Export directory: %s\n' "$EXPORT_DIR"
 printf '\n%s\n' '== Done =='
 printf 'Run ID: %s\n' "$RUN_ID"
 printf 'Inspect: %s\n' "$EXPORT_DIR"
+
+if [ "$RUN_EXIT" -ne 0 ]; then
+    printf '%s\n' 'Research run completed with terminal failures.' >&2
+    exit "$RUN_EXIT"
+fi

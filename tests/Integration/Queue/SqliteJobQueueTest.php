@@ -150,5 +150,17 @@ final class SqliteJobQueueTest extends TestCase
         $queue->reserve('r1', 'fetch');
         self::assertSame(JobStatus::Dead, $queue->fail('dead', 'fatal', maxAttempts: 1));
         self::assertSame(['dead' => 1], $queue->counts('r1'));
+
+        self::assertSame([
+            [
+                'id' => 'dead',
+                'stage' => 'fetch',
+                'status' => 'dead',
+                'attempts' => 1,
+                'url' => 'https://example.test',
+                'resourceId' => null,
+                'error' => 'fatal',
+            ],
+        ], $queue->failures('r1'));
     }
 }

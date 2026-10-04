@@ -54,7 +54,10 @@ jobs:
           printf 'selected_rows=%s\n' "$(( $(wc -l < "$OUT/ipb-sites.csv") - 1 ))" | tee -a "$OUT/full-run.log"
 
           echo '== 5. Run full acquisition/evidence pipeline ==' | tee -a "$OUT/full-run.log"
+          set +e
           RUN_ID=$(php bin/privacy-evidence run "$OUT/ipb-sites.csv")
+          RUN_EXIT=$?
+          set -e
           printf '%s\n' "$RUN_ID" | tee "$OUT/run-id.txt"
           printf 'Run ID: %s\n' "$RUN_ID" | tee -a "$OUT/full-run.log"
 
@@ -71,6 +74,11 @@ jobs:
 
           cp -a "data/derived/runs/$RUN_ID" "$OUT/run-derived"
           cp -a "$EXPORT_DIR" "$OUT/export"
+
+          if [ "$RUN_EXIT" -ne 0 ]; then
+            echo 'Research run completed with terminal failures.' | tee -a "$OUT/full-run.log"
+            exit "$RUN_EXIT"
+          fi
 
       - name: Preserve complete validation artifacts
         if: always()

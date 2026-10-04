@@ -10,6 +10,7 @@ use PrivacyEvidence\Pipeline\DefaultProfileRegistry;
 use PrivacyEvidence\Pipeline\PipelineConfig;
 use PrivacyEvidence\Run\ResearchRun;
 use PrivacyEvidence\Run\RunManifestWriter;
+use PrivacyEvidence\Run\RunStatus;
 use PrivacyEvidence\Runtime\GitRevision;
 use PrivacyEvidence\Runtime\RuntimeFactory;
 use PrivacyEvidence\Source\DatasetProvenance;
@@ -191,6 +192,8 @@ final class RunCommand extends Command
 
         $output->writeln($run->id);
 
-        return Command::SUCCESS;
+        return $status === RunStatus::Failed
+            ? Command::FAILURE
+            : Command::SUCCESS;
     }
 }
