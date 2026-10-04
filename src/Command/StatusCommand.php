@@ -48,6 +48,7 @@ final class StatusCommand extends Command
             'status' => ($runtime->runs->status($runId) ?? throw new \RuntimeException(
                 sprintf('Run %s has no persisted status.', $runId),
             ))->value,
+            'configuration' => $run->configuration,
             'jobs' => $runtime->jobs->counts($runId),
             'observations' => $runtime->observations->counts($runId),
             'telemetry' => $runtime->runs->telemetry($runId),
