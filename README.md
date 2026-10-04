@@ -12,7 +12,7 @@ Manual privacy reviews do not scale well, are difficult to reproduce and often m
 
 Privacy Evidence is being designed to:
 
-- ingest generic website datasets and pluggable source adapters;
+- ingest canonical website datasets produced by any external extraction workflow;
 - acquire public web content using HTTP first and browser automation only when necessary;
 - detect and preserve traceable privacy evidence;
 - support human review and auditable adjudication;
@@ -58,7 +58,7 @@ See `docs/challenge/hacktoberfest-weekend-2026.md` for the exact timestamps, bou
 ## High-level pipeline
 
 ```text
-dataset/source
+canonical dataset
     ↓
 HTTP acquisition
     ↓
