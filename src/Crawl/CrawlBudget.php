@@ -15,8 +15,7 @@ final readonly class CrawlBudget
         public int $minLinkPriority = 50,
     ) {
         foreach (
-            [$maxPages, $maxDepth, $maxBytes, $maxDurationSeconds, $maxBrowserPages, $minLinkPriority]
-            as $value
+            [$maxPages, $maxDepth, $maxBytes, $maxDurationSeconds, $maxBrowserPages, $minLinkPriority] as $value
         ) {
             if ($value < 0) {
                 throw new \InvalidArgumentException('Crawl budget values cannot be negative.');

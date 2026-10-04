@@ -95,8 +95,8 @@ final class ResearchPipelineFocusedCrawlTest extends TestCase
                 'The homepage plus privacy and contact links should be scheduled.',
             );
             self::assertSame(
-                1,
-                $runs->telemetry($run->id)['crawl_candidates_skipped_irrelevant'] ?? 0,
+                1.0,
+                $runs->telemetry($run->id)['crawl_candidates_skipped_irrelevant'] ?? 0.0,
             );
         } finally {
             $this->removeDirectory($directory);
