@@ -137,7 +137,35 @@ final class RunExporterTest extends TestCase
 
         $summaryCsv = (string) file_get_contents($directory . '/profile-summary.csv');
         self::assertStringContainsString('publicEvidenceState', $summaryCsv);
+        self::assertStringContainsString('publicEvidenceCoverageRate', $summaryCsv);
+        self::assertStringContainsString('fullObservedSupportRate', $summaryCsv);
+        self::assertStringContainsString('anyObservedSupportRate', $summaryCsv);
         self::assertStringContainsString('site-1', $summaryCsv);
         self::assertStringContainsString('lgpd', $summaryCsv);
+
+        /** @var mixed $summaryDecoded */
+        $summaryDecoded = json_decode(
+            (string) file_get_contents($directory . '/profile-summary.json'),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+        self::assertIsArray($summaryDecoded);
+        $lgpdSummary = null;
+        foreach ($summaryDecoded as $item) {
+            if (
+                is_array($item)
+                && ($item['resourceId'] ?? null) === 'site-1'
+                && ($item['profile'] ?? null) === 'lgpd'
+            ) {
+                $lgpdSummary = $item;
+                break;
+            }
+        }
+        self::assertIsArray($lgpdSummary);
+        self::assertArrayHasKey('measurableRequirements', $lgpdSummary);
+        self::assertArrayHasKey('coverageDenominator', $lgpdSummary);
+        self::assertArrayHasKey('publicEvidenceCoverageRate', $lgpdSummary);
+        self::assertArrayHasKey('fullObservedSupportRate', $lgpdSummary);
+        self::assertArrayHasKey('anyObservedSupportRate', $lgpdSummary);
     }
 }

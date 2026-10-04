@@ -166,6 +166,12 @@ final readonly class RunExporter
                 'notApplicable',
                 'applicabilityUnknown',
                 'totalRequirements',
+                'measurableRequirements',
+                'unresolvedRequirements',
+                'coverageDenominator',
+                'publicEvidenceCoverageRate',
+                'fullObservedSupportRate',
+                'anyObservedSupportRate',
             ],
             $this->profileSummaryRows($profileSummary),
         );
@@ -355,6 +361,12 @@ final readonly class RunExporter
                 $this->intValue($counts['not_applicable'] ?? 0),
                 $this->intValue($counts['applicability_unknown'] ?? 0),
                 $this->intValue($row['totalRequirements'] ?? 0),
+                $this->intValue($row['measurableRequirements'] ?? 0),
+                $this->intValue($row['unresolvedRequirements'] ?? 0),
+                $this->intValue($row['coverageDenominator'] ?? 0),
+                $this->floatValue($row['publicEvidenceCoverageRate'] ?? null),
+                $this->floatValue($row['fullObservedSupportRate'] ?? null),
+                $this->floatValue($row['anyObservedSupportRate'] ?? null),
             ];
         }
 
@@ -435,10 +447,26 @@ final readonly class RunExporter
             $observed = $this->intValue($counts['observed_support'] ?? 0);
             $partial = $this->intValue($counts['partial_observed_support'] ?? 0);
             $noSupport = $this->intValue($counts['no_observed_support'] ?? 0);
-            $unresolved = $this->intValue($counts['indeterminate'] ?? 0)
-                + $this->intValue($counts['unavailable'] ?? 0)
-                + $this->intValue($counts['not_applicable'] ?? 0)
-                + $this->intValue($counts['applicability_unknown'] ?? 0);
+            $indeterminate = $this->intValue($counts['indeterminate'] ?? 0);
+            $unavailable = $this->intValue($counts['unavailable'] ?? 0);
+            $notApplicable = $this->intValue($counts['not_applicable'] ?? 0);
+            $applicabilityUnknown = $this->intValue($counts['applicability_unknown'] ?? 0);
+            $measurable = $observed + $partial + $noSupport;
+            $unresolved = $indeterminate + $unavailable + $applicabilityUnknown;
+            $coverageDenominator = max(0, $total - $notApplicable);
+
+            $group['measurableRequirements'] = $measurable;
+            $group['unresolvedRequirements'] = $unresolved;
+            $group['coverageDenominator'] = $coverageDenominator;
+            $group['publicEvidenceCoverageRate'] = $coverageDenominator > 0
+                ? $measurable / $coverageDenominator
+                : null;
+            $group['fullObservedSupportRate'] = $measurable > 0
+                ? $observed / $measurable
+                : null;
+            $group['anyObservedSupportRate'] = $measurable > 0
+                ? ($observed + $partial) / $measurable
+                : null;
 
             if ($total > 0 && $observed === $total) {
                 $state = 'complete_observed_support';
@@ -485,6 +513,18 @@ final readonly class RunExporter
         }
 
         return 0;
+    }
+
+    private function floatValue(mixed $value): ?float
+    {
+        if (is_float($value)) {
+            return $value;
+        }
+        if (is_int($value)) {
+            return (float) $value;
+        }
+
+        return null;
     }
 
     private function stringValue(mixed $value, string $default): string
@@ -734,6 +774,8 @@ final readonly class RunExporter
         $lines[] = 'Rates use only measurable resources as denominators. Unavailable, not-applicable and applicability-unknown cases remain separate.';
         $lines[] = '';
         $lines[] = 'Per-resource results are exported in `profile-summary.csv`; requirement-level results are in `profiles.csv` and aggregate denominators in `profile-metrics.csv`.';
+        $lines[] = '';
+        $lines[] = 'Per-resource summaries include an explicit public-evidence coverage denominator plus two support rates: full support (only fully observed requirements) and any support (full or partial). These are website-observability metrics, not legal-compliance scores.';
         $lines[] = '';
         $lines[] = '## Interpretation boundary';
         $lines[] = '';
