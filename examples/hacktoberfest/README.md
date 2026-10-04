@@ -38,4 +38,4 @@ For a second, live demonstration using a small curated sample of public IPB webs
 examples/hacktoberfest/run-ipb-live-demo.sh
 ```
 
-This live sample exercises source ingestion, acquisition, evidence detection, regulatory-profile analysis and report generation. It is intentionally non-representative and must not be interpreted as a legal-compliance ranking of the listed churches.
+This live sample exercises an external organization-specific dataset producer followed by generic Privacy Evidence ingestion, acquisition, evidence detection, regulatory-profile analysis and report generation. The IPB extraction logic is intentionally outside the core package. The sample is non-representative and must not be interpreted as a legal-compliance ranking of the listed churches.
