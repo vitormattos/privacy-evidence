@@ -57,6 +57,28 @@ final class CommandWorkflowTest extends TestCase
         self::assertStringContainsString('max-jobs', $tester->getDisplay());
     }
 
+    public function testRunCanEnqueueOnlyForConcurrentWorkerExecution(): void
+    {
+        $fixture = dirname(__DIR__, 2) . '/Fixtures/sources/sites.csv';
+        $tester = new CommandTester(new RunCommand($this->projectRoot));
+
+        $exit = $tester->execute([
+            'dataset' => $fixture,
+            '--enqueue-only' => true,
+        ]);
+
+        self::assertSame(Command::SUCCESS, $exit);
+        $runId = trim($tester->getDisplay());
+        self::assertNotSame('', $runId);
+
+        $runtime = RuntimeFactory::create($this->projectRoot);
+        self::assertSame(RunStatus::Running, $runtime->runs->status($runId));
+
+        $counts = $runtime->jobs->counts($runId);
+        self::assertGreaterThan(0, $counts['pending'] ?? 0);
+        self::assertSame(0, $runtime->observations->counts($runId)['documents'] ?? 0);
+    }
+
     public function testStatusReportsDurableRunStateAndTelemetry(): void
     {
         $runtime = RuntimeFactory::create($this->projectRoot);

@@ -42,6 +42,12 @@ final class RunCommand extends Command
                 InputOption::VALUE_REQUIRED,
                 'Maximum jobs to process before leaving the run interrupted; 0 means unlimited.',
                 '0',
+            )
+            ->addOption(
+                'enqueue-only',
+                null,
+                InputOption::VALUE_NONE,
+                'Create the run and enqueue initial resources without processing jobs; use workers for scale.',
             );
     }
 
@@ -180,7 +186,10 @@ final class RunCommand extends Command
             $browser,
         );
         $pipeline->start($run, $source);
-        $pipeline->execute($run->id);
+
+        if (!$input->getOption('enqueue-only')) {
+            $pipeline->execute($run->id);
+        }
 
         $status = $runtime->runs->status($run->id) ?? throw new \RuntimeException(
             'Run status disappeared after execution.',
