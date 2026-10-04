@@ -202,7 +202,7 @@ function extractDataset(string $snapshot, string $output): void
             '',
         );
 
-        foreach ($blocks as $blockNode) {
+        foreach ($blocks as $index => $blockNode) {
             $block = new Crawler($blockNode);
             $divs = $block->filter('div');
             if ($divs->count() === 0) {
@@ -221,6 +221,7 @@ function extractDataset(string $snapshot, string $output): void
                     $church['presbytery'],
                     $church['municipality'],
                     $church['state'],
+                    (string) $index,
                 ]),
             );
 
