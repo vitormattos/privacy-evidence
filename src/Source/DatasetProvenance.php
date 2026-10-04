@@ -7,7 +7,12 @@ namespace PrivacyEvidence\Source;
 final readonly class DatasetProvenance
 {
     /**
-     * @param array<string,scalar|null> $summary
+     * @param array{
+     *   schemaVersion:string,
+     *   producer:string,
+     *   producerVersion:string,
+     *   datasetSha256:string
+     * } $summary
      */
     private function __construct(
         public string $path,
