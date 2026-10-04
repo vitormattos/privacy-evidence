@@ -25,7 +25,7 @@ final class CookieInterfaceDetector implements Detector
 
     public function version(): string
     {
-        return '1.1.0';
+        return '1.2.0';
     }
 
     public function detect(FetchedDocument $document): array
@@ -60,6 +60,24 @@ final class CookieInterfaceDetector implements Detector
                 EvidenceType::CookiePreferencesControl,
                 preg_match('/(?:prefer[eê]ncias|preferences|configurar|settings)/u', $text) === 1,
                 'preferences_control_text',
+            ),
+            $this->signal(
+                $document,
+                EvidenceType::CookieCategoriesDisclosure,
+                preg_match(
+                    '/\b(?:categorias?|tipos?) de cookies\b|\bcookie categories?\b|\b(?:cookies? (?:necess[aá]rios|essenciais|anal[ií]ticos|de marketing|funcionais)|necessary cookies|analytics cookies|marketing cookies|functional cookies)\b/u',
+                    $text,
+                ) === 1,
+                'cookie_categories_text',
+            ),
+            $this->signal(
+                $document,
+                EvidenceType::CookieThirdPartiesDisclosure,
+                preg_match(
+                    '/\bcookies? de terceiros\b|\bthird[- ]party cookies?\b|\bterceiros\b.{0,100}\bcookies?\b/u',
+                    $text,
+                ) === 1,
+                'cookie_third_parties_text',
             ),
         ];
 

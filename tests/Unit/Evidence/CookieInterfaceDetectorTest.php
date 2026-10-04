@@ -19,7 +19,8 @@ final class CookieInterfaceDetectorTest extends TestCase
             (new CookieInterfaceDetector())->detect(
                 $this->document(
                     '<div>Cookies <button>Aceitar</button><button>Rejeitar</button>'
-                    . '<button>Preferências</button></div>',
+                    . '<button>Preferências</button>'
+                    . '<p>Categorias de cookies: necessários e analíticos. Cookies de terceiros.</p></div>',
                 ),
             ),
         );
@@ -30,6 +31,8 @@ final class CookieInterfaceDetectorTest extends TestCase
                 EvidenceType::CookieAcceptControl,
                 EvidenceType::CookieRejectControl,
                 EvidenceType::CookiePreferencesControl,
+                EvidenceType::CookieCategoriesDisclosure,
+                EvidenceType::CookieThirdPartiesDisclosure,
             ] as $type
         ) {
             self::assertSame(ObservationState::Present, $byType[$type->value]->state);
@@ -50,6 +53,14 @@ final class CookieInterfaceDetectorTest extends TestCase
             'preferences_control_text',
             $byType[EvidenceType::CookiePreferencesControl->value]->method,
         );
+        self::assertSame(
+            'cookie_categories_text',
+            $byType[EvidenceType::CookieCategoriesDisclosure->value]->method,
+        );
+        self::assertSame(
+            'cookie_third_parties_text',
+            $byType[EvidenceType::CookieThirdPartiesDisclosure->value]->method,
+        );
     }
 
     public function testMissingStaticControlsAreAbsentAndNeedReview(): void
@@ -64,6 +75,8 @@ final class CookieInterfaceDetectorTest extends TestCase
                 EvidenceType::CookieAcceptControl,
                 EvidenceType::CookieRejectControl,
                 EvidenceType::CookiePreferencesControl,
+                EvidenceType::CookieCategoriesDisclosure,
+                EvidenceType::CookieThirdPartiesDisclosure,
             ] as $type
         ) {
             self::assertSame(ObservationState::Absent, $byType[$type->value]->state);
@@ -213,7 +226,7 @@ final class CookieInterfaceDetectorTest extends TestCase
             $byType[$item->type->value] = $item;
         }
 
-        self::assertCount(6, $byType);
+        self::assertCount(8, $byType);
 
         return $byType;
     }

@@ -68,6 +68,7 @@ final class ProfileEvaluator
                 $unknown,
                 $unavailable,
                 $notApplicable,
+                $requirement->conditionalApplicability,
             );
 
             $results[] = [
@@ -134,6 +135,7 @@ final class ProfileEvaluator
         array $unknown,
         array $unavailable,
         array $notApplicable,
+        bool $conditionalApplicability,
     ): string {
         if ($present !== [] && count($present) === $requiredTypes) {
             return 'observed_support';
@@ -144,7 +146,9 @@ final class ProfileEvaluator
         }
 
         if ($absent !== []) {
-            return 'no_observed_support';
+            return $conditionalApplicability
+                ? 'applicability_unknown'
+                : 'no_observed_support';
         }
 
         if (count($notApplicable) === $requiredTypes) {

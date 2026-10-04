@@ -43,6 +43,19 @@ final class ProfileEvaluatorTest extends TestCase
         self::assertContains('controller_identity', $results[0]['absent']);
     }
 
+    public function testConditionalRequirementDoesNotTurnAbsenceIntoNegativeSupport(): void
+    {
+        $evidence = [
+            new PrivacyEvidence(EvidenceType::DpoRole, ObservationState::Absent, 'x', str_repeat('a', 64), 'https://e.test', 'd', '1', 'rule'),
+            new PrivacyEvidence(EvidenceType::DpoContact, ObservationState::Absent, 'x', str_repeat('a', 64), 'https://e.test', 'd', '1', 'rule'),
+        ];
+
+        $results = (new ProfileEvaluator())->evaluate(new LgpdProfile(), $evidence);
+        $byId = array_column($results, null, 'id');
+
+        self::assertSame('applicability_unknown', $byId['lgpd-encarregado']['state'] ?? null);
+    }
+
     public function testMapsGenericEvidenceWithoutProducingComplianceVerdict(): void
     {
         $evidence = [

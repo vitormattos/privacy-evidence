@@ -141,6 +141,7 @@ final readonly class RunExporter
                 'indeterminate',
                 'unavailable',
                 'notApplicable',
+                'applicabilityUnknown',
                 'totalRequirements',
             ],
             $this->profileSummaryRows($profileSummary),
@@ -285,6 +286,7 @@ final readonly class RunExporter
                 (int) ($counts['indeterminate'] ?? 0),
                 (int) ($counts['unavailable'] ?? 0),
                 (int) ($counts['not_applicable'] ?? 0),
+                (int) ($counts['applicability_unknown'] ?? 0),
                 (int) ($row['totalRequirements'] ?? 0),
             ];
         }
@@ -367,7 +369,8 @@ final readonly class RunExporter
             $noSupport = (int) ($counts['no_observed_support'] ?? 0);
             $unresolved = (int) ($counts['indeterminate'] ?? 0)
                 + (int) ($counts['unavailable'] ?? 0)
-                + (int) ($counts['not_applicable'] ?? 0);
+                + (int) ($counts['not_applicable'] ?? 0)
+                + (int) ($counts['applicability_unknown'] ?? 0);
 
             if ($total > 0 && $observed === $total) {
                 $state = 'complete_observed_support';
