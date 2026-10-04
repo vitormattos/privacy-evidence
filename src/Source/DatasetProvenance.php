@@ -43,31 +43,24 @@ final readonly class DatasetProvenance
             throw new \InvalidArgumentException('Dataset provenance sidecar has no dataset object.');
         }
 
-        $expectedSha256 = $dataset['sha256'] ?? null;
-        if (!is_string($expectedSha256) || preg_match('/^[a-f0-9]{64}$/D', $expectedSha256) !== 1) {
+        $expectedSha256 = self::requiredString($dataset, 'sha256');
+        if (preg_match('/^[a-f0-9]{64}$/D', $expectedSha256) !== 1) {
             throw new \InvalidArgumentException('Dataset provenance sidecar has an invalid dataset SHA-256.');
         }
 
         $actualSha256 = hash_file('sha256', $datasetPath);
-        if (!is_string($actualSha256) || !hash_equals($expectedSha256, $actualSha256)) {
-            throw new \InvalidArgumentException('Dataset provenance SHA-256 does not match the canonical dataset.');
+        if (
+            !is_string($actualSha256)
+            || !hash_equals($expectedSha256, $actualSha256)
+        ) {
+            throw new \InvalidArgumentException(
+                'Dataset provenance SHA-256 does not match the canonical dataset.',
+            );
         }
 
-        $producer = $decoded['producer'] ?? null;
-        $producerVersion = $decoded['producerVersion'] ?? null;
-        $schemaVersion = $decoded['schemaVersion'] ?? null;
-
-        foreach ([
-            'schemaVersion' => $schemaVersion,
-            'producer' => $producer,
-            'producerVersion' => $producerVersion,
-        ] as $field => $value) {
-            if (!is_string($value) || trim($value) === '') {
-                throw new \InvalidArgumentException(
-                    'Dataset provenance sidecar has no valid ' . $field . '.',
-                );
-            }
-        }
+        $schemaVersion = self::requiredString($decoded, 'schemaVersion');
+        $producer = self::requiredString($decoded, 'producer');
+        $producerVersion = self::requiredString($decoded, 'producerVersion');
 
         return new self(
             path: $path,
@@ -79,5 +72,20 @@ final readonly class DatasetProvenance
                 'datasetSha256' => $expectedSha256,
             ],
         );
+    }
+
+    /**
+     * @param array<mixed> $source
+     */
+    private static function requiredString(array $source, string $field): string
+    {
+        $value = $source[$field] ?? null;
+        if (!is_string($value) || trim($value) === '') {
+            throw new \InvalidArgumentException(
+                'Dataset provenance sidecar has no valid ' . $field . '.',
+            );
+        }
+
+        return $value;
     }
 }
