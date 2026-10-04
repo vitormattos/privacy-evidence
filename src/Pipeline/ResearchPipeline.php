@@ -155,14 +155,15 @@ final readonly class ResearchPipeline
                 $this->runs->increment($runId, 'jobs_completed');
                 $this->runs->increment($runId, 'jobs_completed.' . $stage);
             } catch (\Throwable $e) {
-                $isAcquisitionFailure = $e instanceof AcquisitionException;
-                $category = $isAcquisitionFailure
-                    ? $e->category
-                    : 'unexpected_exception';
-                $retryable = $isAcquisitionFailure && $e->retryable;
-                $terminalStatus = $isAcquisitionFailure
-                    ? JobStatus::Failed
-                    : JobStatus::Dead;
+                if ($e instanceof AcquisitionException) {
+                    $category = $e->category;
+                    $retryable = $e->retryable;
+                    $terminalStatus = JobStatus::Failed;
+                } else {
+                    $category = 'unexpected_exception';
+                    $retryable = false;
+                    $terminalStatus = JobStatus::Dead;
+                }
                 $status = $this->jobs->fail(
                     $job->id,
                     $e->getMessage(),
