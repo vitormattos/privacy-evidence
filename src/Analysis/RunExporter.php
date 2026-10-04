@@ -41,6 +41,7 @@ final readonly class RunExporter
         $reviews = $this->runtime->reviews->decisions($runId);
         $profiles = $this->runtime->observations->profileResults($runId);
         $profileSummary = $this->profileSummary($resources, $profiles);
+        $profileMetrics = (new RegulatoryMetrics())->summarize($profiles);
         $jobFailures = $this->runtime->jobs->failures($runId);
         $telemetry = $this->runtime->runs->telemetry($runId);
         $events = $this->runtime->runs->events($runId);
@@ -53,6 +54,7 @@ final readonly class RunExporter
             evidence: $evidenceObjects,
             profiles: $profiles,
             profileSummary: $profileSummary,
+            profileMetrics: $profileMetrics,
             jobFailures: $jobFailures,
             telemetry: $telemetry,
             counts: $counts,
@@ -65,6 +67,7 @@ final readonly class RunExporter
         $this->json($directory . '/reviews.json', $reviews);
         $this->json($directory . '/profiles.json', $profiles);
         $this->json($directory . '/profile-summary.json', $profileSummary);
+        $this->json($directory . '/profile-metrics.json', $profileMetrics);
         $this->json($directory . '/failures.json', $jobFailures);
         $this->json($directory . '/telemetry.json', $telemetry);
         $this->json($directory . '/events.json', $events);
@@ -127,6 +130,26 @@ final readonly class RunExporter
             $this->profileRows($profiles),
         );
         $this->csv(
+            $directory . '/profile-metrics.csv',
+            [
+                'profile',
+                'profileVersion',
+                'requirementId',
+                'requirementTitle',
+                'totalResources',
+                'measurableResources',
+                'observedSupport',
+                'partialObservedSupport',
+                'noObservedSupport',
+                'indeterminate',
+                'unavailable',
+                'notApplicable',
+                'applicabilityUnknown',
+                'fullObservedSupportRate',
+            ],
+            $this->profileMetricRows($profileMetrics),
+        );
+        $this->csv(
             $directory . '/profile-summary.csv',
             [
                 'resourceId',
@@ -155,6 +178,7 @@ final readonly class RunExporter
             $run->datasetHash,
             $analysis,
             $profileSummary,
+            $profileMetrics,
         );
     }
 
@@ -254,6 +278,50 @@ final readonly class RunExporter
                 $this->stringList($result['unknown'] ?? []),
                 $this->stringList($result['unavailable'] ?? []),
                 $this->stringList($result['notApplicable'] ?? []),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param list<array{
+     *   profile:string,
+     *   profileVersion:string,
+     *   requirementId:string,
+     *   requirementTitle:string,
+     *   totalResources:int,
+     *   measurableResources:int,
+     *   observedSupport:int,
+     *   partialObservedSupport:int,
+     *   noObservedSupport:int,
+     *   indeterminate:int,
+     *   unavailable:int,
+     *   notApplicable:int,
+     *   applicabilityUnknown:int,
+     *   fullObservedSupportRate:float|null
+     * }> $metrics
+     * @return list<list<scalar|null>>
+     */
+    private function profileMetricRows(array $metrics): array
+    {
+        $rows = [];
+        foreach ($metrics as $metric) {
+            $rows[] = [
+                $metric['profile'],
+                $metric['profileVersion'],
+                $metric['requirementId'],
+                $metric['requirementTitle'],
+                $metric['totalResources'],
+                $metric['measurableResources'],
+                $metric['observedSupport'],
+                $metric['partialObservedSupport'],
+                $metric['noObservedSupport'],
+                $metric['indeterminate'],
+                $metric['unavailable'],
+                $metric['notApplicable'],
+                $metric['applicabilityUnknown'],
+                $metric['fullObservedSupportRate'],
             ];
         }
 
@@ -446,6 +514,7 @@ final readonly class RunExporter
      * @param list<PrivacyEvidence> $evidence
      * @param list<array<string,mixed>> $profiles
      * @param list<array<string,mixed>> $profileSummary
+     * @param list<array<string,mixed>> $profileMetrics
      * @param list<array{id:string,stage:string,status:string,attempts:int,url:string|null,resourceId:string|null,error:string}> $jobFailures
      * @param array<string,int|float|string> $telemetry
      * @param array<string,int> $counts
@@ -461,7 +530,8 @@ final readonly class RunExporter
      *       states:array<string,int>
      *     }>,
      *     regulatoryResults:int,
-     *     profileSummary:list<array<string,mixed>>
+     *     profileSummary:list<array<string,mixed>>,
+     *     profileMetrics:list<array<string,mixed>>
      *   },
      *   failures:array<string,mixed>,
      *   performance:array<string,int|float|string>
@@ -474,6 +544,7 @@ final readonly class RunExporter
         array $evidence,
         array $profiles,
         array $profileSummary,
+        array $profileMetrics,
         array $jobFailures,
         array $telemetry,
         array $counts,
@@ -524,6 +595,7 @@ final readonly class RunExporter
                 'evidenceByType' => $byType,
                 'regulatoryResults' => count($profiles),
                 'profileSummary' => $profileSummary,
+                'profileMetrics' => $profileMetrics,
             ],
             'failures' => $failures,
             'performance' => $telemetry,
@@ -543,12 +615,14 @@ final readonly class RunExporter
      *       states:array<string,int>
      *     }>,
      *     regulatoryResults:int,
-     *     profileSummary:list<array<string,mixed>>
+     *     profileSummary:list<array<string,mixed>>,
+     *     profileMetrics:list<array<string,mixed>>
      *   },
      *   failures:array<string,mixed>,
      *   performance:array<string,int|float|string>
      * } $analysis
      * @param list<array<string,mixed>> $profileSummary
+     * @param list<array<string,mixed>> $profileMetrics
      */
     private function report(
         string $path,
@@ -558,6 +632,7 @@ final readonly class RunExporter
         string $datasetHash,
         array $analysis,
         array $profileSummary,
+        array $profileMetrics,
     ): void {
         $counts = $analysis['metrics']['counts'];
         $byType = $analysis['metrics']['evidenceByType'];
@@ -618,7 +693,41 @@ final readonly class RunExporter
             }
         }
         $lines[] = '';
-        $lines[] = 'Per-resource results are exported in `profile-summary.csv`; requirement-level results are in `profiles.csv`.';
+        $lines[] = '## Requirement-level observable support';
+        $lines[] = '';
+        $lines[] = '| Profile | Requirement | Measurable / total | Full observed support | Rate |';
+        $lines[] = '| --- | --- | ---: | ---: | ---: |';
+        foreach ($profileMetrics as $metric) {
+            $profile = $metric['profile'] ?? null;
+            $requirement = $metric['requirementId'] ?? null;
+            $measurable = $metric['measurableResources'] ?? null;
+            $total = $metric['totalResources'] ?? null;
+            $support = $metric['observedSupport'] ?? null;
+            $rate = $metric['fullObservedSupportRate'] ?? null;
+            if (
+                !is_string($profile)
+                || !is_string($requirement)
+                || !is_int($measurable)
+                || !is_int($total)
+                || !is_int($support)
+                || ($rate !== null && !is_float($rate))
+            ) {
+                continue;
+            }
+            $lines[] = sprintf(
+                '| %s | %s | %d / %d | %d | %s |',
+                $profile,
+                $requirement,
+                $measurable,
+                $total,
+                $support,
+                $rate === null ? 'n/a' : sprintf('%.1f%%', $rate * 100),
+            );
+        }
+        $lines[] = '';
+        $lines[] = 'Rates use only measurable resources as denominators. Unavailable, not-applicable and applicability-unknown cases remain separate.';
+        $lines[] = '';
+        $lines[] = 'Per-resource results are exported in `profile-summary.csv`; requirement-level results are in `profiles.csv` and aggregate denominators in `profile-metrics.csv`.';
         $lines[] = '';
         $lines[] = '## Interpretation boundary';
         $lines[] = '';
