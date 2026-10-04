@@ -1,0 +1,82 @@
+name: IPB full validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/ipb-live-demo
+
+permissions:
+  contents: read
+
+jobs:
+  full-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Install browser dependencies
+        working-directory: browser
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Run complete IPB population validation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          OUT="$RUNNER_TEMP/ipb-full"
+          mkdir -p "$OUT"
+
+          echo '== 1. Preserve official directory snapshot ==' | tee "$OUT/full-run.log"
+          php examples/hacktoberfest/ipb/source.php fetch "$OUT/ipb-anuario.html" 2>&1 | tee -a "$OUT/full-run.log"
+
+          echo '== 2. Convert snapshot to canonical CSV ==' | tee -a "$OUT/full-run.log"
+          php examples/hacktoberfest/ipb/source.php extract "$OUT/ipb-anuario.html" "$OUT/ipb-population.csv" 2>&1 | tee -a "$OUT/full-run.log"
+
+          echo '== 3. Inspect/classify complete population ==' | tee -a "$OUT/full-run.log"
+          php bin/privacy-evidence source:import "$OUT/ipb-population.csv" > "$OUT/source-import.jsonl"
+          cat "$OUT/source-import.jsonl" >> "$OUT/full-run.log"
+
+          echo '== 4. Select every institutional website (no sampling) ==' | tee -a "$OUT/full-run.log"
+          php bin/privacy-evidence source:sample-websites "$OUT/ipb-population.csv" "$OUT/ipb-sites.csv" \
+            --limit=100000 \
+            --seed=ipb-full-validation-v1 2>&1 | tee -a "$OUT/full-run.log"
+
+          printf 'population_rows=%s\n' "$(( $(wc -l < "$OUT/ipb-population.csv") - 1 ))" | tee -a "$OUT/full-run.log"
+          printf 'selected_rows=%s\n' "$(( $(wc -l < "$OUT/ipb-sites.csv") - 1 ))" | tee -a "$OUT/full-run.log"
+
+          echo '== 5. Run full acquisition/evidence pipeline ==' | tee -a "$OUT/full-run.log"
+          RUN_ID=$(php bin/privacy-evidence run "$OUT/ipb-sites.csv")
+          printf '%s\n' "$RUN_ID" | tee "$OUT/run-id.txt"
+          printf 'Run ID: %s\n' "$RUN_ID" | tee -a "$OUT/full-run.log"
+
+          echo '== 6. Durable status ==' | tee -a "$OUT/full-run.log"
+          php bin/privacy-evidence status "$RUN_ID" | tee "$OUT/status.json" | tee -a "$OUT/full-run.log"
+
+          echo '== 7. Regulatory profiles ==' | tee -a "$OUT/full-run.log"
+          php bin/privacy-evidence analyze "$RUN_ID" | tee "$OUT/analyze.log" | tee -a "$OUT/full-run.log"
+
+          echo '== 8. Report/export ==' | tee -a "$OUT/full-run.log"
+          EXPORT_DIR=$(php bin/privacy-evidence report "$RUN_ID")
+          printf '%s\n' "$EXPORT_DIR" | tee "$OUT/export-dir.txt"
+          printf 'Export directory: %s\n' "$EXPORT_DIR" | tee -a "$OUT/full-run.log"
+
+          cp -a "data/derived/runs/$RUN_ID" "$OUT/run-derived"
+          cp -a "$EXPORT_DIR" "$OUT/export"
+
+      - name: Preserve complete validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ipb-full-validation
+          path: |
+            ${{ runner.temp }}/ipb-full
+          retention-days: 7
