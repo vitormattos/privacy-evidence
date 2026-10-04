@@ -29,18 +29,18 @@ final class ProfileEvaluatorTest extends TestCase
     public function testPartialRequirementKeepsObservedAndMissingSignalsDistinct(): void
     {
         $evidence = [
-            new PrivacyEvidence(EvidenceType::PrivacyNotice, ObservationState::Present, 'x', str_repeat('a', 64), 'https://e.test', 'd', '1', 'rule'),
-            new PrivacyEvidence(EvidenceType::PurposeDisclosure, ObservationState::Absent, 'x', str_repeat('a', 64), 'https://e.test', 'd', '1', 'rule'),
-            new PrivacyEvidence(EvidenceType::ControllerIdentity, ObservationState::Absent, 'x', str_repeat('a', 64), 'https://e.test', 'd', '1', 'rule'),
+            new PrivacyEvidence(EvidenceType::ControllerIdentity, ObservationState::Present, 'x', str_repeat('a', 64), 'https://e.test', 'd', '1', 'rule'),
+            new PrivacyEvidence(EvidenceType::PrivacyContact, ObservationState::Absent, 'x', str_repeat('a', 64), 'https://e.test', 'd', '1', 'rule'),
         ];
 
         $results = (new ProfileEvaluator())->evaluate(new LgpdProfile(), $evidence);
+        $byId = array_column($results, null, 'id');
+        $controller = $byId['lgpd-art9-controller'] ?? null;
 
-        self::assertSame('lgpd-transparency', $results[0]['id']);
-        self::assertSame('partial_observed_support', $results[0]['state']);
-        self::assertSame(['privacy_notice'], $results[0]['present']);
-        self::assertContains('purpose_disclosure', $results[0]['absent']);
-        self::assertContains('controller_identity', $results[0]['absent']);
+        self::assertIsArray($controller);
+        self::assertSame('partial_observed_support', $controller['state']);
+        self::assertSame(['controller_identity'], $controller['present']);
+        self::assertSame(['privacy_contact'], $controller['absent']);
     }
 
     public function testConditionalRequirementDoesNotTurnAbsenceIntoNegativeSupport(): void

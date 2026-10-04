@@ -247,7 +247,7 @@ final readonly class RunExporter
                 Value::string($record['profile'] ?? null, 'profile.profile'),
                 Value::string($record['profileVersion'] ?? null, 'profile.profileVersion'),
                 Value::string($result['id'] ?? null, 'profile.requirementId'),
-                is_string($result['title'] ?? null) ? $result['title'] : '',
+                $this->stringValue($result['title'] ?? '', ''),
                 Value::string($result['state'] ?? null, 'profile.state'),
                 $this->stringList($result['present'] ?? []),
                 $this->stringList($result['absent'] ?? []),
@@ -268,10 +268,9 @@ final readonly class RunExporter
     {
         $rows = [];
         foreach ($summary as $row) {
-            $counts = $row['requirements'] ?? [];
-            if (!is_array($counts)) {
-                $counts = [];
-            }
+            /** @psalm-suppress MixedAssignment */
+            $countsValue = $row['requirements'] ?? [];
+            $counts = is_array($countsValue) ? $countsValue : [];
 
             $rows[] = [
                 Value::string($row['resourceId'] ?? null, 'profileSummary.resourceId'),
@@ -280,14 +279,14 @@ final readonly class RunExporter
                 Value::string($row['profile'] ?? null, 'profileSummary.profile'),
                 Value::string($row['profileVersion'] ?? null, 'profileSummary.profileVersion'),
                 Value::string($row['publicEvidenceState'] ?? null, 'profileSummary.publicEvidenceState'),
-                (int) ($counts['observed_support'] ?? 0),
-                (int) ($counts['partial_observed_support'] ?? 0),
-                (int) ($counts['no_observed_support'] ?? 0),
-                (int) ($counts['indeterminate'] ?? 0),
-                (int) ($counts['unavailable'] ?? 0),
-                (int) ($counts['not_applicable'] ?? 0),
-                (int) ($counts['applicability_unknown'] ?? 0),
-                (int) ($row['totalRequirements'] ?? 0),
+                $this->intValue($counts['observed_support'] ?? 0),
+                $this->intValue($counts['partial_observed_support'] ?? 0),
+                $this->intValue($counts['no_observed_support'] ?? 0),
+                $this->intValue($counts['indeterminate'] ?? 0),
+                $this->intValue($counts['unavailable'] ?? 0),
+                $this->intValue($counts['not_applicable'] ?? 0),
+                $this->intValue($counts['applicability_unknown'] ?? 0),
+                $this->intValue($row['totalRequirements'] ?? 0),
             ];
         }
 
@@ -303,6 +302,7 @@ final readonly class RunExporter
     {
         $resourceById = [];
         foreach ($resources as $resource) {
+            /** @psalm-suppress MixedAssignment */
             $id = $resource['id'] ?? null;
             if (is_string($id)) {
                 $resourceById[$id] = $resource;
@@ -347,13 +347,14 @@ final readonly class RunExporter
                 continue;
             }
 
-            $counts = $groups[$key]['requirements'];
-            if (!is_array($counts)) {
-                $counts = [];
-            }
-            $counts[$state] = (int) ($counts[$state] ?? 0) + 1;
+            /** @psalm-suppress MixedAssignment */
+            $countsValue = $groups[$key]['requirements'];
+            $counts = is_array($countsValue) ? $countsValue : [];
+            $counts[$state] = $this->intValue($counts[$state] ?? 0) + 1;
             $groups[$key]['requirements'] = $counts;
-            $groups[$key]['totalRequirements'] = (int) $groups[$key]['totalRequirements'] + 1;
+            $groups[$key]['totalRequirements'] = $this->intValue(
+                $groups[$key]['totalRequirements'] ?? 0,
+            ) + 1;
         }
 
         $summary = [];
@@ -364,13 +365,13 @@ final readonly class RunExporter
             }
             $total = (int) $group['totalRequirements'];
 
-            $observed = (int) ($counts['observed_support'] ?? 0);
-            $partial = (int) ($counts['partial_observed_support'] ?? 0);
-            $noSupport = (int) ($counts['no_observed_support'] ?? 0);
-            $unresolved = (int) ($counts['indeterminate'] ?? 0)
-                + (int) ($counts['unavailable'] ?? 0)
-                + (int) ($counts['not_applicable'] ?? 0)
-                + (int) ($counts['applicability_unknown'] ?? 0);
+            $observed = $this->intValue($counts['observed_support'] ?? 0);
+            $partial = $this->intValue($counts['partial_observed_support'] ?? 0);
+            $noSupport = $this->intValue($counts['no_observed_support'] ?? 0);
+            $unresolved = $this->intValue($counts['indeterminate'] ?? 0)
+                + $this->intValue($counts['unavailable'] ?? 0)
+                + $this->intValue($counts['not_applicable'] ?? 0)
+                + $this->intValue($counts['applicability_unknown'] ?? 0);
 
             if ($total > 0 && $observed === $total) {
                 $state = 'complete_observed_support';
@@ -398,6 +399,26 @@ final readonly class RunExporter
         return $summary;
     }
 
+    private function intValue(mixed $value): int
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+        if (is_float($value)) {
+            return (int) $value;
+        }
+        if (is_string($value) && ctype_digit($value)) {
+            return (int) $value;
+        }
+
+        return 0;
+    }
+
+    private function stringValue(mixed $value, string $default): string
+    {
+        return is_string($value) ? $value : $default;
+    }
+
     private function stringList(mixed $value): string
     {
         if (!is_array($value)) {
@@ -405,6 +426,7 @@ final readonly class RunExporter
         }
 
         $strings = [];
+        /** @psalm-suppress MixedAssignment */
         foreach ($value as $item) {
             if (is_string($item)) {
                 $strings[] = $item;
@@ -479,8 +501,12 @@ final readonly class RunExporter
         unset($metric);
 
         $failures = [
-            'resourceAcquisitionFailures' => (int) ($telemetry['resource_acquisition_failures'] ?? 0),
-            'terminalPipelineFailures' => (int) ($telemetry['terminal_failures'] ?? 0),
+            'resourceAcquisitionFailures' => $this->intValue(
+                $telemetry['resource_acquisition_failures'] ?? 0,
+            ),
+            'terminalPipelineFailures' => $this->intValue(
+                $telemetry['terminal_failures'] ?? 0,
+            ),
             'jobs' => $jobFailures,
         ];
 
@@ -517,6 +543,9 @@ final readonly class RunExporter
      *   failures:array<string,mixed>,
      *   performance:array<string,int|float|string>
      * } $analysis
+     */
+    /**
+     * @param list<array<string,mixed>> $profileSummary
      */
     private function report(
         string $path,
@@ -564,7 +593,9 @@ final readonly class RunExporter
 
         $profileStates = [];
         foreach ($profileSummary as $item) {
+            /** @psalm-suppress MixedAssignment */
             $profile = $item['profile'] ?? null;
+            /** @psalm-suppress MixedAssignment */
             $state = $item['publicEvidenceState'] ?? null;
             if (!is_string($profile) || !is_string($state)) {
                 continue;
