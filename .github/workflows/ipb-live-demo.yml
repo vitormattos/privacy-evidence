@@ -24,7 +24,7 @@ jobs:
       - name: Run live IPB demo
         run: |
           set -o pipefail
-          examples/hacktoberfest/run-ipb-live-demo.sh | tee /tmp/ipb-live-demo.log
+          sh examples/hacktoberfest/run-ipb-live-demo.sh | tee /tmp/ipb-live-demo.log
       - name: Preserve demo log
         if: always()
         uses: actions/upload-artifact@v6
