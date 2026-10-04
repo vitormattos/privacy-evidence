@@ -11,14 +11,16 @@ final class RegulatoryMetricsTest extends TestCase
 {
     public function testDenominatorExcludesUnavailableAndApplicabilityUnknown(): void
     {
-        $rows = [];
-        foreach ([
+        $states = [
             'observed_support',
             'partial_observed_support',
             'no_observed_support',
             'unavailable',
             'applicability_unknown',
-        ] as $index => $state) {
+        ];
+
+        $rows = [];
+        foreach ($states as $index => $state) {
             $rows[] = [
                 'resourceId' => 'r' . $index,
                 'profile' => 'lgpd',
