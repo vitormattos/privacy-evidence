@@ -27,26 +27,26 @@ printf '\n%s\n' '== 2. External producer: convert snapshot to canonical CSV =='
 php examples/hacktoberfest/ipb/source.php extract "$SNAPSHOT" "$POPULATION"
 
 printf '\n%s\n' '== 3. Generic core: inspect and classify canonical population =='
-bin/privacy-evidence source:import "$POPULATION"
+php bin/privacy-evidence source:import "$POPULATION"
 
 printf '\n%s\n' '== 4. Generic core: select deterministic institutional-website sample =='
-bin/privacy-evidence source:sample-websites "$POPULATION" "$SAMPLE" \
+php bin/privacy-evidence source:sample-websites "$POPULATION" "$SAMPLE" \
   --limit=8 \
   --seed=hacktoberfest-ipb-v1
 cat "$SAMPLE"
 
 printf '\n%s\n' '== 5. Generic core: run acquisition and evidence detectors =='
-RUN_ID=$(bin/privacy-evidence run "$SAMPLE")
+RUN_ID=$(php bin/privacy-evidence run "$SAMPLE")
 printf 'Run ID: %s\n' "$RUN_ID"
 
 printf '\n%s\n' '== 6. Show durable run status =='
-bin/privacy-evidence status "$RUN_ID"
+php bin/privacy-evidence status "$RUN_ID"
 
 printf '\n%s\n' '== 7. Apply all versioned regulatory profiles =='
-bin/privacy-evidence analyze "$RUN_ID"
+php bin/privacy-evidence analyze "$RUN_ID"
 
 printf '\n%s\n' '== 8. Generate reproducible exports and report =='
-EXPORT_DIR=$(bin/privacy-evidence report "$RUN_ID")
+EXPORT_DIR=$(php bin/privacy-evidence report "$RUN_ID")
 printf 'Export directory: %s\n' "$EXPORT_DIR"
 
 printf '\n%s\n' '== Done =='
