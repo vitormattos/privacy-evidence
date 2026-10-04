@@ -12,6 +12,7 @@ use PrivacyEvidence\Run\ResearchRun;
 use PrivacyEvidence\Run\RunManifestWriter;
 use PrivacyEvidence\Runtime\GitRevision;
 use PrivacyEvidence\Runtime\RuntimeFactory;
+use PrivacyEvidence\Source\DatasetProvenance;
 use PrivacyEvidence\Source\DatasetSourceFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -61,6 +62,7 @@ final class RunCommand extends Command
         }
 
         $source = DatasetSourceFactory::fromPath($argument);
+        $provenance = DatasetProvenance::discover($argument);
         $detectors = DefaultDetectorRegistry::create();
         $profiles = DefaultProfileRegistry::create();
 
@@ -142,6 +144,12 @@ final class RunCommand extends Command
             versions: $versions,
             configuration: [
                 'sourceId' => $source->sourceId(),
+                'datasetProvenance' => $provenance === null ? null : [
+                    'path' => $provenance->path,
+                    'sha256' => $provenance->sha256,
+                    'producer' => $provenance->summary['producer'],
+                    'producerVersion' => $provenance->summary['producerVersion'],
+                ],
                 'browserEscalation' => $browser !== null,
                 'maxJobsPerInvocation' => $maxJobs,
                 'scheduler' => [
