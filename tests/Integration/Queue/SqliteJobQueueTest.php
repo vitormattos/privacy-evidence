@@ -132,6 +132,39 @@ final class SqliteJobQueueTest extends TestCase
         self::assertSame(['pending' => 1, 'running' => 2], $queue->stageCounts('r1', 'fetch'));
     }
 
+    public function testExpectedFailuresCanTerminateWithoutDeadLetteringTheRun(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            self::markTestSkipped('pdo_sqlite not available');
+        }
+
+        $queue = new SqliteJobQueue(new PDO('sqlite::memory:'));
+        $queue->enqueue(new Job(
+            'unreachable',
+            'r1',
+            'fetch',
+            'unreachable',
+            ['resource_id' => 'resource-1', 'url' => 'https://blocked.example'],
+        ));
+
+        $queue->reserve('r1', 'fetch');
+        self::assertSame(
+            JobStatus::Failed,
+            $queue->fail(
+                'unreachable',
+                'private network destination',
+                maxAttempts: 1,
+                terminalStatus: JobStatus::Failed,
+            ),
+        );
+        self::assertSame(['failed' => 1], $queue->counts('r1'));
+
+        $failures = $queue->failures('r1');
+        self::assertCount(1, $failures);
+        self::assertSame('failed', $failures[0]['status']);
+        self::assertSame('resource-1', $failures[0]['resourceId']);
+    }
+
     public function testDeadLettersAfterMaximumAttempts(): void
     {
         if (!extension_loaded('pdo_sqlite')) {

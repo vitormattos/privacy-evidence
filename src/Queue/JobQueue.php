@@ -17,7 +17,12 @@ interface JobQueue
 
     public function complete(string $jobId): void;
 
-    public function fail(string $jobId, string $error, int $maxAttempts = 3): JobStatus;
+    public function fail(
+        string $jobId,
+        string $error,
+        int $maxAttempts = 3,
+        JobStatus $terminalStatus = JobStatus::Dead,
+    ): JobStatus;
 
     public function requeueRunning(string $runId): int;
 

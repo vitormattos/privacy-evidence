@@ -203,10 +203,17 @@ final class SqliteJobQueue implements JobQueue
         $stmt->execute(['id' => $jobId]);
     }
 
-    public function fail(string $jobId, string $error, int $maxAttempts = 3): JobStatus
-    {
+    public function fail(
+        string $jobId,
+        string $error,
+        int $maxAttempts = 3,
+        JobStatus $terminalStatus = JobStatus::Dead,
+    ): JobStatus {
         if ($maxAttempts <= 0) {
             throw new \InvalidArgumentException('maxAttempts must be positive.');
+        }
+        if (!in_array($terminalStatus, [JobStatus::Failed, JobStatus::Dead], true)) {
+            throw new \InvalidArgumentException('Terminal failure status must be failed or dead.');
         }
 
         $stmt = $this->pdo->prepare(
@@ -214,7 +221,7 @@ final class SqliteJobQueue implements JobQueue
         );
         $stmt->execute(['id' => $jobId]);
         $attempts = Value::int($stmt->fetchColumn(), 'attempts');
-        $status = $attempts >= $maxAttempts ? JobStatus::Dead : JobStatus::Pending;
+        $status = $attempts >= $maxAttempts ? $terminalStatus : JobStatus::Pending;
         $exponent = min(max($attempts - 1, 0), 16);
         $retryMultiplier = 1 << $exponent;
         $delayMs = $status === JobStatus::Pending

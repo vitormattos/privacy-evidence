@@ -155,14 +155,19 @@ final readonly class ResearchPipeline
                 $this->runs->increment($runId, 'jobs_completed');
                 $this->runs->increment($runId, 'jobs_completed.' . $stage);
             } catch (\Throwable $e) {
-                $category = $e instanceof AcquisitionException
+                $isAcquisitionFailure = $e instanceof AcquisitionException;
+                $category = $isAcquisitionFailure
                     ? $e->category
                     : 'unexpected_exception';
-                $retryable = $e instanceof AcquisitionException && $e->retryable;
+                $retryable = $isAcquisitionFailure && $e->retryable;
+                $terminalStatus = $isAcquisitionFailure
+                    ? JobStatus::Failed
+                    : JobStatus::Dead;
                 $status = $this->jobs->fail(
                     $job->id,
                     $e->getMessage(),
                     maxAttempts: $retryable ? 3 : 1,
+                    terminalStatus: $terminalStatus,
                 );
 
                 $this->runs->increment($runId, 'job_attempt_failures');
@@ -171,6 +176,22 @@ final readonly class ResearchPipeline
 
                 if ($status === JobStatus::Pending) {
                     $this->runs->increment($runId, 'jobs_retried');
+                } elseif ($status === JobStatus::Failed) {
+                    $this->runs->increment($runId, 'resource_acquisition_failures');
+                    $this->runs->increment($runId, 'resource_acquisition_failures.' . $category);
+                    $resourceId = $this->payloadString($job, 'resource_id');
+                    if ($resourceId !== null) {
+                        $this->runs->recordEvent(
+                            $runId,
+                            'resource_terminal',
+                            $resourceId,
+                            [
+                                'status' => 'unreachable',
+                                'category' => $category,
+                                'url' => $this->payloadString($job, 'url'),
+                            ],
+                        );
+                    }
                 } else {
                     $this->runs->increment($runId, 'jobs_dead');
                     $this->runs->increment($runId, 'terminal_failures');

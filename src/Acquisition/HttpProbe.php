@@ -167,7 +167,11 @@ final class HttpProbe
     {
         $lower = strtolower($message);
 
-        if (str_contains($lower, 'private') || str_contains($lower, 'reserved')) {
+        if (
+            str_contains($lower, 'private')
+            || str_contains($lower, 'reserved')
+            || str_contains($lower, ' is blocked')
+        ) {
             return ProbeFailure::PrivateNetwork;
         }
         if (str_contains($lower, 'resolve') || str_contains($lower, 'dns')) {

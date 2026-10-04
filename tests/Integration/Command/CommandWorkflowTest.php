@@ -104,8 +104,10 @@ final class CommandWorkflowTest extends TestCase
         $failures = $decoded['failures'] ?? null;
         self::assertIsArray($failures);
         self::assertCount(1, $failures);
-        self::assertSame('https://failure.example/', $failures[0]['url'] ?? null);
-        self::assertSame('dns failure', $failures[0]['error'] ?? null);
+        $firstFailure = $failures[0] ?? null;
+        self::assertIsArray($firstFailure);
+        self::assertSame('https://failure.example/', $firstFailure['url'] ?? null);
+        self::assertSame('dns failure', $firstFailure['error'] ?? null);
     }
 
     public function testResumeCompletesInterruptedRunWithNoPendingJobs(): void
