@@ -315,12 +315,12 @@ final class SqliteJobQueue implements JobQueue
                 true,
                 flags: JSON_THROW_ON_ERROR,
             );
-            $url = is_array($payload) && isset($payload['url']) && is_string($payload['url'])
-                ? $payload['url']
-                : null;
-            $resourceId = is_array($payload) && isset($payload['resource_id']) && is_string($payload['resource_id'])
-                ? $payload['resource_id']
-                : null;
+            /** @psalm-suppress MixedAssignment */
+            $urlValue = is_array($payload) ? ($payload['url'] ?? null) : null;
+            $url = is_string($urlValue) ? $urlValue : null;
+            /** @psalm-suppress MixedAssignment */
+            $resourceIdValue = is_array($payload) ? ($payload['resource_id'] ?? null) : null;
+            $resourceId = is_string($resourceIdValue) ? $resourceIdValue : null;
 
             $failures[] = [
                 'id' => Value::string($row['id'] ?? null, 'id'),
