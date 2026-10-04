@@ -51,6 +51,7 @@ final class StatusCommand extends Command
             'jobs' => $runtime->jobs->counts($runId),
             'observations' => $runtime->observations->counts($runId),
             'telemetry' => $runtime->runs->telemetry($runId),
+            'failures' => $runtime->jobs->failures($runId),
             'pendingReviews' => count($runtime->reviews->pending($runId)),
             'events' => count($runtime->runs->events($runId)),
         ];

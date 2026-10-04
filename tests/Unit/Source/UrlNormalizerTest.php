@@ -28,6 +28,8 @@ final class UrlNormalizerTest extends TestCase
         yield ['https://example.com?x=1', 'https://example.com/?x=1'];
         yield ['foo https://example.com', null];
         yield ['mailto:user@example.com', null];
+        yield ['http://church@gmail.com', null];
+        yield ['http://name@blogspot.com', null];
         yield ['ftp://example.com/file', null];
         yield ['   ', null];
         yield ['', null];

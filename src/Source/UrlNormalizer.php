@@ -40,6 +40,13 @@ final class UrlNormalizer
             return null;
         }
 
+        // Userinfo in a website field is almost always an e-mail address or
+        // malformed source value (for example http://name@gmail.com). Keeping
+        // it would silently transform the source into the provider host.
+        if (isset($parts['user']) || isset($parts['pass'])) {
+            return null;
+        }
+
         $host = strtolower(rtrim($parts['host'], '.'));
         if ($host === '' || preg_match('/\s/u', $host) === 1) {
             return null;

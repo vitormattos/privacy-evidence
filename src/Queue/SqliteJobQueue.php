@@ -296,6 +296,46 @@ final class SqliteJobQueue implements JobQueue
         return Value::int($stmt->fetchColumn(), 'scheduled_count');
     }
 
+    public function failures(string $runId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT id, stage, status, attempts, payload_json, last_error
+             FROM jobs
+             WHERE run_id = :run_id
+               AND last_error IS NOT NULL
+             ORDER BY stage, id',
+        );
+        $stmt->execute(['run_id' => $runId]);
+
+        $failures = [];
+        while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
+            /** @psalm-suppress MixedAssignment */
+            $payload = json_decode(
+                Value::string($row['payload_json'] ?? null, 'payload_json'),
+                true,
+                flags: JSON_THROW_ON_ERROR,
+            );
+            $url = is_array($payload) && isset($payload['url']) && is_string($payload['url'])
+                ? $payload['url']
+                : null;
+            $resourceId = is_array($payload) && isset($payload['resource_id']) && is_string($payload['resource_id'])
+                ? $payload['resource_id']
+                : null;
+
+            $failures[] = [
+                'id' => Value::string($row['id'] ?? null, 'id'),
+                'stage' => Value::string($row['stage'] ?? null, 'stage'),
+                'status' => Value::string($row['status'] ?? null, 'status'),
+                'attempts' => Value::int($row['attempts'] ?? null, 'attempts'),
+                'url' => $url,
+                'resourceId' => $resourceId,
+                'error' => Value::string($row['last_error'] ?? null, 'last_error'),
+            ];
+        }
+
+        return $failures;
+    }
+
     /**
      * @param array<string,scalar> $parameters
      * @return array<string,int>

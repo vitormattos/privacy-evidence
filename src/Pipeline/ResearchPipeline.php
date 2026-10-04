@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PrivacyEvidence\Pipeline;
 
+use PrivacyEvidence\Acquisition\AcquisitionException;
 use PrivacyEvidence\Acquisition\DocumentStore;
 use PrivacyEvidence\Acquisition\FetchedDocument;
 use PrivacyEvidence\Acquisition\HttpFetcher;
@@ -154,15 +155,27 @@ final readonly class ResearchPipeline
                 $this->runs->increment($runId, 'jobs_completed');
                 $this->runs->increment($runId, 'jobs_completed.' . $stage);
             } catch (\Throwable $e) {
-                $status = $this->jobs->fail($job->id, $e->getMessage());
-                $this->runs->increment($runId, 'jobs_failed');
-                $this->runs->increment($runId, 'jobs_failed.' . $stage);
-                $this->runs->increment($runId, 'failure.' . $stage);
+                $category = $e instanceof AcquisitionException
+                    ? $e->category
+                    : 'unexpected_exception';
+                $retryable = $e instanceof AcquisitionException && $e->retryable;
+                $status = $this->jobs->fail(
+                    $job->id,
+                    $e->getMessage(),
+                    maxAttempts: $retryable ? 3 : 1,
+                );
+
+                $this->runs->increment($runId, 'job_attempt_failures');
+                $this->runs->increment($runId, 'job_attempt_failures.' . $stage);
+                $this->runs->increment($runId, 'job_attempt_failures.' . $stage . '.' . $category);
 
                 if ($status === JobStatus::Pending) {
                     $this->runs->increment($runId, 'jobs_retried');
                 } else {
                     $this->runs->increment($runId, 'jobs_dead');
+                    $this->runs->increment($runId, 'terminal_failures');
+                    $this->runs->increment($runId, 'terminal_failures.' . $stage);
+                    $this->runs->increment($runId, 'terminal_failures.' . $stage . '.' . $category);
                 }
 
                 $this->runs->recordEvent(
@@ -173,6 +186,9 @@ final readonly class ResearchPipeline
                         'stage' => $stage,
                         'status' => $status->value,
                         'attempt' => $job->attempts,
+                        'url' => $this->payloadString($job, 'url'),
+                        'category' => $category,
+                        'retryable' => $retryable,
                         'error' => mb_substr($e->getMessage(), 0, 500),
                     ],
                 );

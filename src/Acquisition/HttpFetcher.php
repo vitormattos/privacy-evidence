@@ -36,11 +36,23 @@ final class HttpFetcher
 
         $probe = $this->probe->probe($url);
         if (!$probe->succeeded() || $probe->finalUrl === null || $probe->statusCode === null) {
-            throw new \RuntimeException(
-                sprintf(
-                    'Unable to fetch %s: %s',
+            $failure = $probe->failure ?? ProbeFailure::Transport;
+            $retryable = in_array($failure, [
+                ProbeFailure::Dns,
+                ProbeFailure::Timeout,
+                ProbeFailure::Transport,
+            ], true)
+                && $probe->transportState !== 'redirect_limit';
+
+            throw new AcquisitionException(
+                url: $url,
+                category: $failure->value,
+                retryable: $retryable,
+                message: sprintf(
+                    'Unable to fetch %s: %s%s',
                     $url,
-                    $probe->failure !== null ? $probe->failure->value : 'probe_failed',
+                    $failure->value,
+                    $probe->failureDetail === null ? '' : ' (' . $probe->failureDetail . ')',
                 ),
             );
         }
@@ -60,7 +72,12 @@ final class HttpFetcher
 
         foreach ($this->client->stream($response) as $chunk) {
             if ($chunk->isTimeout()) {
-                throw new \RuntimeException('HTTP body read timed out.');
+                throw new AcquisitionException(
+                    url: $probe->finalUrl,
+                    category: ProbeFailure::Timeout->value,
+                    retryable: true,
+                    message: 'HTTP body read timed out.',
+                );
             }
 
             if ($chunk->isFirst() || $chunk->isLast()) {

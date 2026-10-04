@@ -36,4 +36,12 @@ interface JobQueue
         string $stage,
         string $deduplicationPrefix,
     ): int;
+
+    /**
+     * @return list<array{
+     *   id:string,stage:string,status:string,attempts:int,url:string|null,
+     *   resourceId:string|null,error:string
+     * }>
+     */
+    public function failures(string $runId): array;
 }
