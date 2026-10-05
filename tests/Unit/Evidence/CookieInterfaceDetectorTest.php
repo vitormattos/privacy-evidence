@@ -40,17 +40,20 @@ final class CookieInterfaceDetectorTest extends TestCase
             self::assertFalse($byType[$type->value]->needsReview);
         }
 
-        self::assertSame('cookie_term', $byType[EvidenceType::CookieNotice->value]->method);
         self::assertSame(
-            'accept_control_text',
+            'cookie_notice_context',
+            $byType[EvidenceType::CookieNotice->value]->method,
+        );
+        self::assertSame(
+            'accept_control_cookie_context',
             $byType[EvidenceType::CookieAcceptControl->value]->method,
         );
         self::assertSame(
-            'reject_control_text',
+            'reject_control_cookie_context',
             $byType[EvidenceType::CookieRejectControl->value]->method,
         );
         self::assertSame(
-            'preferences_control_text',
+            'preferences_control_cookie_context',
             $byType[EvidenceType::CookiePreferencesControl->value]->method,
         );
         self::assertSame(
@@ -60,6 +63,36 @@ final class CookieInterfaceDetectorTest extends TestCase
         self::assertSame(
             'cookie_third_parties_text',
             $byType[EvidenceType::CookieThirdPartiesDisclosure->value]->method,
+        );
+    }
+
+    public function testReligiousAndGenericSettingsTextDoesNotBecomeCookieControls(): void
+    {
+        $byType = $this->byType(
+            (new CookieInterfaceDetector())->detect(
+                $this->document(
+                    '<p>Este site utiliza cookies para melhorar a navegação.</p>'
+                    . '<p>Na fé cristã, aceitar Jesus é uma decisão pessoal.</p>'
+                    . '<p>Veja também os settings da sua conta.</p>',
+                ),
+            ),
+        );
+
+        self::assertSame(
+            ObservationState::Present,
+            $byType[EvidenceType::CookieNotice->value]->state,
+        );
+        self::assertSame(
+            ObservationState::Absent,
+            $byType[EvidenceType::CookieAcceptControl->value]->state,
+        );
+        self::assertSame(
+            ObservationState::Absent,
+            $byType[EvidenceType::CookieRejectControl->value]->state,
+        );
+        self::assertSame(
+            ObservationState::Absent,
+            $byType[EvidenceType::CookiePreferencesControl->value]->state,
         );
     }
 
