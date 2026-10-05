@@ -25,6 +25,10 @@ final class SqliteRetry
                     throw $exception;
                 }
 
+                // PDO SQLite can leave a statement in a non-reset state after
+                // SQLITE_BUSY. Reset it before re-executing the same prepared
+                // statement, otherwise SQLite may return SQLITE_MISUSE (21).
+                $statement->closeCursor();
                 usleep(self::delayUs($attempt));
                 $attempt++;
             }
