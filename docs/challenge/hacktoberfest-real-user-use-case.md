@@ -2,11 +2,11 @@
 
 ## The person
 
-The project is being built for **Igor Scaliante Wiese**, my master's advisor at UTFPR and an academic mentor in Software Engineering.
+This work is dedicated to **Igor Scaliante Wiese**, my master's advisor at UTFPR and professor of the Free Software Development course. He is an academic mentor in Software Engineering and a natural reviewer and beneficiary of a research workflow built around reproducibility, inspectability and open-source software.
 
 The original privacy study was mine, but the current research problem is larger than reproducing my own past work. As my advisor, Igor is a real academic stakeholder for the next step: turning that earlier study into a reproducible empirical-software-engineering research workflow that can be reviewed, challenged and developed into scientific publications.
 
-The submission does not claim that Igor asked me to build this exact software or that he has already endorsed its results. His role here is the real intended academic beneficiary and reviewer of the research workflow.
+The submission does not claim that Igor asked me to build this exact software or that he has already endorsed its results. The dedication reflects his real role in my academic formation, especially through the Free Software Development course, and his position as the intended academic reviewer of the next research step.
 
 ## The original problem
 
