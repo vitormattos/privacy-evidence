@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace PrivacyEvidence\Tests\Integration\Command;
 
 use PHPUnit\Framework\TestCase;
+use PrivacyEvidence\Acquisition\FetchedDocument;
+use PrivacyEvidence\Acquisition\FilesystemDocumentStore;
 use PrivacyEvidence\Command\ReviewAgreementCommand;
 use PrivacyEvidence\Command\ReviewEvaluateCommand;
 use PrivacyEvidence\Command\ReviewImportCommand;
@@ -14,6 +16,7 @@ use PrivacyEvidence\Evidence\EvidenceType;
 use PrivacyEvidence\Evidence\PrivacyEvidence;
 use PrivacyEvidence\Run\ResearchRun;
 use PrivacyEvidence\Runtime\RuntimeFactory;
+use PrivacyEvidence\Source\ImportedResource;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -174,6 +177,49 @@ final class ReviewWorkflowCommandTest extends TestCase
         $signals = $evaluation['signals'] ?? null;
         self::assertIsArray($signals);
         self::assertArrayHasKey('privacy_notice', $signals);
+    }
+
+    public function testNullDetectorExcerptCanBeReviewedButForgedMaterialCannotDeferIt(): void
+    {
+        $runtime = RuntimeFactory::create($this->projectRoot);
+        $run = new ResearchRun(
+            id: 'context-run', startedAt: '2026-10-05T00:00:00Z', gitCommit: 'fixture',
+            datasetHash: str_repeat('a', 64), protocolVersion: '1.0.0', versions: [], configuration: [],
+        );
+        $runtime->runs->create($run);
+        $runtime->observations->recordResource($run->id, new ImportedResource(
+            'sample-1', 'Synthetic Example', 'https://example.test/', 'https://example.test/',
+        ));
+        $document = new FetchedDocument(
+            'sample-1', 'https://example.test/policy', 'https://example.test/policy', 200, 'text/html',
+            '<p>The responsible organization is Synthetic Example Ltd.</p>', '2026-10-05T00:00:00Z',
+        );
+        (new FilesystemDocumentStore($runtime->artifactDirectory))->put($document);
+        $runtime->observations->recordDocument($run->id, $document);
+        $evidence = new PrivacyEvidence(
+            EvidenceType::ControllerIdentity, ObservationState::Absent, 'sample-1', $document->sha256,
+            $document->finalUrl, 'fixture', '1.0.0', 'test',
+        );
+        $runtime->observations->recordEvidence($run->id, $evidence);
+        $path = $this->projectRoot . '/context.json';
+        $sampler = new CommandTester(new ReviewSampleCommand($this->projectRoot));
+        self::assertSame(Command::SUCCESS, $sampler->execute(['run-id' => $run->id, 'output' => $path]));
+        /** @var array{cases: list<array<string, mixed>>} $package */
+        $package = json_decode((string) file_get_contents($path), true, flags: JSON_THROW_ON_ERROR);
+        self::assertNull($package['cases'][0]['excerpt']);
+        $forged = $package;
+        $forged['cases'][0]['artifactHash'] = str_repeat('b', 64);
+        $forged['cases'][0]['reviewContext'] = ['reason' => 'missing_artifact'];
+        file_put_contents($path, json_encode($forged, JSON_THROW_ON_ERROR));
+        $importer = new CommandTester(new ReviewImportCommand($this->projectRoot));
+        self::assertSame(Command::INVALID, $importer->execute(['package' => $path, 'reviewer-id' => 'human-a']));
+        self::assertCount(0, $runtime->reviews->decisions($run->id));
+        $package['cases'][0]['humanState'] = 'present';
+        $package['cases'][0]['rationale'] = 'The responsible organization is explicitly named in the archived page.';
+        $package['cases'][0]['reviewedAt'] = '2026-10-05T01:00:00Z';
+        file_put_contents($path, json_encode($package, JSON_THROW_ON_ERROR));
+        self::assertSame(Command::SUCCESS, $importer->execute(['package' => $path, 'reviewer-id' => 'human-a']));
+        self::assertCount(1, $runtime->reviews->decisions($run->id));
     }
 
     public function testRejectsTestPackageBeforeOpeningResearchStorage(): void
