@@ -109,6 +109,12 @@ jobs:
               if (!is_array($row) || ($row["eligibleForWebsiteMeasurement"] ?? false) !== true) {
                   continue;
               }
+              if (
+                  ($row["websiteMeasurementCanonicalResourceId"] ?? null)
+                  !== ($row["resourceId"] ?? null)
+              ) {
+                  continue;
+              }
               foreach ([
                   "lgpdCoverageRate" => &$coverage,
                   "lgpdFullObservedSupportRate" => &$fullSupport,

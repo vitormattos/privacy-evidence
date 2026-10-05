@@ -9,6 +9,7 @@ use PrivacyEvidence\Acquisition\HttpProbe;
 use PrivacyEvidence\Acquisition\ProbeFailure;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
+
 final class HttpProbeBlockedHostTest extends TestCase
 {
     public function testBlockedPrivateAddressIsClassifiedAsPrivateNetworkFailure(): void
