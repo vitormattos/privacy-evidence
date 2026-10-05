@@ -127,7 +127,10 @@ final readonly class ResearchPipeline
                         'resource_id' => $resource->id,
                         'url' => $resource->normalizedUrl,
                         'depth' => 0,
-                        'crawl_started_at' => time(),
+                        // The per-resource crawl clock starts when the root job
+                        // is actually processed, not while it waits behind the
+                        // rest of the population in the queue.
+                        'crawl_started_at' => 0,
                     ],
                     priority: 1000,
                     host: $this->hostForUrl($resource->normalizedUrl),
@@ -310,7 +313,10 @@ final readonly class ResearchPipeline
         $resourceId = $this->requiredPayloadString($job, 'resource_id');
         $url = $this->requiredPayloadString($job, 'url');
         $depth = $this->payloadInt($job, 'depth', 0);
-        $crawlStartedAt = $this->payloadInt($job, 'crawl_started_at', time());
+        $crawlStartedAt = $this->payloadInt($job, 'crawl_started_at', 0);
+        if ($crawlStartedAt <= 0) {
+            $crawlStartedAt = time();
+        }
 
         $document = $this->fetcher->fetch(
             resourceId: $resourceId,

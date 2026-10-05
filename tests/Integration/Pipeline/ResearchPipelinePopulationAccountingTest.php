@@ -78,6 +78,15 @@ final class ResearchPipelinePopulationAccountingTest extends TestCase
             self::assertCount(4, $observations->resourceRecords($run->id));
             self::assertSame(['pending' => 1], $jobs->counts($run->id));
 
+            $rootJob = $jobs->reserve(
+                $run->id,
+                'fetch',
+                perHostConcurrency: 1,
+                minHostDelayMs: 0,
+            );
+            self::assertNotNull($rootJob);
+            self::assertSame(0, $rootJob->payload['crawl_started_at'] ?? null);
+
             $terminalByResource = [];
             foreach ($runs->events($run->id) as $event) {
                 if ($event['type'] !== 'resource_terminal' || $event['subjectId'] === null) {
