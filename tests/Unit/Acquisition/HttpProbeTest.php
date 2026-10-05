@@ -19,6 +19,32 @@ final class HttpProbeTest extends TestCase
         self::assertSame(ProbeFailure::InvalidUrl, $result->failure);
     }
 
+    public function testClassifiesConnectionRefusedSeparately(): void
+    {
+        $client = new MockHttpClient(new MockResponse('', [
+            'error' => 'Failed to connect to example.test port 443: Connection refused',
+        ]));
+
+        $result = (new HttpProbe($client))->probe('https://example.test/');
+
+        self::assertSame(ProbeFailure::ConnectionRefused, $result->failure);
+    }
+
+    public function testRedirectLimitIsDeterministicFailure(): void
+    {
+        $client = new MockHttpClient(static function (string $method, string $url): MockResponse {
+            return new MockResponse('', [
+                'http_code' => 302,
+                'response_headers' => ['location: ' . $url],
+            ]);
+        });
+
+        $result = (new HttpProbe($client, maxRedirects: 1))->probe('https://example.test/');
+
+        self::assertSame(ProbeFailure::RedirectLimit, $result->failure);
+        self::assertSame('redirect_limit', $result->transportState);
+    }
+
     public function testRecordsSuccessfulHttpObservation(): void
     {
         $client = new MockHttpClient(new MockResponse('ok', [

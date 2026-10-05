@@ -11,5 +11,7 @@ enum ProbeFailure: string
     case Dns = 'dns_failure';
     case Tls = 'tls_failure';
     case Timeout = 'timeout';
+    case ConnectionRefused = 'connection_refused';
+    case RedirectLimit = 'redirect_limit';
     case Transport = 'transport_failure';
 }

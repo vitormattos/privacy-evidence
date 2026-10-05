@@ -67,7 +67,7 @@ final class HttpProbe
                             dnsState: 'resolved',
                             tlsState: $this->tlsStateForSuccess($current),
                             transportState: 'redirect_limit',
-                            failure: ProbeFailure::Transport,
+                            failure: ProbeFailure::RedirectLimit,
                             failureDetail: 'Maximum redirect count exceeded.',
                         );
                     }
@@ -186,6 +186,14 @@ final class HttpProbe
         }
         if (str_contains($lower, 'timed out') || str_contains($lower, 'timeout')) {
             return ProbeFailure::Timeout;
+        }
+        if (
+            str_contains($lower, 'connection refused')
+            || str_contains($lower, 'failed to connect')
+            || str_contains($lower, 'could not connect')
+            || str_contains($lower, "couldn't connect")
+        ) {
+            return ProbeFailure::ConnectionRefused;
         }
 
         return ProbeFailure::Transport;

@@ -40,6 +40,7 @@ final class HttpFetcher
             $retryable = in_array($failure, [
                 ProbeFailure::Dns,
                 ProbeFailure::Timeout,
+                ProbeFailure::ConnectionRefused,
                 ProbeFailure::Transport,
             ], true)
                 && $probe->transportState !== 'redirect_limit';
