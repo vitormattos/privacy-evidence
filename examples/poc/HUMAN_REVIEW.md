@@ -49,3 +49,12 @@ php bin/privacy-evidence review:evaluate RUN_ID human:adjudicator-01 gold-poc-v1
 If no adjudication is required, designate one explicitly agreed final package/reviewer id according to the documented protocol; the software never silently chooses ground truth.
 
 AI suggestions may assist navigation or constitute a separate experiment, but they do not count as either of the two human reviewers.
+
+
+## Reviewer UX safeguards
+
+The reviewer page defaults to Portuguese and can switch to English. It separates common states (`present`, `absent`, `unknown`) from exceptional states to reduce cognitive load.
+
+The time estimate is intentionally withheld until at least five completed cases and then uses the median observed duration per completed case.
+
+If a case has no preserved excerpt in the annotation packet, the UI disables `present` and `absent`. The reviewer can still record `unknown`, `unavailable`, or another exceptional state with a rationale. This prevents a human label from being presented as supported by evidence that was not actually available to the reviewer.

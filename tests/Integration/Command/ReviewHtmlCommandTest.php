@@ -68,6 +68,13 @@ final class ReviewHtmlCommandTest extends TestCase
         self::assertStringContainsString('\\u003C/script\\u003E', $html);
         self::assertStringNotContainsString('</script><strong>Privacy notice</strong>', $html);
         self::assertStringContainsString('Export completed JSON', $html);
+        self::assertStringContainsString('Exportar JSON concluído', $html);
+        self::assertStringContainsString("'not_applicable'", $html);
+        self::assertStringNotContainsString("'not-applicable'", $html);
+        self::assertStringContainsString('minimumForEstimate = 5', $html);
+        self::assertStringContainsString('function median(values)', $html);
+        self::assertStringContainsString('controller_identity:', $html);
+        self::assertStringContainsString('missingEvidence', $html);
         self::assertStringContainsString('localStorage', $html);
     }
 

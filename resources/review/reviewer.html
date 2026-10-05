@@ -1,7 +1,7 @@
 <!-- SPDX-FileCopyrightText: 2026 Vitor Mattos -->
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -13,6 +13,8 @@ main { max-width: 920px; margin: 0 auto; padding: 24px; }
 header { margin-bottom: 20px; }
 h1 { margin-bottom: 8px; }
 .notice { border: 1px solid ButtonBorder; border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
+.warning { border-color: #b87800; background: color-mix(in srgb, #b87800 10%, Canvas); }
+.error { color: #c0392b; font-weight: 600; min-height: 1.25em; }
 .progress-shell { height: 10px; background: color-mix(in srgb, CanvasText 12%, Canvas); border-radius: 6px; overflow: hidden; }
 .progress-bar { height: 100%; width: 0; background: AccentColor; }
 .meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: .92rem; margin-top: 8px; }
@@ -21,27 +23,33 @@ h1 { margin-bottom: 8px; }
 .excerpt { white-space: pre-wrap; padding: 14px; border-left: 4px solid AccentColor; background: color-mix(in srgb, CanvasText 5%, Canvas); margin: 12px 0; }
 .guidance { font-size: .95rem; }
 .states { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 8px; margin: 12px 0; }
+.secondary-states { margin-top: 8px; }
 button { padding: 10px 12px; border: 1px solid ButtonBorder; border-radius: 8px; cursor: pointer; font: inherit; }
 button.selected { outline: 3px solid AccentColor; }
 button.primary { background: AccentColor; color: AccentColorText; }
 button:disabled { opacity: .45; cursor: not-allowed; }
 textarea { width: 100%; min-height: 95px; box-sizing: border-box; padding: 10px; font: inherit; }
 .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 kbd { border: 1px solid ButtonBorder; border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; }
 a { color: LinkText; }
-.small { font-size: .88rem; opacity: .8; }
-.complete { font-weight: 600; }
-@media (max-width: 600px) { main { padding: 14px; } .states { grid-template-columns: 1fr 1fr; } }
+.small { font-size: .88rem; opacity: .82; }
+[hidden] { display: none !important; }
+@media (max-width: 600px) {
+  main { padding: 14px; }
+  .states { grid-template-columns: 1fr 1fr; }
+}
 </style>
 </head>
 <body>
 <main>
 <header>
-<h1>Independent human review</h1>
-<p>Classify only what the preserved evidence supports. Do not use AI to choose labels and do not compare answers with another reviewer before both reviews are complete.</p>
-<div class="notice">
-<strong>Private and offline:</strong> this page does not send annotations anywhere. Progress is stored only in this browser. When finished, export the JSON file and return it to the researcher.
+<div class="toolbar">
+<h1 id="title">Revisão humana independente</h1>
+<button id="languageToggle" type="button">English</button>
 </div>
+<p id="intro"></p>
+<div class="notice"><strong id="privacyTitle"></strong> <span id="privacyText"></span></div>
 <div class="progress-shell"><div id="progressBar" class="progress-bar"></div></div>
 <div class="meta">
 <span id="progressText"></span>
@@ -51,74 +59,217 @@ a { color: LinkText; }
 </header>
 
 <section class="card">
-<div class="label">Evidence type</div>
+<div class="label" id="evidenceTypeLabel"></div>
 <h2 id="type"></h2>
 <div id="guidance" class="guidance notice"></div>
-<div class="label">Preserved evidence excerpt</div>
+<div class="label" id="excerptLabel"></div>
 <div id="excerpt" class="excerpt"></div>
-<div class="small">Source context: <a id="sourceUrl" target="_blank" rel="noreferrer"></a>. The live page may have changed; base the decision primarily on the preserved evidence shown here.</div>
+<div id="missingEvidence" class="notice warning" hidden></div>
+<div class="small"><span id="sourceContextLabel"></span> <a id="sourceUrl" target="_blank" rel="noreferrer"></a>. <span id="sourceContextHelp"></span></div>
 </section>
 
 <section class="card">
-<div class="label">Human state</div>
-<div id="states" class="states"></div>
-<p class="small">Keyboard shortcuts: <kbd>1</kbd> present, <kbd>2</kbd> absent, <kbd>3</kbd> unknown, <kbd>4</kbd> unavailable, <kbd>5</kbd> invalid, <kbd>6</kbd> excluded, <kbd>7</kbd> not applicable.</p>
-<label for="rationale"><strong>Short rationale</strong></label>
-<textarea id="rationale" placeholder="State briefly what in the preserved evidence supports your classification."></textarea>
+<div class="label" id="humanStateLabel"></div>
+<div id="primaryStates" class="states"></div>
 <div class="controls">
-<button id="rationaleHelper" type="button">Use concise rationale template</button>
-<span class="small">Edit the template when the specific evidence requires more detail.</span>
+<button id="moreStates" type="button"></button>
 </div>
+<div id="secondaryStates" class="states secondary-states" hidden></div>
+<p class="small" id="shortcutHelp"></p>
+
+<label for="rationale"><strong id="rationaleLabel"></strong></label>
+<textarea id="rationale"></textarea>
+<div class="controls">
+<button id="rationaleHelper" type="button"></button>
+<span class="small" id="rationaleHelp"></span>
+</div>
+<div id="validation" class="error" role="alert"></div>
 </section>
 
 <div class="controls">
-<button id="previous" type="button">Previous</button>
-<button id="nextUnanswered" type="button">Next unanswered</button>
-<button id="next" class="primary" type="button">Save and next</button>
-<button id="export" type="button" disabled>Export completed JSON</button>
+<button id="previous" type="button"></button>
+<button id="nextUnanswered" type="button"></button>
+<button id="next" class="primary" type="button"></button>
+<button id="export" type="button" disabled></button>
 <span id="saveStatus" class="small"></span>
 </div>
 
-<div class="notice small">
-The automated detector state, detector confidence and review flag are intentionally hidden from the normal review view to reduce anchoring bias. They remain unchanged in the exported research package.
-</div>
+<div class="notice small" id="biasNotice"></div>
 </main>
 
 <script>
 const packageData = __PACKAGE_JSON__;
-const states = ['present','absent','unknown','unavailable','invalid','excluded','not-applicable'];
-const stateLabels = {
-  present: 'Present', absent: 'Absent', unknown: 'Unknown', unavailable: 'Unavailable',
-  invalid: 'Invalid', excluded: 'Excluded', 'not-applicable': 'Not applicable'
+const primaryStates = ['present', 'absent', 'unknown'];
+const secondaryStates = ['unavailable', 'invalid', 'excluded', 'not_applicable'];
+const states = [...primaryStates, ...secondaryStates];
+const minimumForEstimate = 5;
+
+const i18n = {
+  pt: {
+    title: 'Revisão humana independente',
+    language: 'English',
+    intro: 'Classifique somente o que a evidência preservada permite concluir. Não use IA para escolher respostas e não compare suas respostas com outro revisor antes de ambas as revisões terminarem.',
+    privacyTitle: 'Privado e offline:',
+    privacyText: 'esta página não envia suas anotações. O progresso fica salvo somente neste navegador. Ao terminar, exporte o JSON e devolva o arquivo ao pesquisador.',
+    evidenceType: 'Tipo de evidência',
+    excerpt: 'Evidência preservada',
+    noExcerpt: 'Este caso não contém evidência preservada suficiente no pacote para sustentar uma decisão Present ou Absent. Use Unknown quando a informação for insuficiente ou ambígua. Use Unavailable somente quando a evidência necessária não pôde ser observada.',
+    sourceContext: 'Contexto da fonte:',
+    sourceHelp: 'A página ao vivo pode ter mudado. Use-a apenas como contexto e baseie a classificação na evidência preservada acima.',
+    humanState: 'Classificação humana',
+    more: 'Mais opções',
+    fewer: 'Menos opções',
+    rationale: 'Justificativa curta',
+    rationalePlaceholder: 'Descreva brevemente qual evidência sustenta a classificação.',
+    rationaleButton: 'Sugerir justificativa curta',
+    rationaleHelp: 'A sugestão não escolhe a classificação. Ajuste o texto quando necessário.',
+    previous: 'Anterior',
+    nextUnanswered: 'Próximo não respondido',
+    next: 'Salvar e avançar',
+    save: 'Salvar',
+    export: 'Exportar JSON concluído',
+    saved: 'Salvo localmente',
+    completed: 'concluídos',
+    case: 'Caso',
+    estimatedWorkload: 'Carga estimada:',
+    cases: 'casos',
+    estimatePending: 'Estimativa de tempo após 5 respostas concluídas',
+    estimateRemaining: 'Tempo restante estimado:',
+    minutes: 'min',
+    validation: 'Escolha uma classificação e escreva uma justificativa curta antes de avançar.',
+    chooseStateFirst: 'Escolha uma classificação antes de gerar uma sugestão de justificativa.',
+    shortcuts: 'Atalhos: 1 Present, 2 Absent, 3 Unknown, 4 Unavailable, 5 Invalid, 6 Excluded, 7 Not applicable.',
+    bias: 'O estado produzido pelo detector, a confiança e o indicador de revisão ficam ocultos para reduzir viés de ancoragem. Esses dados permanecem inalterados no pacote de pesquisa exportado.',
+    states: {
+      present: 'Present',
+      absent: 'Absent',
+      unknown: 'Unknown',
+      unavailable: 'Unavailable',
+      invalid: 'Invalid',
+      excluded: 'Excluded',
+      not_applicable: 'Not applicable'
+    }
+  },
+  en: {
+    title: 'Independent human review',
+    language: 'Português',
+    intro: 'Classify only what the preserved evidence supports. Do not use AI to choose labels and do not compare answers with another reviewer before both reviews are complete.',
+    privacyTitle: 'Private and offline:',
+    privacyText: 'this page does not send annotations anywhere. Progress is stored only in this browser. When finished, export the JSON file and return it to the researcher.',
+    evidenceType: 'Evidence type',
+    excerpt: 'Preserved evidence',
+    noExcerpt: 'This case does not contain enough preserved evidence in the review packet to support Present or Absent. Use Unknown when the information is insufficient or ambiguous. Use Unavailable only when the required evidence could not be observed.',
+    sourceContext: 'Source context:',
+    sourceHelp: 'The live page may have changed. Use it only as context and base the classification on the preserved evidence above.',
+    humanState: 'Human classification',
+    more: 'More options',
+    fewer: 'Fewer options',
+    rationale: 'Short rationale',
+    rationalePlaceholder: 'Briefly state what preserved evidence supports the classification.',
+    rationaleButton: 'Suggest concise rationale',
+    rationaleHelp: 'The suggestion does not choose the label. Edit it when the specific evidence requires more detail.',
+    previous: 'Previous',
+    nextUnanswered: 'Next unanswered',
+    next: 'Save and next',
+    save: 'Save',
+    export: 'Export completed JSON',
+    saved: 'Saved locally',
+    completed: 'completed',
+    case: 'Case',
+    estimatedWorkload: 'Estimated workload:',
+    cases: 'cases',
+    estimatePending: 'Time estimate after 5 completed answers',
+    estimateRemaining: 'Estimated remaining:',
+    minutes: 'min',
+    validation: 'Choose a human state and add a short rationale before continuing.',
+    chooseStateFirst: 'Choose a human state before generating a rationale suggestion.',
+    shortcuts: 'Shortcuts: 1 Present, 2 Absent, 3 Unknown, 4 Unavailable, 5 Invalid, 6 Excluded, 7 Not applicable.',
+    bias: 'The automated detector state, detector confidence and review flag are hidden to reduce anchoring bias. They remain unchanged in the exported research package.',
+    states: {
+      present: 'Present',
+      absent: 'Absent',
+      unknown: 'Unknown',
+      unavailable: 'Unavailable',
+      invalid: 'Invalid',
+      excluded: 'Excluded',
+      not_applicable: 'Not applicable'
+    }
+  }
 };
+
+const guidance = {
+  pt: {
+    privacy_notice: 'Present somente quando a página ou documento tiver como finalidade principal explicar tratamento de dados pessoais ou privacidade. Termos de uso genéricos não são automaticamente uma política de privacidade.',
+    privacy_law_reference: 'Procure uma referência explícita a uma norma ou regime de privacidade, como LGPD ou GDPR. Uma referência legal não significa conformidade.',
+    controller_identity: 'Procure identificação explícita da organização ou pessoa apresentada como controladora ou responsável pelo tratamento. Não infira identidade apenas pelo domínio ou marca.',
+    purpose_disclosure: 'Procure uma explicação explícita das finalidades do tratamento de dados pessoais.',
+    legal_basis_disclosure: 'Procure uma base legal explicitamente associada ao tratamento. Não deduza a base legal a partir da finalidade.',
+    recipient_disclosure: 'Procure informação explícita sobre destinatários, compartilhamento ou categorias de terceiros que recebem dados.',
+    retention_disclosure: 'Procure prazo, critério ou política explícita de retenção ou eliminação de dados.',
+    international_transfer_disclosure: 'Procure informação explícita sobre transferência internacional de dados ou tratamento fora do país.',
+    supervisory_authority_disclosure: 'Procure referência explícita à autoridade supervisora ou reguladora de proteção de dados.',
+    privacy_contact: 'Diferencie um contato específico de privacidade de um contato genérico da organização.',
+    dpo_role: 'Exija menção explícita ao papel de DPO ou encarregado. Não infira o papel a partir de um nome ou e-mail genérico.',
+    dpo_identity: 'Exija uma pessoa nominalmente identificada como DPO ou encarregado.',
+    dpo_contact: 'Exija um canal de contato explicitamente associado ao DPO ou encarregado.',
+    rights_disclosure: 'Procure descrição explícita dos direitos do titular, não apenas uma declaração genérica sobre privacidade.',
+    rights_channel: 'Exija um canal que possa ser usado para exercer direitos do titular. Diferencie de um formulário de contato genérico.',
+    cookie_notice: 'Classifique apenas a presença observável de aviso ou banner de cookies, separadamente do comportamento técnico.',
+    cookie_categories_disclosure: 'Procure divulgação explícita de categorias ou tipos de cookies/armazenamento.',
+    cookie_third_parties_disclosure: 'Procure divulgação explícita de terceiros associados a cookies ou armazenamento.',
+    cookie_accept_control: 'Procure especificamente um controle observável para aceitar cookies.',
+    cookie_reject_control: 'Procure especificamente um controle observável para rejeitar ou recusar cookies.',
+    cookie_preferences_control: 'Procure especificamente um controle de preferências ou configurações granulares de cookies.',
+    nonessential_storage_before_consent: 'Esta é evidência comportamental. A decisão exige uma observação preservada de armazenamento antes do consentimento.',
+    third_party_requests_before_consent: 'Esta é evidência comportamental. A decisão exige uma observação preservada de requisições de terceiros antes do consentimento.'
+  },
+  en: {
+    privacy_notice: 'Present only when the page or document primarily explains personal-data or privacy processing. Generic terms of use are not automatically privacy notices.',
+    privacy_law_reference: 'Look for an explicit reference to a privacy or data-protection regime such as LGPD or GDPR. A legal reference does not imply compliance.',
+    controller_identity: 'Look for an organization or person explicitly identified as the controller or party responsible for processing. Do not infer identity from the domain or brand alone.',
+    purpose_disclosure: 'Look for an explicit explanation of the purposes of personal-data processing.',
+    legal_basis_disclosure: 'Look for a legal basis explicitly associated with processing. Do not infer a legal basis from the purpose alone.',
+    recipient_disclosure: 'Look for explicit information about recipients, sharing, or categories of third parties receiving data.',
+    retention_disclosure: 'Look for an explicit retention/deletion period, criterion, or policy.',
+    international_transfer_disclosure: 'Look for explicit information about international data transfers or processing outside the country.',
+    supervisory_authority_disclosure: 'Look for an explicit reference to a data-protection supervisory or regulatory authority.',
+    privacy_contact: 'Distinguish a privacy-specific contact from a generic organization contact.',
+    dpo_role: 'Require an explicit DPO or encarregado role. Do not infer the role from a person name or generic email.',
+    dpo_identity: 'Require a named person explicitly identified as DPO or encarregado.',
+    dpo_contact: 'Require a contact channel explicitly associated with the DPO or encarregado role.',
+    rights_disclosure: 'Look for an explicit description of data-subject rights, not merely a generic privacy statement.',
+    rights_channel: 'Require a channel that can actually be used to exercise data-subject rights; distinguish it from a generic contact form.',
+    cookie_notice: 'Classify the observable cookie notice or banner separately from its behavioral effects.',
+    cookie_categories_disclosure: 'Look for explicit disclosure of cookie or storage categories.',
+    cookie_third_parties_disclosure: 'Look for explicit disclosure of third parties associated with cookies or storage.',
+    cookie_accept_control: 'Look specifically for an observable accept control.',
+    cookie_reject_control: 'Look specifically for an observable reject control.',
+    cookie_preferences_control: 'Look specifically for a preferences or granular-settings control.',
+    nonessential_storage_before_consent: 'This is behavioral evidence. The decision requires a preserved observation of storage before consent.',
+    third_party_requests_before_consent: 'This is behavioral evidence. The decision requires a preserved observation of third-party requests before consent.'
+  }
+};
+
 const rationaleTemplates = {
-  present: 'The preserved evidence explicitly supports this evidence category.',
-  absent: 'The preserved evidence was reviewed and does not satisfy the handbook criteria for this category.',
-  unknown: 'The preserved evidence is ambiguous or insufficient for a reliable classification.',
-  unavailable: 'The evidence required for this classification was not observable in the preserved material.',
-  invalid: 'The preserved material is not valid evidence for this classification.',
-  excluded: 'This case should be excluded under the handbook rules.',
-  'not-applicable': 'This evidence category is not applicable to the preserved case.'
+  pt: {
+    present: type => 'A evidência preservada sustenta explicitamente a presença de ' + type + '.',
+    absent: type => 'A evidência preservada foi analisada e não satisfaz os critérios do handbook para ' + type + '.',
+    unknown: type => 'A evidência preservada é insuficiente ou ambígua para classificar ' + type + ' com segurança.',
+    unavailable: type => 'A evidência necessária para avaliar ' + type + ' não pôde ser observada no material preservado.',
+    invalid: type => 'O material preservado não é evidência válida para avaliar ' + type + '.',
+    excluded: type => 'O caso deve ser excluído desta classificação conforme as regras do handbook para ' + type + '.',
+    not_applicable: type => 'A categoria ' + type + ' não se aplica a este caso preservado.'
+  },
+  en: {
+    present: type => 'The preserved evidence explicitly supports the presence of ' + type + '.',
+    absent: type => 'The preserved evidence was reviewed and does not satisfy the handbook criteria for ' + type + '.',
+    unknown: type => 'The preserved evidence is insufficient or ambiguous to classify ' + type + ' reliably.',
+    unavailable: type => 'The evidence required to assess ' + type + ' could not be observed in the preserved material.',
+    invalid: type => 'The preserved material is not valid evidence for assessing ' + type + '.',
+    excluded: type => 'This case should be excluded under the handbook rules for ' + type + '.',
+    not_applicable: type => 'The category ' + type + ' is not applicable to this preserved case.'
+  }
 };
-const guidanceByType = {
-  privacy_notice: 'Present only when the page or document primarily explains personal-data or privacy processing. Generic terms of use are not automatically privacy notices.',
-  privacy_law_reference: 'Look for an explicit reference to a privacy or data-protection regime such as LGPD or GDPR. A legal reference alone does not imply compliance.',
-  privacy_contact: 'Distinguish a privacy-specific contact from a generic organization contact.',
-  dpo_role: 'Require an explicit DPO or encarregado role. Do not infer the role from a person name or generic email.',
-  dpo_identity: 'Require a named person explicitly identified as DPO or encarregado.',
-  dpo_contact: 'Require a contact channel explicitly associated with the DPO or encarregado role.',
-  rights_disclosure: 'Look for an explicit description of data-subject rights, not merely a generic privacy statement.',
-  rights_channel: 'Require a channel that can actually be used to exercise data-subject rights; distinguish it from a generic contact form.',
-  cookie_notice: 'Classify the observable cookie notice or banner separately from its behavioral effects.',
-  cookie_accept_control: 'Look specifically for an observable accept control.',
-  cookie_reject_control: 'Look specifically for an observable reject control.',
-  cookie_preferences_control: 'Look specifically for a preferences or granular-settings control.',
-  cookie_categories_disclosure: 'Look for explicit disclosure of cookie or storage categories.',
-  cookie_third_parties_disclosure: 'Look for explicit disclosure of third parties associated with cookies or storage.',
-  nonessential_storage_before_consent: 'This is behavioral evidence. Use only the preserved observation of storage before consent.',
-  third_party_requests_before_consent: 'This is behavioral evidence. Use only the preserved network observation before consent.'
-};
-const defaultGuidance = 'Label only what the preserved evidence supports. Do not infer organization-wide practice or legal compliance from a website statement. Use unknown when evidence is insufficient or ambiguous.';
 
 const cases = packageData.cases;
 const order = cases.map((_, i) => i).sort((a, b) => {
@@ -127,7 +278,15 @@ const order = cases.map((_, i) => i).sort((a, b) => {
 });
 const storageKey = 'privacy-evidence-review:' + packageData.runId + ':' + packageData.seed + ':' + location.pathname;
 let position = 0;
-let timing = { started: Date.now(), durations: [], caseStarted: Date.now() };
+let locale = localStorage.getItem(storageKey + ':locale') || 'pt';
+let secondaryVisible = false;
+let timing = { durations: [], caseStarted: Date.now() };
+
+function t() { return i18n[locale]; }
+function currentCase() { return cases[order[position]]; }
+function hasPreservedExcerpt(c) { return typeof c.excerpt === 'string' && c.excerpt.trim() !== ''; }
+function isComplete(c) { return Boolean(c.humanState && c.rationale && c.rationale.trim()); }
+function completedCount() { return cases.filter(isComplete).length; }
 
 function loadProgress() {
   try {
@@ -141,69 +300,132 @@ function loadProgress() {
       c.rationale = s.rationale || null;
       c.reviewedAt = s.reviewedAt || null;
     });
-    if (saved.timing) timing = saved.timing;
+    if (saved.timing && Array.isArray(saved.timing.durations)) {
+      timing.durations = saved.timing.durations;
+    }
   } catch (_) {}
 }
 
 function persist() {
   localStorage.setItem(storageKey, JSON.stringify({ cases, timing }));
-  document.getElementById('saveStatus').textContent = 'Saved locally';
+  document.getElementById('saveStatus').textContent = t().saved;
 }
 
-function currentCase() { return cases[order[position]]; }
-function isComplete(c) { return Boolean(c.humanState && c.rationale && c.rationale.trim()); }
-function completedCount() { return cases.filter(isComplete).length; }
+function median(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[middle - 1] + sorted[middle]) / 2
+    : sorted[middle];
+}
 
 function guidanceFor(type) {
-  if (guidanceByType[type]) return guidanceByType[type];
-  if (String(type).startsWith('cookie_')) return 'Classify only the specific cookie-interface or disclosure signal named by this evidence type.';
-  return defaultGuidance;
+  return guidance[locale][type] || (locale === 'pt'
+    ? 'Classifique somente o sinal indicado pelo tipo de evidência e somente com base no material preservado.'
+    : 'Classify only the signal named by the evidence type and only from the preserved material.');
+}
+
+function stateButton(state, index) {
+  const c = currentCase();
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = (index + 1) + '. ' + t().states[state];
+  const insufficient = !hasPreservedExcerpt(c);
+  if (insufficient && (state === 'present' || state === 'absent')) {
+    button.disabled = true;
+    button.title = t().noExcerpt;
+  }
+  if (c.humanState === state) button.classList.add('selected');
+  button.addEventListener('click', () => chooseState(state));
+  return button;
+}
+
+function renderStateButtons() {
+  const primary = document.getElementById('primaryStates');
+  const secondary = document.getElementById('secondaryStates');
+  primary.innerHTML = '';
+  secondary.innerHTML = '';
+  primaryStates.forEach((state, i) => primary.appendChild(stateButton(state, i)));
+  secondaryStates.forEach((state, i) => secondary.appendChild(stateButton(state, i + primaryStates.length)));
+  const selectedSecondary = secondaryStates.includes(currentCase().humanState);
+  secondary.hidden = !(secondaryVisible || selectedSecondary);
+  document.getElementById('moreStates').textContent = secondary.hidden ? t().more : t().fewer;
+}
+
+function renderStaticText() {
+  const text = t();
+  document.documentElement.lang = locale === 'pt' ? 'pt-BR' : 'en';
+  document.getElementById('title').textContent = text.title;
+  document.getElementById('languageToggle').textContent = text.language;
+  document.getElementById('intro').textContent = text.intro;
+  document.getElementById('privacyTitle').textContent = text.privacyTitle;
+  document.getElementById('privacyText').textContent = text.privacyText;
+  document.getElementById('evidenceTypeLabel').textContent = text.evidenceType;
+  document.getElementById('excerptLabel').textContent = text.excerpt;
+  document.getElementById('sourceContextLabel').textContent = text.sourceContext;
+  document.getElementById('sourceContextHelp').textContent = text.sourceHelp;
+  document.getElementById('humanStateLabel').textContent = text.humanState;
+  document.getElementById('shortcutHelp').textContent = text.shortcuts;
+  document.getElementById('rationaleLabel').textContent = text.rationale;
+  document.getElementById('rationale').placeholder = text.rationalePlaceholder;
+  document.getElementById('rationaleHelper').textContent = text.rationaleButton;
+  document.getElementById('rationaleHelp').textContent = text.rationaleHelp;
+  document.getElementById('previous').textContent = text.previous;
+  document.getElementById('nextUnanswered').textContent = text.nextUnanswered;
+  document.getElementById('export').textContent = text.export;
+  document.getElementById('biasNotice').textContent = text.bias;
 }
 
 function render() {
+  renderStaticText();
   const c = currentCase();
-  document.getElementById('type').textContent = String(c.evidenceType).replaceAll('_', ' ');
+  const text = t();
+  const readableType = String(c.evidenceType).replaceAll('_', ' ');
+  document.getElementById('type').textContent = readableType;
   document.getElementById('guidance').textContent = guidanceFor(c.evidenceType);
-  document.getElementById('excerpt').textContent = c.excerpt || '[No excerpt was preserved for this case.]';
+  document.getElementById('excerpt').textContent = hasPreservedExcerpt(c)
+    ? c.excerpt
+    : (locale === 'pt' ? '[Nenhuma evidência textual foi preservada neste caso.]' : '[No preserved text evidence is available for this case.]');
+
+  const missing = document.getElementById('missingEvidence');
+  missing.hidden = hasPreservedExcerpt(c);
+  missing.textContent = text.noExcerpt;
+
   const link = document.getElementById('sourceUrl');
   link.href = c.sourceUrl || '#';
-  link.textContent = c.sourceUrl || 'No source URL';
+  link.textContent = c.sourceUrl || (locale === 'pt' ? 'Sem URL de origem' : 'No source URL');
   document.getElementById('rationale').value = c.rationale || '';
+  document.getElementById('validation').textContent = '';
 
-  const statesBox = document.getElementById('states');
-  statesBox.innerHTML = '';
-  states.forEach((state, i) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = (i + 1) + '. ' + stateLabels[state];
-    if (c.humanState === state) b.classList.add('selected');
-    b.addEventListener('click', () => chooseState(state));
-    statesBox.appendChild(b);
-  });
+  renderStateButtons();
 
   const done = completedCount();
   const pct = cases.length ? (done / cases.length) * 100 : 0;
   document.getElementById('progressBar').style.width = pct.toFixed(1) + '%';
-  document.getElementById('progressText').textContent = done + ' / ' + cases.length + ' completed';
-  document.getElementById('categoryText').textContent = 'Case ' + (position + 1) + ' / ' + cases.length;
+  document.getElementById('progressText').textContent = done + ' / ' + cases.length + ' ' + text.completed;
+  document.getElementById('categoryText').textContent = text.case + ' ' + (position + 1) + ' / ' + cases.length;
 
-  const validDurations = (timing.durations || []).filter(v => v > 2 && v < 600);
-  if (validDurations.length) {
-    const avg = validDurations.reduce((a, b) => a + b, 0) / validDurations.length;
-    const minutes = Math.max(1, Math.round(((cases.length - done) * avg) / 60));
-    document.getElementById('timeText').textContent = 'Estimated remaining: about ' + minutes + ' min at your current pace';
+  const validDurations = (timing.durations || []).filter(v => v >= 5 && v <= 600);
+  if (done < minimumForEstimate || validDurations.length < minimumForEstimate) {
+    document.getElementById('timeText').textContent = done === 0
+      ? text.estimatedWorkload + ' ' + cases.length + ' ' + text.cases
+      : text.estimatePending;
   } else {
-    document.getElementById('timeText').textContent = 'Estimated workload: ' + cases.length + ' cases';
+    const secondsPerCase = median(validDurations);
+    const minutes = Math.max(1, Math.round(((cases.length - done) * secondsPerCase) / 60));
+    document.getElementById('timeText').textContent = text.estimateRemaining + ' ' + minutes + ' ' + text.minutes;
   }
 
   document.getElementById('previous').disabled = position === 0;
-  document.getElementById('next').textContent = position === cases.length - 1 ? 'Save' : 'Save and next';
+  document.getElementById('next').textContent = position === cases.length - 1 ? text.save : text.next;
   document.getElementById('export').disabled = done !== cases.length;
   timing.caseStarted = Date.now();
 }
 
 function chooseState(state) {
-  currentCase().humanState = state;
+  const c = currentCase();
+  if (!hasPreservedExcerpt(c) && (state === 'present' || state === 'absent')) return;
+  c.humanState = state;
   persist();
   render();
   document.getElementById('rationale').focus();
@@ -213,12 +435,17 @@ function saveCurrent(advance) {
   const c = currentCase();
   c.rationale = document.getElementById('rationale').value.trim();
   if (!c.humanState || !c.rationale) {
-    alert('Choose a human state and add a short rationale before continuing.');
+    document.getElementById('validation').textContent = t().validation;
     return false;
   }
-  if (!c.reviewedAt) c.reviewedAt = new Date().toISOString();
-  const seconds = Math.round((Date.now() - timing.caseStarted) / 1000);
-  if (seconds > 0) timing.durations.push(seconds);
+
+  const firstCompletion = !c.reviewedAt;
+  if (firstCompletion) {
+    c.reviewedAt = new Date().toISOString();
+    const seconds = Math.round((Date.now() - timing.caseStarted) / 1000);
+    if (seconds > 0) timing.durations.push(seconds);
+  }
+
   persist();
   if (advance && position < cases.length - 1) position++;
   render();
@@ -254,15 +481,30 @@ function exportPackage() {
   URL.revokeObjectURL(url);
 }
 
-document.getElementById('rationale').addEventListener('input', saveDraftRationale);
+document.getElementById('languageToggle').addEventListener('click', () => {
+  locale = locale === 'pt' ? 'en' : 'pt';
+  localStorage.setItem(storageKey + ':locale', locale);
+  render();
+});
+document.getElementById('moreStates').addEventListener('click', () => {
+  secondaryVisible = document.getElementById('secondaryStates').hidden;
+  renderStateButtons();
+});
+document.getElementById('rationale').addEventListener('input', () => {
+  document.getElementById('validation').textContent = '';
+  saveDraftRationale();
+});
 document.getElementById('rationaleHelper').addEventListener('click', () => {
-  const state = currentCase().humanState;
-  if (!state) {
-    alert('Choose a human state first.');
+  const c = currentCase();
+  if (!c.humanState) {
+    document.getElementById('validation').textContent = t().chooseStateFirst;
     return;
   }
   const area = document.getElementById('rationale');
-  if (!area.value.trim()) area.value = rationaleTemplates[state];
+  if (!area.value.trim()) {
+    const readableType = String(c.evidenceType).replaceAll('_', ' ');
+    area.value = rationaleTemplates[locale][c.humanState](readableType);
+  }
   area.focus();
   saveDraftRationale();
 });
