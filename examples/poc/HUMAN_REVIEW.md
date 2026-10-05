@@ -4,9 +4,15 @@ The PoC workflow creates one deterministic, stratified annotation package and co
 
 - `review/gold-poc-v1.json`
 - `review/reviewer-a.json`
-- `review/reviewer-b.json`\n- `review/reviewer-a.html`\n- `review/reviewer-b.html`
+- `review/reviewer-b.json`
+- `review/reviewer-a.html`
+- `review/reviewer-b.html`
 
-Give `reviewer-a.html` and `reviewer-b.html` to two different human reviewers. They must work independently and use the guidance embedded in the page, which summarizes `docs/research/annotation-handbook.md`. The JSON files remain the canonical blank packages and import format.\n\nThe HTML reviewer is self-contained and offline. Reviewers open it directly in a browser, classify one case at a time, and export the completed JSON at the end. It stores progress only in browser `localStorage`; no survey service or server is involved.\n\nThe current PoC package contains **85 cases**. The UI groups cases by evidence type, supports keyboard shortcuts and provides concise rationale templates to reduce repetitive work. It also estimates remaining time from the reviewer\'s actual pace.
+Give `reviewer-a.html` and `reviewer-b.html` to two different human reviewers. They must work independently and use the guidance embedded in the page, which summarizes `docs/research/annotation-handbook.md`. The JSON files remain the canonical blank packages and import format.
+
+The HTML reviewer is self-contained and offline. Reviewers open it directly in a browser, classify one case at a time, and export the completed JSON at the end. It stores progress only in browser `localStorage`; no survey service or server is involved.
+
+The current PoC package contains **85 cases**. The UI groups cases by evidence type, supports keyboard shortcuts and provides concise rationale templates to reduce repetitive work. It also estimates remaining time from the reviewer's actual pace.
 
 ## What each reviewer edits
 

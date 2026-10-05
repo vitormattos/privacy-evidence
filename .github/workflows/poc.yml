@@ -103,6 +103,8 @@ jobs:
           php bin/privacy-evidence review:sample "$RUN_ID" "$EXPORT_DIR/review/gold-poc-v1.json" --per-stratum=2 --seed=privacy-evidence-poc-v1
           cp "$EXPORT_DIR/review/gold-poc-v1.json" "$EXPORT_DIR/review/reviewer-a.json"
           cp "$EXPORT_DIR/review/gold-poc-v1.json" "$EXPORT_DIR/review/reviewer-b.json"
+          php bin/privacy-evidence review:html "$EXPORT_DIR/review/reviewer-a.json" "$EXPORT_DIR/review/reviewer-a.html"
+          php bin/privacy-evidence review:html "$EXPORT_DIR/review/reviewer-b.json" "$EXPORT_DIR/review/reviewer-b.html"
 
       - name: Capture final status and PoC metadata
         shell: bash
