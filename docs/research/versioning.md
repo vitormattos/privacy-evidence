@@ -25,3 +25,7 @@ Examples:
 ## Historical comparability
 
 Longitudinal comparisons must state whether compared runs use equivalent measurement definitions. Incompatible definitions are not force-mapped.
+
+## Independent review material
+
+Review workflow 1.2.0 and annotation-package schema 1.1.0 replace keyword-only eligibility with hash-verified full page text and sampled resource provenance. Historical 1.0.0 completed packages remain importable. Collection protocol, detector versions and annotation handbook do not change. Compare excerpt-only and full-context review results as different review conditions; never silently pool them.

@@ -7,6 +7,7 @@ namespace PrivacyEvidence\Command;
 use PrivacyEvidence\Core\ObservationState;
 use PrivacyEvidence\Evidence\EvidenceType;
 use PrivacyEvidence\Review\ReviewDecision;
+use PrivacyEvidence\Review\ReviewMaterial;
 use PrivacyEvidence\Review\ReviewerType;
 use PrivacyEvidence\Runtime\RuntimeFactory;
 use Symfony\Component\Console\Command\Command;
@@ -71,16 +72,57 @@ final class ReviewImportCommand extends Command
             $evidenceById[$evidence->id()] = $evidence;
         }
 
-        $imported = 0;
-        $deferred = [];
-        foreach ($cases as $case) {
-            if (!is_array($case)) {
+        // Compute eligibility from local source data, never from reviewer-editable context.
+        $sourceCases = [];
+        $validatedCases = [];
+        foreach ($cases as $submittedCase) {
+            if (!is_array($submittedCase)) {
                 return Command::INVALID;
             }
+            /** @var array<string, mixed> $submittedCase */
+            $validatedCases[] = $submittedCase;
+            /** @var mixed $submittedId */
+            $submittedId = $submittedCase['evidenceId'] ?? null;
+            if (!is_string($submittedId) || !isset($evidenceById[$submittedId])) {
+                return Command::INVALID;
+            }
+            $source = $evidenceById[$submittedId];
+            $sourceCases[] = [
+                'evidenceId' => $source->id(),
+                'resourceId' => $source->resourceId,
+                'artifactHash' => $source->artifactHash,
+                'sourceUrl' => $source->sourceUrl,
+                'evidenceType' => $source->type->value,
+            ];
+        }
+        $prepared = (new ReviewMaterial(
+            $runtime->observations->resourceRecords($runId),
+            $runtime->observations->documentRecords($runId),
+            $runtime->artifactDirectory,
+        ))->enrich(['cases' => $sourceCases]);
+        /** @var list<array<string, mixed>> $preparedCases */
+        $preparedCases = $prepared['cases'];
+        $eligibility = [];
+        foreach ($preparedCases as $preparedCase) {
+            /** @var array<string, mixed> $context */
+            $context = $preparedCase['reviewContext'];
+            /** @var mixed $preparedId */
+            $preparedId = $preparedCase['evidenceId'] ?? null;
+            if (is_string($preparedId)) {
+                $eligibility[$preparedId] = $context['reason'] === null;
+            }
+        }
 
+        $imported = 0;
+        $deferred = [];
+        foreach ($validatedCases as $case) {
+            /** @var mixed $evidenceId */
             $evidenceId = $case['evidenceId'] ?? null;
+            /** @var mixed $typeRaw */
             $typeRaw = $case['evidenceType'] ?? null;
+            /** @var mixed $stateRaw */
             $stateRaw = $case['humanState'] ?? null;
+            /** @var mixed $rationale */
             $rationale = $case['rationale'] ?? null;
 
             $sourceEvidence = is_string($evidenceId) ? ($evidenceById[$evidenceId] ?? null) : null;
@@ -88,7 +130,7 @@ final class ReviewImportCommand extends Command
                 is_string($evidenceId)
                 && $sourceEvidence !== null
                 && $sourceEvidence->type->value === $typeRaw
-                && ($sourceEvidence->excerpt === null || trim($sourceEvidence->excerpt) === '')
+                && ($eligibility[$evidenceId] ?? false) === false
                 && $stateRaw === null
                 && $rationale === null
                 && ($case['reviewedAt'] ?? null) === null
@@ -115,6 +157,8 @@ final class ReviewImportCommand extends Command
                 return Command::INVALID;
             }
 
+            /** @var mixed $submittedAt */
+            $submittedAt = $case['reviewedAt'] ?? null;
             $runtime->reviews->decide(new ReviewDecision(
                 runId: $runId,
                 evidenceId: $evidenceId,
@@ -122,11 +166,7 @@ final class ReviewImportCommand extends Command
                 state: $state,
                 reviewerType: ReviewerType::Human,
                 reviewerId: $reviewerId,
-                reviewedAt: isset($case['reviewedAt'])
-                    && is_string($case['reviewedAt'])
-                    && $case['reviewedAt'] !== ''
-                        ? $case['reviewedAt']
-                        : gmdate(DATE_ATOM),
+                reviewedAt: is_string($submittedAt) && $submittedAt !== '' ? $submittedAt : gmdate(DATE_ATOM),
                 rationale: $rationale,
             ));
             $imported++;

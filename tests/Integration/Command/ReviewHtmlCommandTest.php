@@ -97,6 +97,38 @@ final class ReviewHtmlCommandTest extends TestCase
         self::assertSame($original, file_get_contents($packagePath));
     }
 
+    public function testEnrichesExistingSelectionFromArchivedExportWithoutEditingTheInput(): void
+    {
+        $body = '<html><title>Archived policy</title><p>The controller is Synthetic Example Ltd.</p></html>';
+        $hash = hash('sha256', $body);
+        mkdir($this->projectRoot . '/archive', 0700);
+        mkdir($this->projectRoot . '/artifacts', 0700);
+        file_put_contents($this->projectRoot . '/artifacts/' . $hash . '.bin', $body);
+        file_put_contents($this->projectRoot . '/archive/resources.json', json_encode([[
+            'id' => 'sample-1', 'name' => 'Sampled website', 'normalizedUrl' => 'https://sample.test/',
+        ]], JSON_THROW_ON_ERROR));
+        file_put_contents($this->projectRoot . '/archive/documents.json', json_encode([[
+            'resourceId' => 'sample-1', 'artifactHash' => $hash, 'finalUrl' => 'https://external.test/policy',
+            'mediaType' => 'text/html', 'fetchedAt' => '2026-10-05T00:00:00Z', 'truncated' => false,
+        ]], JSON_THROW_ON_ERROR));
+        $original = json_encode(['runId' => 'fixture', 'cases' => [[
+            'evidenceId' => 'selected-evidence', 'resourceId' => 'sample-1', 'artifactHash' => $hash,
+            'sourceUrl' => 'https://external.test/policy', 'evidenceType' => 'controller_identity', 'excerpt' => null,
+        ]]], JSON_THROW_ON_ERROR);
+        file_put_contents($this->projectRoot . '/selection.json', $original);
+        $tester = new CommandTester(new ReviewHtmlCommand($this->projectRoot));
+        self::assertSame(Command::SUCCESS, $tester->execute([
+            'package' => $this->projectRoot . '/selection.json', 'output' => $this->projectRoot . '/review.html',
+            '--context-dir' => $this->projectRoot . '/archive', '--artifacts-dir' => $this->projectRoot . '/artifacts',
+        ]));
+        $html = (string) file_get_contents($this->projectRoot . '/review.html');
+        self::assertStringContainsString('Synthetic Example Ltd.', $html);
+        self::assertStringContainsString('Sampled website', $html);
+        self::assertStringContainsString('2026-10-05T00:00:00Z', $html);
+        self::assertStringContainsString('"reason":null', $html);
+        self::assertSame($original, file_get_contents($this->projectRoot . '/selection.json'));
+    }
+
     private function removeDirectory(string $directory): void
     {
         if (!is_dir($directory)) {
