@@ -638,7 +638,7 @@ final readonly class RunExporter
             } elseif ($terminalStatus === 'http_error') {
                 $measurementStatus = 'not_measurable';
                 $primaryReason = $httpStatus === null ? 'http_error' : sprintf('http_%d', $httpStatus);
-            } elseif ($antiBotChallenge && $successCount === 0) {
+            } elseif ($antiBotChallenge) {
                 $measurementStatus = 'not_measurable';
                 $primaryReason = 'anti_bot_challenge';
             } elseif ($budgetLimited) {

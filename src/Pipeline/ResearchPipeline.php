@@ -399,6 +399,27 @@ final readonly class ResearchPipeline
             ],
         );
 
+        $postBrowserDecision = $this->browserPolicy->decide($rendered);
+        if (
+            $postBrowserDecision->required
+            && $postBrowserDecision->reason === 'anti_bot_challenge_candidate'
+        ) {
+            // Preserve the rendered challenge as an auditable artifact, but do
+            // not mistake an HTTP 200 CAPTCHA/challenge page for successful
+            // measurement of the intended website content.
+            $this->persistAndAnalyze($runId, $rendered);
+
+            throw new AcquisitionException(
+                url: $url,
+                category: 'anti_bot_challenge',
+                retryable: false,
+                message: sprintf(
+                    'Browser reached an unresolved anti-bot challenge at %s.',
+                    $observation->url,
+                ),
+            );
+        }
+
         $this->persistAndAnalyze($runId, $rendered);
         $this->runs->increment($runId, 'browser_pages_acquired');
     }

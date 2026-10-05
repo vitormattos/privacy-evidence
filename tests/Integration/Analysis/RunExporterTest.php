@@ -129,6 +129,100 @@ final class RunExporterTest extends TestCase
         }
     }
 
+    public function testAntiBotChallengeIsNotCountedAsSuccessfulMeasurementEvenWithHttp200Artifact(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            self::markTestSkipped('pdo_sqlite not available');
+        }
+
+        $pdo = new PDO('sqlite::memory:');
+        $runs = new SqliteRunStore($pdo);
+        $observations = new SqliteObservationStore($pdo);
+        $reviews = new SqliteReviewQueue($pdo);
+        $jobs = new SqliteJobQueue($pdo);
+
+        $run = new ResearchRun(
+            id: 'anti-bot-export',
+            startedAt: '2026-10-05T00:00:00Z',
+            gitCommit: 'fixture',
+            datasetHash: str_repeat('c', 64),
+            protocolVersion: '1.0.0',
+            versions: ['schema' => '1.0.0'],
+            configuration: [],
+        );
+        $runs->create($run);
+        $runs->setStatus($run->id, RunStatus::Completed);
+
+        $resource = new ImportedResource(
+            'site-captcha',
+            'Captcha site',
+            'https://captcha.example/',
+            'https://captcha.example/',
+            ResourceType::InstitutionalWebsite,
+        );
+        $observations->recordResource($run->id, $resource);
+        $observations->recordDocument($run->id, new FetchedDocument(
+            resourceId: $resource->id,
+            requestedUrl: 'https://captcha.example/',
+            finalUrl: 'https://captcha.example/',
+            statusCode: 200,
+            mediaType: 'text/html',
+            body: '<p>Verify you are human - CAPTCHA</p>',
+            fetchedAt: '2026-10-05T00:00:01Z',
+            acquisitionMode: 'browser',
+        ));
+        $runs->recordEvent(
+            $run->id,
+            'job_failure',
+            $resource->id,
+            [
+                'stage' => 'browser',
+                'status' => 'failed',
+                'attempt' => 1,
+                'url' => 'https://captcha.example/',
+                'category' => 'anti_bot_challenge',
+                'retryable' => false,
+                'error' => 'challenge',
+            ],
+        );
+        $runs->recordEvent(
+            $run->id,
+            'resource_terminal',
+            $resource->id,
+            [
+                'status' => 'unreachable',
+                'category' => 'anti_bot_challenge',
+                'url' => 'https://captcha.example/',
+            ],
+        );
+
+        $directory = sys_get_temp_dir() . '/privacy-evidence-captcha-export-' . bin2hex(random_bytes(4));
+        try {
+            (new RunExporter(new RuntimeContext(
+                runs: $runs,
+                jobs: $jobs,
+                observations: $observations,
+                reviews: $reviews,
+                artifactDirectory: $directory . '/artifacts',
+            )))->export($run->id, $directory);
+
+            /** @var mixed $outcomes */
+            $outcomes = json_decode(
+                (string) file_get_contents($directory . '/resource-outcomes.json'),
+                true,
+                flags: JSON_THROW_ON_ERROR,
+            );
+            self::assertIsArray($outcomes);
+            $outcome = $outcomes[0] ?? null;
+            self::assertIsArray($outcome);
+            self::assertSame('not_measurable', $outcome['measurementStatus'] ?? null);
+            self::assertSame('anti_bot_challenge', $outcome['primaryReason'] ?? null);
+            self::assertSame(1, $outcome['successfulDocuments'] ?? null);
+        } finally {
+            $this->removeDirectory($directory);
+        }
+    }
+
     public function testExportsDeterministicJsonCsvAndReportFromPersistedState(): void
     {
         if (!extension_loaded('pdo_sqlite')) {
