@@ -78,11 +78,12 @@ final class ReviewImportCommand extends Command
             if (!is_array($submittedCase)) {
                 return Command::INVALID;
             }
-            $submittedId = is_string($submittedCase['evidenceId'] ?? null) ? $submittedCase['evidenceId'] : '';
-            $source = $evidenceById[$submittedId] ?? null;
-            if ($source === null) {
+            /** @var mixed $submittedId */
+            $submittedId = $submittedCase['evidenceId'] ?? null;
+            if (!is_string($submittedId) || !isset($evidenceById[$submittedId])) {
                 return Command::INVALID;
             }
+            $source = $evidenceById[$submittedId];
             $sourceCases[] = [
                 'evidenceId' => $source->id(),
                 'resourceId' => $source->resourceId,
@@ -112,10 +113,6 @@ final class ReviewImportCommand extends Command
         $imported = 0;
         $deferred = [];
         foreach ($cases as $case) {
-            if (!is_array($case)) {
-                return Command::INVALID;
-            }
-
             $evidenceId = $case['evidenceId'] ?? null;
             $typeRaw = $case['evidenceType'] ?? null;
             $stateRaw = $case['humanState'] ?? null;

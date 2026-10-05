@@ -135,5 +135,6 @@ jobs:
             data/derived/privacy-evidence.sqlite
             data/derived/privacy-evidence.sqlite-wal
             data/derived/privacy-evidence.sqlite-shm
+            data/raw/artifacts/
           if-no-files-found: warn
           retention-days: 7

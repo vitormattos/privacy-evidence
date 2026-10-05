@@ -55,8 +55,12 @@ final readonly class ReviewMaterial
             if (!is_array($case)) {
                 throw new \InvalidArgumentException('Package case must be an object.');
             }
-            $resourceId = is_string($case['resourceId'] ?? null) ? $case['resourceId'] : '';
-            $hash = is_string($case['artifactHash'] ?? null) ? $case['artifactHash'] : '';
+            /** @var mixed $resourceValue */
+            $resourceValue = $case['resourceId'] ?? null;
+            /** @var mixed $hashValue */
+            $hashValue = $case['artifactHash'] ?? null;
+            $resourceId = is_string($resourceValue) ? $resourceValue : '';
+            $hash = is_string($hashValue) ? $hashValue : '';
             $resource = $resources[$resourceId] ?? [];
             $document = $documents[$hash] ?? [];
             $reason = null;
@@ -123,7 +127,7 @@ final readonly class ReviewMaterial
             $dom->loadHTML('<?xml encoding="UTF-8">' . $body, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
             $xpath = new DOMXPath($dom);
             $titles = $dom->getElementsByTagName('title');
-            $title = trim($titles->item(0)?->textContent ?? '');
+            $title = trim($titles->item(0)->textContent ?? '');
             $nodes = $xpath->query('//script|//style|//noscript|//head|//template');
             if ($nodes !== false) {
                 foreach ($nodes as $node) {

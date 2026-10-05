@@ -119,6 +119,8 @@ docker compose run --rm app review:html \
   --artifacts-dir=data/poc-review/raw/artifacts --test-mode
 ```
 
+Older PoC continuation artifacts did not include `raw/artifacts`; metadata alone cannot reconstruct the collected page. Recover the original raw directory if still available. Otherwise a new PoC collection is a new observation and must use its own run/package, not labels for the lost historical content. The PoC workflow now archives raw artifacts in the restricted continuation artifact as well as embedding selected page text in new review packets.
+
 The context directory must contain `resources.json` and `documents.json`. `--artifacts-dir` points to the original `.bin` files; adjust it to the archive's actual location. Without options, legacy packets look for context in their parent run directory and artifacts under `data/raw/artifacts`. A standalone 1.1.0 packet already contains review material and does not need archive access. Generating HTML leaves the selected JSON unchanged; the exported JSON includes the material shown to the reviewer. If archive files are absent, the form reports that limitation instead of treating a keyword as sufficient material.
 
 
