@@ -2,9 +2,11 @@
 
 ## The person
 
-The project is being built for the researcher who created the original academic study that motivated Privacy Evidence. The researcher is also the project's real user for the Weekend Challenge.
+The project is being built for **Igor Scaliante Wiese**, my master's advisor at UTFPR and an academic mentor in Software Engineering.
 
-No additional personal details are required for the challenge story.
+The original privacy study was mine, but the current research problem is larger than reproducing my own past work. As my advisor, Igor is a real academic stakeholder for the next step: turning that earlier study into a reproducible empirical-software-engineering research workflow that can be reviewed, challenged and developed into scientific publications.
+
+The submission does not claim that Igor asked me to build this exact software or that he has already endorsed its results. His role here is the real intended academic beneficiary and reviewer of the research workflow.
 
 ## The original problem
 
@@ -26,7 +28,9 @@ That made the study difficult to reproduce. The procedure could be described, an
 
 ## What the user needs
 
-The user needs a tool that can receive a list of websites from an arbitrary source and turn it into a reproducible research workflow:
+For an advisor reviewing this work, the important question is not only whether I can produce a result. It is whether the method is explicit enough to inspect, reproduce and eventually support publishable empirical research.
+
+The tool therefore needs to receive a list of websites from an arbitrary source and turn it into a reproducible research workflow:
 
 1. preserve the source population and provenance;
 2. resolve and classify which entries are usable websites;
@@ -37,7 +41,7 @@ The user needs a tool that can receive a list of websites from an arbitrary sour
 7. evaluate the same generic evidence against versioned regulatory profiles such as LGPD or GDPR without recrawling merely because the legal profile changes;
 8. export enough provenance to rerun the analysis later and explain why results differ when websites themselves have changed.
 
-The immediate historical use case is a population of IPB websites. The same workflow should also support another denomination, a company with many public sites, or any research population supplied as a list of URLs.
+The immediate historical use case is the IPB website population from the earlier Seminário Simonton monograph. The current academic goal is to re-express that work using empirical software-engineering methods so the evidence, exclusions, measurement protocol and analysis can be independently inspected and reused in scientific articles. The same workflow should also support another denomination, a company with many public sites, or any research population supplied as a list of URLs.
 
 ## Why PHP-native ML matters
 
@@ -66,6 +70,6 @@ This scenario is implemented and tested by `examples/hacktoberfest/run-demo.sh` 
 
 ## User feedback available before submission
 
-The real user has confirmed the underlying research problem and the reason the tool is being built: the original website analysis involved substantial manual filtering and inspection, which weakened reproducibility for empirical software-engineering research.
+The academic relationship and publication need are real, but no project-specific evaluation or endorsement from Igor is recorded yet.
 
-No separate post-demo reaction or usability claim is recorded yet. The submission must not invent one.
+The submission may truthfully say that the project is being prepared so my advisor can review a reproducible empirical-software-engineering version of the earlier study and that this work can support the scientific articles required during the master's program. It must not claim that Igor requested this exact implementation, approved the results or provided feedback that has not actually been collected.
