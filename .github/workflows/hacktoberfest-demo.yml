@@ -28,12 +28,16 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p hacktoberfest-demo-output
+          ARTIFACT="$RUNNER_TEMP/controller-identity.rbx"
           {
             echo '# Privacy Evidence Hacktoberfest PHP-native ML demo'
             echo
-            echo 'Command: examples/hacktoberfest/run-demo.sh'
+            echo 'Equivalent commands from examples/hacktoberfest/run-demo.sh:'
+            echo 'php bin/privacy-evidence experiment:hacktoberfest:build-model <artifact>'
+            echo 'php bin/privacy-evidence experiment:hacktoberfest:demo <artifact>'
             echo
-            sh examples/hacktoberfest/run-demo.sh
+            php bin/privacy-evidence experiment:hacktoberfest:build-model "$ARTIFACT"
+            php bin/privacy-evidence experiment:hacktoberfest:demo "$ARTIFACT"
           } | tee hacktoberfest-demo-output/demo-output.txt
       - name: Upload demo evidence
         uses: actions/upload-artifact@v6
