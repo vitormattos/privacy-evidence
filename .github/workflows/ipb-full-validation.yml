@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ipb-full-validation-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   full-validation:
     runs-on: ubuntu-latest
@@ -62,7 +66,7 @@ jobs:
 
           echo '== 6. Process HTTP crawl with bounded worker pool ==' | tee -a "$OUT/full-run.log"
           php bin/privacy-evidence workers "$RUN_ID" fetch \
-            --workers=4 --max-jobs=100 --per-host-concurrency=2 --min-host-delay-ms=250 \
+            --workers=2 --max-jobs=100 --per-host-concurrency=1 --min-host-delay-ms=250 \
             2>&1 | tee -a "$OUT/full-run.log"
 
           echo '== 7. Process browser escalation with bounded worker pool ==' | tee -a "$OUT/full-run.log"
@@ -90,63 +94,77 @@ jobs:
           echo '== 11. Assert and summarize 100% population accounting ==' | tee -a "$OUT/full-run.log"
           php -r '
           $population = max(0, count(file($argv[1], FILE_IGNORE_NEW_LINES)) - 1);
-          $outcomes = json_decode(file_get_contents($argv[2]), true, 512, JSON_THROW_ON_ERROR);
+          $summary = json_decode(file_get_contents($argv[2]), true, 512, JSON_THROW_ON_ERROR);
           $populationResults = json_decode(file_get_contents($argv[3]), true, 512, JSON_THROW_ON_ERROR);
-          if (!is_array($outcomes) || !is_array($populationResults)) {
-              fwrite(STDERR, "population result exports are not arrays\n");
+          $profileMetrics = json_decode(file_get_contents($argv[4]), true, 512, JSON_THROW_ON_ERROR);
+          if (!is_array($summary) || !is_array($populationResults) || !is_array($profileMetrics)) {
+              fwrite(STDERR, "validation exports are not arrays\n");
               exit(2);
           }
 
-          $byStatus = [];
-          $byReason = [];
-          foreach ($outcomes as $row) {
-              if (!is_array($row)) continue;
-              $status = (string)($row["measurementStatus"] ?? "missing_status");
-              $reason = (string)($row["primaryReason"] ?? "missing_reason");
-              $byStatus[$status] = ($byStatus[$status] ?? 0) + 1;
-              $byReason[$reason] = ($byReason[$reason] ?? 0) + 1;
-          }
-          ksort($byStatus);
-          ksort($byReason);
-
-          $lgpdStates = [];
-          $eligible = 0;
+          $coverage = [];
+          $fullSupport = [];
+          $anySupport = [];
           foreach ($populationResults as $row) {
-              if (!is_array($row)) continue;
-              if (($row["eligibleForWebsiteMeasurement"] ?? false) === true) {
-                  $eligible++;
+              if (!is_array($row) || ($row["eligibleForWebsiteMeasurement"] ?? false) !== true) {
+                  continue;
               }
-              $lgpd = $row["lgpdPublicEvidenceState"] ?? null;
-              if (is_string($lgpd)) {
-                  $lgpdStates[$lgpd] = ($lgpdStates[$lgpd] ?? 0) + 1;
+              foreach ([
+                  "lgpdCoverageRate" => &$coverage,
+                  "lgpdFullObservedSupportRate" => &$fullSupport,
+                  "lgpdAnyObservedSupportRate" => &$anySupport,
+              ] as $key => &$target) {
+                  $value = $row[$key] ?? null;
+                  if (is_int($value) || is_float($value)) {
+                      $target[] = (float)$value;
+                  }
               }
+              unset($target);
           }
-          ksort($lgpdStates);
 
-          $complete = count($outcomes) === $population
-              && count($populationResults) === $population;
-          $summary = [
-              "population" => $population,
-              "outcomes" => count($outcomes),
-              "populationResults" => count($populationResults),
-              "completePopulationAccounting" => $complete,
-              "eligibleForWebsiteMeasurement" => $eligible,
-              "byMeasurementStatus" => $byStatus,
-              "byPrimaryReason" => $byReason,
-              "lgpdPublicEvidenceStates" => $lgpdStates,
-          ];
-          echo json_encode($summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+          $lgpdRequirements = [];
+          foreach ($profileMetrics as $metric) {
+              if (!is_array($metric) || ($metric["profile"] ?? null) !== "lgpd") {
+                  continue;
+              }
+              $id = (string)($metric["requirementId"] ?? "unknown");
+              $lgpdRequirements[$id] = [
+                  "totalResources" => $metric["totalResources"] ?? 0,
+                  "measurableResources" => $metric["measurableResources"] ?? 0,
+                  "observedSupport" => $metric["observedSupport"] ?? 0,
+                  "partialObservedSupport" => $metric["partialObservedSupport"] ?? 0,
+                  "noObservedSupport" => $metric["noObservedSupport"] ?? 0,
+                  "indeterminate" => $metric["indeterminate"] ?? 0,
+                  "unavailable" => $metric["unavailable"] ?? 0,
+                  "applicabilityUnknown" => $metric["applicabilityUnknown"] ?? 0,
+                  "fullObservedSupportRate" => $metric["fullObservedSupportRate"] ?? null,
+              ];
+          }
+          ksort($lgpdRequirements);
 
-          if (!$complete) {
-              fwrite(STDERR, sprintf(
-                  "Population accounting mismatch: population=%d outcomes=%d populationResults=%d\n",
-                  $population,
-                  count($outcomes),
-                  count($populationResults),
-              ));
+          $avg = static fn(array $values): ?float => $values === []
+              ? null
+              : array_sum($values) / count($values);
+
+          $result = $summary;
+          $result["sourcePopulation"] = $population;
+          $result["populationResults"] = count($populationResults);
+          $result["averageLgpdCoverageRate"] = $avg($coverage);
+          $result["averageLgpdFullObservedSupportRate"] = $avg($fullSupport);
+          $result["averageLgpdAnyObservedSupportRate"] = $avg($anySupport);
+          $result["lgpdRequirements"] = $lgpdRequirements;
+
+          echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+
+          if (
+              ($summary["completePopulationAccounting"] ?? false) !== true
+              || ($summary["population"] ?? null) !== $population
+              || count($populationResults) !== $population
+          ) {
+              fwrite(STDERR, "Population accounting is not complete.\n");
               exit(1);
           }
-          ' "$OUT/ipb-population.csv" "$EXPORT_DIR/resource-outcomes.json" "$EXPORT_DIR/population-results.json" \
+          ' "$OUT/ipb-population.csv" "$EXPORT_DIR/population-summary.json" "$EXPORT_DIR/population-results.json" "$EXPORT_DIR/profile-metrics.json" \
             | tee "$OUT/population-outcomes-summary.json" | tee -a "$OUT/full-run.log"
 
           if [ "$RUN_EXIT" -ne 0 ]; then
