@@ -354,7 +354,10 @@ final readonly class ResearchPipeline
                 );
             }
 
-            if ($finalClassification->type !== ResourceType::InstitutionalWebsite) {
+            if (
+                $document->finalUrl !== $url
+                && !$finalClassification->type->isWebsiteMeasurementEligible()
+            ) {
                 $this->recordMeasurementLimit(
                     $runId,
                     $resourceId,
