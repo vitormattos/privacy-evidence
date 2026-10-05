@@ -86,8 +86,9 @@ jobs:
           php -r '
           $population = max(0, count(file($argv[1], FILE_IGNORE_NEW_LINES)) - 1);
           $outcomes = json_decode(file_get_contents($argv[2]), true, 512, JSON_THROW_ON_ERROR);
-          if (!is_array($outcomes)) {
-              fwrite(STDERR, "resource-outcomes.json is not an array\n");
+          $populationResults = json_decode(file_get_contents($argv[3]), true, 512, JSON_THROW_ON_ERROR);
+          if (!is_array($outcomes) || !is_array($populationResults)) {
+              fwrite(STDERR, "population result exports are not arrays\n");
               exit(2);
           }
 
@@ -103,24 +104,44 @@ jobs:
           ksort($byStatus);
           ksort($byReason);
 
+          $lgpdStates = [];
+          $eligible = 0;
+          foreach ($populationResults as $row) {
+              if (!is_array($row)) continue;
+              if (($row["eligibleForWebsiteMeasurement"] ?? false) === true) {
+                  $eligible++;
+              }
+              $lgpd = $row["lgpdPublicEvidenceState"] ?? null;
+              if (is_string($lgpd)) {
+                  $lgpdStates[$lgpd] = ($lgpdStates[$lgpd] ?? 0) + 1;
+              }
+          }
+          ksort($lgpdStates);
+
+          $complete = count($outcomes) === $population
+              && count($populationResults) === $population;
           $summary = [
               "population" => $population,
               "outcomes" => count($outcomes),
-              "completePopulationAccounting" => count($outcomes) === $population,
+              "populationResults" => count($populationResults),
+              "completePopulationAccounting" => $complete,
+              "eligibleForWebsiteMeasurement" => $eligible,
               "byMeasurementStatus" => $byStatus,
               "byPrimaryReason" => $byReason,
+              "lgpdPublicEvidenceStates" => $lgpdStates,
           ];
           echo json_encode($summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
 
-          if (count($outcomes) !== $population) {
+          if (!$complete) {
               fwrite(STDERR, sprintf(
-                  "Population accounting mismatch: population=%d outcomes=%d\n",
+                  "Population accounting mismatch: population=%d outcomes=%d populationResults=%d\n",
                   $population,
                   count($outcomes),
+                  count($populationResults),
               ));
               exit(1);
           }
-          ' "$OUT/ipb-population.csv" "$EXPORT_DIR/resource-outcomes.json" \
+          ' "$OUT/ipb-population.csv" "$EXPORT_DIR/resource-outcomes.json" "$EXPORT_DIR/population-results.json" \
             | tee "$OUT/population-outcomes-summary.json" | tee -a "$OUT/full-run.log"
 
           if [ "$RUN_EXIT" -ne 0 ]; then
