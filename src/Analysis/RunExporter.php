@@ -783,7 +783,7 @@ final readonly class RunExporter
                 'duplicateNormalizedUrl' => $duplicateGroupSize > 1,
                 'duplicateGroupSize' => $duplicateGroupSize,
                 'duplicateCanonicalResourceId' => $duplicateGroupSize > 1
-                    ? ($duplicateIds[0] ?? null)
+                    ? $duplicateIds[0]
                     : null,
                 'eligibleForWebsiteMeasurement' => $type === 'institutional_website',
                 'measurementStatus' => is_string($outcome['measurementStatus'] ?? null)
@@ -1083,6 +1083,7 @@ final readonly class RunExporter
      * } $analysis
      * @param list<array<string,mixed>> $profileSummary
      * @param list<array<string,mixed>> $profileMetrics
+     * @param array<string,mixed> $populationSummary
      */
     private function report(
         string $path,

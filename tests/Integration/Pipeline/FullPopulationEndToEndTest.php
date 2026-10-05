@@ -120,11 +120,18 @@ final class FullPopulationEndToEndTest extends TestCase
             self::assertIsArray($population);
             self::assertCount(5, $population);
 
+            /** @var array<string,array<array-key,mixed>> $byId */
             $byId = [];
             /** @psalm-suppress MixedAssignment */
             foreach ($population as $row) {
-                if (is_array($row) && is_string($row['resourceId'] ?? null)) {
-                    $byId[$row['resourceId']] = $row;
+                if (!is_array($row)) {
+                    continue;
+                }
+
+                /** @psalm-suppress MixedAssignment */
+                $resourceIdValue = $row['resourceId'] ?? null;
+                if (is_string($resourceIdValue)) {
+                    $byId[$resourceIdValue] = $row;
                 }
             }
 
