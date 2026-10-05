@@ -100,6 +100,8 @@ final class RunExporterTest extends TestCase
         self::assertFileExists($directory . '/analysis.json');
         self::assertFileExists($directory . '/resource-outcomes.json');
         self::assertFileExists($directory . '/resource-outcomes.csv');
+        self::assertFileExists($directory . '/population-results.json');
+        self::assertFileExists($directory . '/population-results.csv');
         self::assertFileExists($directory . '/resources.csv');
         self::assertFileExists($directory . '/documents.csv');
         self::assertFileExists($directory . '/evidence.csv');
@@ -157,6 +159,22 @@ final class RunExporterTest extends TestCase
         self::assertIsArray($firstOutcome);
         self::assertSame('site-1', $firstOutcome['resourceId'] ?? null);
         self::assertSame('measured', $firstOutcome['measurementStatus'] ?? null);
+
+        /** @var mixed $population */
+        $population = json_decode(
+            (string) file_get_contents($directory . '/population-results.json'),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+        self::assertIsArray($population);
+        self::assertCount(1, $population);
+        $populationRow = $population[0] ?? null;
+        self::assertIsArray($populationRow);
+        self::assertSame('site-1', $populationRow['resourceId'] ?? null);
+        self::assertSame('institutional_website', $populationRow['classificationType'] ?? null);
+        self::assertTrue($populationRow['eligibleForWebsiteMeasurement'] ?? false);
+        self::assertSame('measured', $populationRow['measurementStatus'] ?? null);
+        self::assertArrayHasKey('lgpdPublicEvidenceState', $populationRow);
 
         /** @var mixed $summaryDecoded */
         $summaryDecoded = json_decode(

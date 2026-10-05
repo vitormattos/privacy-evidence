@@ -47,6 +47,7 @@ final readonly class RunExporter
         $events = $this->runtime->runs->events($runId);
         $counts = $this->runtime->observations->counts($runId);
         $resourceOutcomes = $this->resourceOutcomes($resources, $documents, $events);
+        $populationResults = $this->populationResults($resources, $resourceOutcomes, $profileSummary);
 
         $analysis = $this->analysis(
             runId: $runId,
@@ -75,6 +76,7 @@ final readonly class RunExporter
         $this->json($directory . '/counts.json', $counts);
         $this->json($directory . '/analysis.json', $analysis);
         $this->json($directory . '/resource-outcomes.json', $resourceOutcomes);
+        $this->json($directory . '/population-results.json', $populationResults);
 
         $this->csv(
             $directory . '/resources.csv',
@@ -96,6 +98,26 @@ final readonly class RunExporter
                 'antiBotChallenge',
             ],
             $this->resourceOutcomeRows($resourceOutcomes),
+        );
+        $this->csv(
+            $directory . '/population-results.csv',
+            [
+                'resourceId',
+                'name',
+                'sourceValue',
+                'normalizedUrl',
+                'classificationType',
+                'classificationRule',
+                'classificationConfidence',
+                'eligibleForWebsiteMeasurement',
+                'measurementStatus',
+                'primaryReason',
+                'lgpdPublicEvidenceState',
+                'lgpdCoverageRate',
+                'lgpdFullObservedSupportRate',
+                'lgpdAnyObservedSupportRate',
+            ],
+            $this->populationResultRows($populationResults),
         );
         $this->csv(
             $directory . '/documents.csv',
@@ -659,6 +681,116 @@ final readonly class RunExporter
                 !empty($outcome['noRelevantLinks']) ? '1' : '0',
                 !empty($outcome['budgetLimited']) ? '1' : '0',
                 !empty($outcome['antiBotChallenge']) ? '1' : '0',
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param list<array<string,mixed>> $resources
+     * @param list<array<string,mixed>> $outcomes
+     * @param list<array<string,mixed>> $profileSummary
+     * @return list<array<string,mixed>>
+     */
+    private function populationResults(
+        array $resources,
+        array $outcomes,
+        array $profileSummary,
+    ): array {
+        $outcomeById = [];
+        foreach ($outcomes as $outcome) {
+            /** @psalm-suppress MixedAssignment */
+            $idValue = $outcome['resourceId'] ?? null;
+            if (is_string($idValue)) {
+                $outcomeById[$idValue] = $outcome;
+            }
+        }
+
+        $lgpdById = [];
+        foreach ($profileSummary as $summary) {
+            /** @psalm-suppress MixedAssignment */
+            $resourceIdValue = $summary['resourceId'] ?? null;
+            /** @psalm-suppress MixedAssignment */
+            $profileValue = $summary['profile'] ?? null;
+            if (is_string($resourceIdValue) && $profileValue === 'lgpd') {
+                $lgpdById[$resourceIdValue] = $summary;
+            }
+        }
+
+        $results = [];
+        foreach ($resources as $resource) {
+            /** @psalm-suppress MixedAssignment */
+            $idValue = $resource['id'] ?? null;
+            if (!is_string($idValue)) {
+                continue;
+            }
+
+            $outcome = $outcomeById[$idValue] ?? [];
+            $lgpd = $lgpdById[$idValue] ?? [];
+            /** @psalm-suppress MixedAssignment */
+            $classificationValue = $resource['classification'] ?? [];
+            $classification = is_array($classificationValue) ? $classificationValue : [];
+            /** @psalm-suppress MixedAssignment */
+            $typeValue = $resource['type'] ?? null;
+            $type = is_string($typeValue) ? $typeValue : 'unknown';
+
+            $results[] = [
+                'resourceId' => $idValue,
+                'name' => is_string($resource['name'] ?? null) ? $resource['name'] : $idValue,
+                'sourceValue' => is_string($resource['sourceValue'] ?? null) ? $resource['sourceValue'] : '',
+                'normalizedUrl' => is_string($resource['normalizedUrl'] ?? null)
+                    ? $resource['normalizedUrl']
+                    : null,
+                'classificationType' => $type,
+                'classificationRule' => is_string($classification['rule'] ?? null)
+                    ? $classification['rule']
+                    : 'unknown',
+                'classificationConfidence' => is_float($classification['confidence'] ?? null)
+                    ? $classification['confidence']
+                    : 0.0,
+                'eligibleForWebsiteMeasurement' => $type === 'institutional_website',
+                'measurementStatus' => is_string($outcome['measurementStatus'] ?? null)
+                    ? $outcome['measurementStatus']
+                    : 'missing_outcome',
+                'primaryReason' => is_string($outcome['primaryReason'] ?? null)
+                    ? $outcome['primaryReason']
+                    : 'missing_outcome',
+                'lgpdPublicEvidenceState' => is_string($lgpd['publicEvidenceState'] ?? null)
+                    ? $lgpd['publicEvidenceState']
+                    : null,
+                'lgpdCoverageRate' => $this->floatValue($lgpd['publicEvidenceCoverageRate'] ?? null),
+                'lgpdFullObservedSupportRate' => $this->floatValue($lgpd['fullObservedSupportRate'] ?? null),
+                'lgpdAnyObservedSupportRate' => $this->floatValue($lgpd['anyObservedSupportRate'] ?? null),
+            ];
+        }
+
+        return $results;
+    }
+
+    /**
+     * @param list<array<string,mixed>> $results
+     * @return list<list<scalar|null>>
+     */
+    private function populationResultRows(array $results): array
+    {
+        $rows = [];
+        foreach ($results as $result) {
+            $rows[] = [
+                Value::string($result['resourceId'] ?? null, 'population.resourceId'),
+                Value::string($result['name'] ?? null, 'population.name'),
+                Value::string($result['sourceValue'] ?? null, 'population.sourceValue'),
+                Value::nullableString($result['normalizedUrl'] ?? null, 'population.normalizedUrl'),
+                Value::string($result['classificationType'] ?? null, 'population.classificationType'),
+                Value::string($result['classificationRule'] ?? null, 'population.classificationRule'),
+                $this->floatValue($result['classificationConfidence'] ?? null),
+                !empty($result['eligibleForWebsiteMeasurement']) ? '1' : '0',
+                Value::string($result['measurementStatus'] ?? null, 'population.measurementStatus'),
+                Value::string($result['primaryReason'] ?? null, 'population.primaryReason'),
+                Value::nullableString($result['lgpdPublicEvidenceState'] ?? null, 'population.lgpdPublicEvidenceState'),
+                $this->floatValue($result['lgpdCoverageRate'] ?? null),
+                $this->floatValue($result['lgpdFullObservedSupportRate'] ?? null),
+                $this->floatValue($result['lgpdAnyObservedSupportRate'] ?? null),
             ];
         }
 
