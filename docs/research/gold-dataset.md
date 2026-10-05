@@ -1,8 +1,8 @@
 # Gold dataset and reliability workflow
 
-Review workflow version: **1.1.0**
+Review workflow version: **1.2.0**
 
-Collection protocol and annotation handbook remain **1.0.0**. Version 1.1.0 separates packet-sufficiency triage from actual human labels; compare reviewer agreement only for genuinely annotated pairs.
+Collection protocol and annotation handbook remain **1.0.0**. Version 1.2.0 adds preserved document context and sampled resource provenance to the packet-sufficiency triage introduced in 1.1.0; compare reviewer agreement only for genuinely annotated pairs under equivalent review conditions.
 
 This document defines the machine-preparable portion of the gold-dataset workflow. Actual labels designated as human ground truth must be produced by actual human reviewers.
 

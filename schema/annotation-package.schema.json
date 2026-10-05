@@ -5,6 +5,7 @@
   "type": "object",
   "additionalProperties": false,
   "required": ["packageVersion", "annotationHandbookVersion", "runId", "seed", "perStratum", "cases"],
+  "allOf": [{"if": {"properties": {"packageVersion": {"const": "1.1.0"}}}, "then": {"required": ["reviewDocuments"], "properties": {"cases": {"items": {"required": ["reviewContext"]}}}}}],
   "properties": {
     "testMode": {"type": "boolean", "description": "True marks form QA answers, which human import rejects."},
     "packageVersion": {"enum": ["1.0.0", "1.1.0"]},
@@ -12,7 +13,7 @@
     "runId": {"type": "string", "minLength": 1},
     "seed": {"type": "string", "minLength": 1},
     "perStratum": {"type": "integer", "minimum": 1},
-    "reviewDocuments": {"type": "object", "additionalProperties": {"type": "object", "additionalProperties": false, "required": ["title", "text"], "properties": {"title": {"type": "string"}, "text": {"type": "string"}}}},
+    "reviewDocuments": {"type": "object", "propertyNames": {"pattern": "^[a-f0-9]{64}$"}, "additionalProperties": {"type": "object", "additionalProperties": false, "required": ["title", "text"], "properties": {"title": {"type": "string"}, "text": {"type": "string"}}}},
     "cases": {
       "type": "array",
       "items": {
