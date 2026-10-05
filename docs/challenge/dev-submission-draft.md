@@ -190,36 +190,58 @@ The original discussion appears in **section 3.2.6, “Panorama da conformidade 
 Read the original monograph (PDF)
 {% endcta %}
 
-The 2025 study reported:
+### 2025 vs 2026: from a manual baseline to a reproducible run
 
-| 2025 monograph indicator | Result |
-| --- | ---: |
-| IPB churches considered | **2,935** |
-| Churches with a website address in the directory | **640** |
-| Addresses that were not social networks | **532** |
-| Valid and active websites | **219** |
-| Sites with any LGPD mention | **22** |
-| Sites with a cookie notice | **16** |
-| Sites with a published privacy policy | **15** |
-| Sites with a generic DPO/privacy contact | **12** |
-| Sites with a specific data-subject-rights form | **5** |
-| Sites with an identified DPO | **2** |
+The original monograph gives this project something unusually useful: a **historical baseline collected before Privacy Evidence existed**.
 
-The monograph records that the original processing was completed on **June 20, 2025**. The current Privacy Evidence run was performed in **October 2026**, more than a year later.
+The first dataset was processed on **June 20, 2025**. The new full-population validation run was executed on **October 5, 2026**. The table below puts both observations side by side.
+
+| Dimension | June 20, 2025 — monograph | October 5, 2026 — Privacy Evidence | How to interpret it |
+| --- | ---: | ---: | --- |
+| Source population | **2,935 churches** | **2,993 source records** | The underlying directory changed over time; the 2026 run contains 58 more source records. |
+| Website addresses / website-eligible records | **640 addresses informed** | **589 eligible source records** | The criteria are not identical. The current protocol classifies resource type before deciding website eligibility. |
+| Non-social / web resources | **532 addresses that were not social networks** | **529 institutional websites + 60 third-party hosted pages** | The 2026 taxonomy is more granular, so these categories should not be treated as a direct percentage comparison. |
+| Unique website units | *Not reported separately* | **566 unique websites** | Privacy Evidence explicitly deduplicates website measurement units. The run found **23 duplicate references in 9 groups**. |
+| Sites that could be technically observed | **219 valid and active sites** | **193 fully measured + 12 partially measured** | These are the closest operational concepts, but the current measurement protocol is stricter and records bounded-crawl outcomes. |
+| Sites not measurable under the protocol | *Not reported as a structured outcome* | **361** | The current pipeline preserves non-measurement as data instead of silently shrinking the analyzed population. |
+| Any LGPD-related signal | **22 sites with any LGPD mention** | **6.6% average any observed support across evaluated requirements** | These metrics use different constructs and denominators and must not be compared as if they were the same measure. |
+| Published privacy policy | **15 sites** | *No one-to-one aggregate metric* | The current model decomposes privacy evidence into versioned requirements instead of using only document-presence counts. |
+| Data-subject rights form | **5 sites** | **4 observed rights-channel cases among 203 measurable for that requirement** | Similar theme, different operational definition. This is contextual comparison, not a longitudinal effect estimate. |
+| Identified DPO / encarregado | **2 sites** | **2 observed + 2 partial among 4 measurable cases** | The 2026 requirement has a very small measurable denominator and must not be generalized to the population. |
 
 {% card %}
-### This is not a like-for-like percentage comparison
+### The comparison is useful precisely because it is not identical
 
-The web is a moving research object. Between June 2025 and October 2026, church websites may have appeared, disappeared, changed domain, changed content or changed privacy disclosures. The IPB source directory itself may also have changed.
+A direct 2025-to-2026 compliance trend would be methodologically invalid. The source population changed, websites changed, and the measurement protocol changed.
 
-In addition, the current Privacy Evidence pipeline has a more explicit population-accounting protocol than the original manual study. It distinguishes source classification, website eligibility, deduplication, acquisition outcome and evidence observability as separate stages.
-
-For that reason, differences between the 2025 and 2026 numbers should not automatically be interpreted as improvement or deterioration in LGPD practices. They reflect a combination of **time**, **changes in the source population**, **changes on the websites themselves**, and **a more rigorous measurement protocol**.
+What can be compared more confidently is **research capability**. The 2025 study produced useful counts, but several filtering and inspection steps were manual. The 2026 pipeline records how every source moves through classification, eligibility, deduplication, acquisition, evidence detection, review and regulatory mapping.
 {% endcard %}
 
-The historical value of the comparison is therefore methodological as much as substantive: the 2025 monograph provides the baseline that motivated the project, while the 2026 run demonstrates how the same research problem can be revisited with a reproducible and auditable pipeline.
+### What the new tool adds to the original study
+
+The clearest evidence of the tool's effectiveness is therefore not that a particular percentage became larger or smaller. It is that the same research problem can now be executed with much stronger traceability:
+
+| Research capability | 2025 monograph workflow | 2026 Privacy Evidence run |
+| --- | --- | --- |
+| Population accounting | Manual filtering during analysis | **All 2,993 source records receive an explicit final state** |
+| Resource classification | Primarily manual cleaning | **Versioned structured classifications** |
+| Duplicate handling | Not reported as a separate measurement stage | **23 duplicate references, 9 groups, 566 unique website units** |
+| Acquisition failures | Mainly reflected in the reduced usable set | **DNS, TLS, HTTP, rate-limit, anti-bot, timeout and budget outcomes are preserved** |
+| Missing data | Not modeled as a dedicated state system | **Unknown, unavailable, invalid, excluded and not-applicable remain distinct** |
+| Evidence provenance | Manual/semi-automated inspection | **Evidence tied to immutable acquired artifacts and detector versions** |
+| Reproducibility | Source code was published, but part of the workflow remained manual | **ResearchRun records protocol, schema, detectors, profiles and acquisition configuration** |
+| Automated classification | Rule-oriented/manual analysis | **Deterministic rules plus experimental ML second opinion and auditable human review** |
+
+This is the main methodological gain. Privacy Evidence does not prove that the 2026 websites are "better" or "worse" than they were in 2025. It makes the observation process **repeatable, inspectable and suitable for future longitudinal comparison**.
+
+The 2026 full-population validation is publicly auditable here:
+
+{% cta https://github.com/vitormattos/privacy-evidence/actions/runs/37260583969 %}
+Inspect the October 5, 2026 full-population validation run
+{% endcta %}
 
 ### From the full IPB population to measurable websites
+
 
 The complete accounting of the **2,993 source records** was:
 
