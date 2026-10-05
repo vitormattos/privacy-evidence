@@ -114,7 +114,11 @@ jobs:
         run: docker compose run --rm app source:import tests/Fixtures/sources/sites.csv
 
   reviewer-form:
-    name: Offline reviewer browser tests
+    name: Offline reviewer (${{ matrix.browser }})
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -124,13 +128,14 @@ jobs:
           cache: npm
           cache-dependency-path: browser/package-lock.json
       - run: npm ci --prefix browser
-      - run: npx --prefix browser playwright install --with-deps chromium
+      - run: npx --prefix browser playwright install --with-deps ${{ matrix.browser }}
       - run: node --test tests/Browser/reviewer.test.mjs
         env:
           REVIEW_SCREENSHOT_DIR: /tmp/reviewer-screenshots
+          REVIEW_BROWSER: ${{ matrix.browser }}
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: reviewer-form-screenshots
+          name: reviewer-form-screenshots-${{ matrix.browser }}
           path: /tmp/reviewer-screenshots
           if-no-files-found: warn

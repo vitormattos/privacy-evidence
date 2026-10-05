@@ -4,11 +4,14 @@ import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
-import { readFile, mkdir } from 'node:fs/promises';
+import { readFile, mkdir, mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
 
 const require = createRequire(new URL('../../browser/package.json', import.meta.url));
-const { chromium } = require('playwright');
+const engines = require('playwright');
+const engine = engines[process.env.REVIEW_BROWSER || 'chromium'];
 const template = await readFile(new URL('../../resources/review/reviewer.html', import.meta.url), 'utf8');
 const states = ['present', 'absent', 'unknown', 'unavailable', 'invalid', 'excluded', 'not_applicable'];
 const fixtureCases = Array.from({ length: 85 }, (_, i) => ({
@@ -38,7 +41,7 @@ before(async () => {
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   baseUrl = 'http://127.0.0.1:' + server.address().port + '/reviewer.html';
-  browser = await chromium.launch({ headless: true });
+  browser = await engine.launch({ headless: true });
 });
 after(async () => {
   if (browser) await browser.close();
@@ -125,6 +128,8 @@ test('research mode separates triage without discarding sites or creating forced
     await page.locator('#next').click();
     assert.match(await page.locator('#sourceUrl').getAttribute('href'), /^https:\/\/example.test/);
     await screenshot(page, 'investigation-desktop');
+    for (let i = 1; i < 28; i++) await page.locator('#next').click();
+    assert.equal(await page.locator('#next').isDisabled(), true);
     await page.locator('#queueToggle').click();
     for (let i = 0; i < 56; i++) await answer(page, 'unknown', 'Fixture text is insufficient for a conclusion.');
     const result = await download(page);
@@ -196,4 +201,26 @@ test('mobile layout and keyboard save preserve independent review', async () => 
     await screenshot(page, 'test-mobile');
     assert.deepEqual(errors, []);
   } finally { await context.close(); }
+});
+
+
+test('generated HTML works directly from a local file without an HTTP server', async () => {
+  const directory = await mkdtemp(tmpdir() + '/reviewer-offline-');
+  const context = await browser.newContext({ acceptDownloads: true });
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const path = directory + '/reviewer.html';
+  const data = { runId: 'offline', seed: 'offline', cases: [fixtureCases[1]] };
+  const json = JSON.stringify(data);
+  await writeFile(path, template.replace('__PACKAGE_JSON__', json).replace('__REVIEW_CONFIG_JSON__', JSON.stringify({ testMode: true, packageHash: 'offline-fixture' })));
+  try {
+    await page.goto(pathToFileURL(path).href);
+    await answer(page);
+    assert.equal((await download(page)).data.testMode, true);
+    assert.deepEqual(errors, []);
+  } finally {
+    await context.close();
+    await rm(directory, { recursive: true, force: true });
+  }
 });

@@ -132,6 +132,8 @@ const i18n = {
     deferred: 'para investigação / nova coleta',
     showDeferred: 'Ver casos para investigação',
     showReview: 'Voltar à revisão',
+    inspectNext: 'Próximo caso',
+    inspectLast: 'Último caso desta fila',
     empty: 'Não há casos nesta fila.',
     storageError: 'Não foi possível salvar no navegador. Mantenha esta página aberta e exporte ao terminar.',
     finished: 'Revisão concluída. Exporte o JSON; os casos para investigação continuam no pacote sem rótulo humano.',
@@ -186,6 +188,8 @@ const i18n = {
     deferred: 'requiring investigation / recollection',
     showDeferred: 'View cases for investigation',
     showReview: 'Return to review',
+    inspectNext: 'Next case',
+    inspectLast: 'Last case in this queue',
     empty: 'There are no cases in this queue.',
     storageError: 'Browser storage is unavailable. Keep this page open and export when finished.',
     finished: 'Review complete. Export JSON; cases requiring investigation remain in the packet without human labels.',
@@ -482,7 +486,10 @@ function render() {
   }
 
   document.getElementById('previous').disabled = position === 0;
-  document.getElementById('next').textContent = position === order.length - 1 ? text.save : text.next;
+  document.getElementById('next').textContent = showingDeferred
+    ? (position === order.length - 1 ? text.inspectLast : text.inspectNext)
+    : (position === order.length - 1 ? text.save : text.next);
+  document.getElementById('next').disabled = showingDeferred && position === order.length - 1;
   document.getElementById('export').disabled = done !== reviewOrder.length;
 }
 
@@ -573,7 +580,11 @@ document.getElementById('moreStates').addEventListener('click', () => {
 document.getElementById('rationale').addEventListener('input', () => {
   document.getElementById('validation').textContent = '';
   saveDraftRationale();
-  document.getElementById('export').disabled = completedCount() !== reviewOrder.length;
+  const done = completedCount();
+  document.getElementById('export').disabled = done !== reviewOrder.length;
+  document.getElementById('nextUnanswered').disabled = done === reviewOrder.length;
+  document.getElementById('progressText').textContent = done + ' / ' + reviewOrder.length + ' ' + t().completed;
+  document.getElementById('progressBar').style.width = (reviewOrder.length ? done / reviewOrder.length * 100 : 100) + '%';
 });
 document.getElementById('rationaleHelper').addEventListener('click', () => {
   const c = currentCase();
