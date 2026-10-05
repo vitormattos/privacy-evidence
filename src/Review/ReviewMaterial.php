@@ -22,19 +22,26 @@ final readonly class ReviewMaterial
     ) {
     }
 
-    /** @param array<string, mixed> $package @return array<string, mixed> */
+    /**
+     * @param array<string, mixed> $package
+     * @return array<string, mixed>
+     */
     public function enrich(array $package): array
     {
         $resources = [];
         foreach ($this->resources as $resource) {
-            if (is_string($resource['id'] ?? null)) {
-                $resources[$resource['id']] = $resource;
+            /** @var mixed $id */
+            $id = $resource['id'] ?? null;
+            if (is_string($id)) {
+                $resources[$id] = $resource;
             }
         }
         $documents = [];
         foreach ($this->documents as $document) {
-            if (is_string($document['artifactHash'] ?? null)) {
-                $documents[$document['artifactHash']] = $document;
+            /** @var mixed $documentHash */
+            $documentHash = $document['artifactHash'] ?? null;
+            if (is_string($documentHash)) {
+                $documents[$documentHash] = $document;
             }
         }
         $material = [];
@@ -48,10 +55,10 @@ final readonly class ReviewMaterial
             if (!is_array($case)) {
                 throw new \InvalidArgumentException('Package case must be an object.');
             }
-            $resourceId = $case['resourceId'] ?? '';
-            $hash = $case['artifactHash'] ?? '';
-            $resource = is_string($resourceId) ? ($resources[$resourceId] ?? []) : [];
-            $document = is_string($hash) ? ($documents[$hash] ?? []) : [];
+            $resourceId = is_string($case['resourceId'] ?? null) ? $case['resourceId'] : '';
+            $hash = is_string($case['artifactHash'] ?? null) ? $case['artifactHash'] : '';
+            $resource = $resources[$resourceId] ?? [];
+            $document = $documents[$hash] ?? [];
             $reason = null;
             if (
                 $resource === []
@@ -60,7 +67,7 @@ final readonly class ReviewMaterial
                 || ($document['resourceId'] ?? null) !== $resourceId
             ) {
                 $reason = 'missing_provenance';
-            } elseif (!is_string($hash) || preg_match('/^[a-f0-9]{64}$/', $hash) !== 1) {
+            } elseif (preg_match('/^[a-f0-9]{64}$/', $hash) !== 1) {
                 $reason = 'invalid_hash';
             } else {
                 if (!isset($material[$hash])) {
@@ -72,16 +79,18 @@ final readonly class ReviewMaterial
                     } elseif (!in_array($document['mediaType'] ?? null, ['text/html', 'application/xhtml+xml', 'text/plain'], true)) {
                         $reason = 'unsupported_media';
                     } else {
-                        $material[$hash] = $this->text($body, ($document['mediaType'] ?? null) === 'text/plain');
+                        $material[$hash] = $this->text($body, $document['mediaType'] === 'text/plain');
                     }
                 }
                 if ($reason === null && trim($material[$hash]['text'] ?? '') === '') {
                     $reason = 'empty_document';
                 }
-                if ($reason === null && in_array($case['evidenceType'] ?? null, [
-                    'nonessential_storage_before_consent',
-                    'third_party_requests_before_consent',
-                ], true)) {
+                if (
+                    $reason === null && in_array($case['evidenceType'] ?? null, [
+                        'nonessential_storage_before_consent',
+                        'third_party_requests_before_consent',
+                    ], true)
+                ) {
                     $reason = 'behavioral_material_required';
                 }
             }
@@ -113,12 +122,14 @@ final readonly class ReviewMaterial
         try {
             $dom->loadHTML('<?xml encoding="UTF-8">' . $body, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
             $xpath = new DOMXPath($dom);
-            $titleValue = $xpath->evaluate('string(//title)');
-            $title = is_string($titleValue) ? trim($titleValue) : '';
+            $titles = $dom->getElementsByTagName('title');
+            $title = trim($titles->item(0)?->textContent ?? '');
             $nodes = $xpath->query('//script|//style|//noscript|//head|//template');
             if ($nodes !== false) {
                 foreach ($nodes as $node) {
-                    $node->parentNode?->removeChild($node);
+                    if ($node instanceof \DOMNode) {
+                        $node->parentNode?->removeChild($node);
+                    }
                 }
             }
             $links = $xpath->query('//a[@href]');
@@ -132,7 +143,9 @@ final readonly class ReviewMaterial
             $blocks = $xpath->query('//p|//div|//section|//article|//li|//h1|//h2|//h3|//tr|//br');
             if ($blocks !== false) {
                 foreach ($blocks as $node) {
-                    $node->appendChild($dom->createTextNode("\n"));
+                    if ($node instanceof \DOMNode) {
+                        $node->appendChild($dom->createTextNode("\n"));
+                    }
                 }
             }
             $text = $dom->textContent;

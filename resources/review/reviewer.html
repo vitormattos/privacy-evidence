@@ -49,10 +49,10 @@ a { color: LinkText; overflow-wrap: anywhere; }
 <button id="languageToggle" type="button">English</button>
 </div>
 <details><summary id="instructionsLabel">Instruções</summary><p id="intro"></p>
+<div class="notice"><strong id="privacyTitle"></strong> <span id="privacyText"></span></div></details>
 <div id="testNotice" class="notice warning" hidden></div>
 <div id="queueNotice" class="notice"></div>
 <div class="controls"><button id="queueToggle" type="button"></button></div>
-<div class="notice"><strong id="privacyTitle"></strong> <span id="privacyText"></span></div></details>
 <div class="progress-shell"><div id="progressBar" class="progress-bar"></div></div>
 <div class="meta">
 <span id="progressText"></span>
@@ -139,7 +139,7 @@ const i18n = {
     empty: 'Não há casos nesta fila.',
     storageError: 'Não foi possível salvar no navegador. Mantenha esta página aberta e exporte ao terminar.',
     finished: 'Revisão concluída. Exporte o JSON; os casos para investigação continuam no pacote sem rótulo humano.',
-    sourceHelp: 'A página ao vivo pode ter mudado. Use-a apenas como contexto e baseie a classificação na evidência preservada acima.',
+    sourceHelp: 'A página ao vivo pode ter mudado. Use-a apenas como contexto e baseie a classificação na página preservada abaixo.',
     humanState: 'Classificação humana',
     more: 'Mais opções',
     fewer: 'Menos opções',
@@ -162,7 +162,7 @@ const i18n = {
     minutes: 'min',
     validation: 'Escolha uma classificação e escreva uma justificativa curta antes de avançar.',
     chooseStateFirst: 'Escolha uma classificação antes de gerar uma sugestão de justificativa.',
-    shortcuts: 'Atalhos: 1 Present, 2 Absent, 3 Unknown, 4 Unavailable, 5 Invalid, 6 Excluded, 7 Not applicable.',
+    shortcuts: 'Atalhos: 1 Presente, 2 Ausente, 3 Não é possível concluir. Mais opções: 4–7.',
     bias: 'O estado produzido pelo detector, a confiança e o indicador de revisão ficam ocultos para reduzir viés de ancoragem. Esses dados permanecem inalterados no pacote de pesquisa exportado.',
     states: {
       present: 'Presente',
@@ -195,7 +195,7 @@ const i18n = {
     empty: 'There are no cases in this queue.',
     storageError: 'Browser storage is unavailable. Keep this page open and export when finished.',
     finished: 'Review complete. Export JSON; cases requiring investigation remain in the packet without human labels.',
-    sourceHelp: 'The live page may have changed. Use it only as context and base the classification on the preserved evidence above.',
+    sourceHelp: 'The live page may have changed. Use it only as context and base the classification on the preserved page below.',
     humanState: 'Human classification',
     more: 'More options',
     fewer: 'Fewer options',
@@ -506,8 +506,13 @@ function render() {
   document.getElementById('sampleUrl').textContent = (context.resourceUrl || '') + ' · Resource ID: ' + c.resourceId;
   document.getElementById('type').textContent = questions[locale][c.evidenceType] || String(c.evidenceType).replaceAll('_', ' ');
   document.getElementById('pageContext').textContent = (doc?.title || '') + ' · ' + (locale === 'pt' ? 'Coletado em: ' : 'Collected at: ') + (context.fetchedAt || '—');
-  document.getElementById('contextWarning').hidden = !context.truncated;
-  document.getElementById('contextWarning').textContent = locale === 'pt' ? 'A coleta foi truncada. Use “Não é possível concluir” se a resposta depender da parte não preservada.' : 'The collection was truncated. Use Unknown if the answer requires the missing part.';
+  const warnings = [];
+  if (context.truncated) warnings.push(locale === 'pt' ? 'A coleta foi truncada. Use “Não é possível concluir” se a resposta depender da parte não preservada.' : 'The collection was truncated. Use Unknown if the answer requires the missing part.');
+  try {
+    if (new URL(context.resourceUrl).hostname !== new URL(c.sourceUrl).hostname) warnings.push(locale === 'pt' ? 'Esta página está em outro domínio. O vínculo da coleta não comprova que ela descreve o tratamento de dados do site da amostra.' : 'This page is on another domain. A crawl link does not prove it describes processing by the sampled website.');
+  } catch (_) {}
+  document.getElementById('contextWarning').hidden = warnings.length === 0;
+  document.getElementById('contextWarning').textContent = warnings.join(' ');
   const labels = locale === 'pt' ? ['Instruções', 'Critério de avaliação', 'Proveniência', 'Sobre esta revisão'] : ['Instructions', 'Assessment criteria', 'Provenance', 'About this review'];
   ['instructionsLabel', 'criteriaLabel', 'provenanceLabel', 'methodLabel'].forEach((id, i) => { document.getElementById(id).textContent = labels[i]; });
   document.getElementById('guidance').textContent = guidanceFor(c.evidenceType);

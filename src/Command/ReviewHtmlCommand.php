@@ -67,12 +67,13 @@ final class ReviewHtmlCommand extends Command
         $contextDirectory ??= dirname(dirname($packagePath));
         $artifactDirectory ??= $this->projectRoot . '/data/raw/artifacts';
         if (!isset($decoded['reviewDocuments']) || $input->getOption('context-dir') !== null) {
-            /** @var array<string, mixed> $decoded */
+            /** @var array<string, mixed> $contextPackage */
+            $contextPackage = $decoded;
             $decoded = (new ReviewMaterial(
                 $this->records($contextDirectory . '/resources.json'),
                 $this->records($contextDirectory . '/documents.json'),
                 $artifactDirectory,
-            ))->enrich($decoded);
+            ))->enrich($contextPackage);
         }
 
         $testMode = $input->getOption('test-mode') === true;
@@ -111,15 +112,18 @@ final class ReviewHtmlCommand extends Command
 
         file_put_contents($outputPath, $html);
 
+        /** @var list<array<string, mixed>> $htmlCases */
+        $htmlCases = $decoded['cases'];
         $output->writeln(json_encode([
             'path' => $outputPath,
-            'cases' => count($decoded['cases']),
+            'cases' => count($htmlCases),
             'offline' => true,
             'testMode' => $testMode,
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 
         return Command::SUCCESS;
     }
+
     /** @return list<array<string, mixed>> */
     private function records(string $path): array
     {
@@ -142,5 +146,4 @@ final class ReviewHtmlCommand extends Command
 
         return $records;
     }
-
 }

@@ -73,20 +73,39 @@ final class ReviewImportCommand extends Command
         }
 
         // Compute eligibility from local source data, never from reviewer-editable context.
-        /** @var array<string, mixed> $decoded */
+        $sourceCases = [];
+        foreach ($cases as $submittedCase) {
+            if (!is_array($submittedCase)) {
+                return Command::INVALID;
+            }
+            $submittedId = is_string($submittedCase['evidenceId'] ?? null) ? $submittedCase['evidenceId'] : '';
+            $source = $evidenceById[$submittedId] ?? null;
+            if ($source === null) {
+                return Command::INVALID;
+            }
+            $sourceCases[] = [
+                'evidenceId' => $source->id(),
+                'resourceId' => $source->resourceId,
+                'artifactHash' => $source->artifactHash,
+                'sourceUrl' => $source->sourceUrl,
+                'evidenceType' => $source->type->value,
+            ];
+        }
         $prepared = (new ReviewMaterial(
             $runtime->observations->resourceRecords($runId),
             $runtime->observations->documentRecords($runId),
             $runtime->artifactDirectory,
-        ))->enrich($decoded);
+        ))->enrich(['cases' => $sourceCases]);
         /** @var list<array<string, mixed>> $preparedCases */
         $preparedCases = $prepared['cases'];
         $eligibility = [];
         foreach ($preparedCases as $preparedCase) {
             /** @var array<string, mixed> $context */
             $context = $preparedCase['reviewContext'];
-            if (is_string($preparedCase['evidenceId'] ?? null)) {
-                $eligibility[$preparedCase['evidenceId']] = $context['reason'] === null;
+            /** @var mixed $preparedId */
+            $preparedId = $preparedCase['evidenceId'] ?? null;
+            if (is_string($preparedId)) {
+                $eligibility[$preparedId] = $context['reason'] === null;
             }
         }
 
