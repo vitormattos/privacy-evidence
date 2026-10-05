@@ -82,6 +82,47 @@ jobs:
           cp -a "data/derived/runs/$RUN_ID" "$OUT/run-derived"
           cp -a "$EXPORT_DIR" "$OUT/export"
 
+          echo '== 11. Assert and summarize 100% population accounting ==' | tee -a "$OUT/full-run.log"
+          php -r '
+          $population = max(0, count(file($argv[1], FILE_IGNORE_NEW_LINES)) - 1);
+          $outcomes = json_decode(file_get_contents($argv[2]), true, 512, JSON_THROW_ON_ERROR);
+          if (!is_array($outcomes)) {
+              fwrite(STDERR, "resource-outcomes.json is not an array\n");
+              exit(2);
+          }
+
+          $byStatus = [];
+          $byReason = [];
+          foreach ($outcomes as $row) {
+              if (!is_array($row)) continue;
+              $status = (string)($row["measurementStatus"] ?? "missing_status");
+              $reason = (string)($row["primaryReason"] ?? "missing_reason");
+              $byStatus[$status] = ($byStatus[$status] ?? 0) + 1;
+              $byReason[$reason] = ($byReason[$reason] ?? 0) + 1;
+          }
+          ksort($byStatus);
+          ksort($byReason);
+
+          $summary = [
+              "population" => $population,
+              "outcomes" => count($outcomes),
+              "completePopulationAccounting" => count($outcomes) === $population,
+              "byMeasurementStatus" => $byStatus,
+              "byPrimaryReason" => $byReason,
+          ];
+          echo json_encode($summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+
+          if (count($outcomes) !== $population) {
+              fwrite(STDERR, sprintf(
+                  "Population accounting mismatch: population=%d outcomes=%d\n",
+                  $population,
+                  count($outcomes),
+              ));
+              exit(1);
+          }
+          ' "$OUT/ipb-population.csv" "$EXPORT_DIR/resource-outcomes.json" \
+            | tee "$OUT/population-outcomes-summary.json" | tee -a "$OUT/full-run.log"
+
           if [ "$RUN_EXIT" -ne 0 ]; then
             echo 'Research run completed with terminal failures.' | tee -a "$OUT/full-run.log"
             exit "$RUN_EXIT"
