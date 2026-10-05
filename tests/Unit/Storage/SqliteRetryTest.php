@@ -53,9 +53,11 @@ final class SqliteRetryTest extends TestCase
 
         $statement->expects(self::never())->method('closeCursor');
 
-        $this->expectException(PDOException::class);
-        $this->expectExceptionMessage('API misuse');
-
-        SqliteRetry::execute($statement, []);
+        try {
+            SqliteRetry::execute($statement, []);
+            self::fail('Expected PDOException was not thrown.');
+        } catch (PDOException $exception) {
+            self::assertStringContainsString('API misuse', $exception->getMessage());
+        }
     }
 }
