@@ -66,12 +66,12 @@ jobs:
 
           echo '== 6. Process HTTP crawl with bounded worker pool ==' | tee -a "$OUT/full-run.log"
           php bin/privacy-evidence workers "$RUN_ID" fetch \
-            --workers=2 --max-jobs=100 --per-host-concurrency=1 --min-host-delay-ms=250 \
+            --max-jobs=100 \
             2>&1 | tee -a "$OUT/full-run.log"
 
           echo '== 7. Process browser escalation with bounded worker pool ==' | tee -a "$OUT/full-run.log"
           php bin/privacy-evidence workers "$RUN_ID" browser \
-            --workers=1 --max-jobs=50 --per-host-concurrency=1 --min-host-delay-ms=250 \
+            --max-jobs=50 \
             2>&1 | tee -a "$OUT/full-run.log"
 
           echo '== 8. Finalize run and regulatory analysis ==' | tee -a "$OUT/full-run.log"

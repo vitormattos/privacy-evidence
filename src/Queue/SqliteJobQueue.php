@@ -274,10 +274,7 @@ final class SqliteJobQueue implements JobQueue
         $until = self::nowMs() + $delayMs;
         $stmt = $this->pdo->prepare(
             'UPDATE jobs
-             SET available_at_ms = CASE
-                 WHEN available_at_ms < :until THEN :until
-                 ELSE available_at_ms
-             END
+             SET available_at_ms = MAX(available_at_ms, :until)
              WHERE run_id = :run_id
                AND stage = :stage
                AND host = :host
