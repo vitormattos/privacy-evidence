@@ -16,7 +16,7 @@ final class TransparencyDetector extends AbstractTextDetector
 
     public function version(): string
     {
-        return '1.0.0';
+        return '1.1.0';
     }
 
     protected function patterns(): array
@@ -39,7 +39,9 @@ final class TransparencyDetector extends AbstractTextDetector
             [
                 'type' => EvidenceType::RecipientDisclosure,
                 'patterns' => [
-                    '/\b(?:destinat[aá]rios|recipients|compartilhamos|share(?:d)? with|terceiros|third parties)\b/u',
+                    '/\b(?:compartilhamos|compartilhamento|share(?:d|ing)? with)\b.{0,140}\b(?:dados|data|informa[cç][oõ]es|information|terceiros|third parties|destinat[aá]rios|recipients)\b/u',
+                    '/\b(?:dados|data|informa[cç][oõ]es|information)\b.{0,140}\b(?:terceiros|third parties|destinat[aá]rios|recipients)\b/u',
+                    '/\b(?:destinat[aá]rios|recipients)\b.{0,140}\b(?:dados|data|tratamento|processing|informa[cç][oõ]es|information)\b/u',
                 ],
             ],
             [
