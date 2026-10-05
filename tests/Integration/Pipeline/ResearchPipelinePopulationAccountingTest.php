@@ -37,6 +37,7 @@ final class ResearchPipelinePopulationAccountingTest extends TestCase
                 'id,name,url',
                 'site,Website,https://example.test/',
                 'social,Social,https://instagram.com/example',
+                'duplicate,Duplicate,https://example.test/',
                 'bad,Bad,mailto:test@example.org',
             ]) . PHP_EOL);
 
@@ -74,7 +75,7 @@ final class ResearchPipelinePopulationAccountingTest extends TestCase
 
             $pipeline->start($run, new CsvSource($csv));
 
-            self::assertCount(3, $observations->resourceRecords($run->id));
+            self::assertCount(4, $observations->resourceRecords($run->id));
             self::assertSame(['pending' => 1], $jobs->counts($run->id));
 
             $terminalByResource = [];
@@ -87,12 +88,25 @@ final class ResearchPipelinePopulationAccountingTest extends TestCase
 
             self::assertSame('not_eligible', $terminalByResource['social']['status'] ?? null);
             self::assertSame('social_network', $terminalByResource['social']['category'] ?? null);
+            self::assertSame(
+                'duplicate_reference',
+                $terminalByResource['site']['status'] ?? null,
+            );
+            self::assertSame(
+                'duplicate_source_url',
+                $terminalByResource['site']['category'] ?? null,
+            );
+            self::assertSame(
+                'duplicate',
+                $terminalByResource['site']['canonical_resource_id'] ?? null,
+            );
             self::assertSame('not_eligible', $terminalByResource['bad']['status'] ?? null);
             self::assertSame('malformed', $terminalByResource['bad']['category'] ?? null);
 
             $telemetry = $runs->telemetry($run->id);
-            self::assertSame(3.0, $telemetry['resources_imported'] ?? null);
+            self::assertSame(4.0, $telemetry['resources_imported'] ?? null);
             self::assertSame(2.0, $telemetry['resources_not_eligible'] ?? null);
+            self::assertSame(1.0, $telemetry['resources_duplicate_reference'] ?? null);
         } finally {
             $this->removeDirectory($directory);
         }

@@ -99,6 +99,7 @@ final readonly class RunExporter
                 'budgetLimited',
                 'antiBotChallenge',
                 'measurementLimitReasons',
+                'canonicalResourceId',
             ],
             $this->resourceOutcomeRows($resourceOutcomes),
         );
@@ -621,11 +622,15 @@ final readonly class RunExporter
             $terminalStatusValue = $terminal['status'] ?? null;
             $categoryValue = $terminal['category'] ?? null;
             $classificationRuleValue = $terminal['classification_rule'] ?? null;
+            $canonicalResourceIdValue = $terminal['canonical_resource_id'] ?? null;
             $httpStatusValue = $terminal['http_status'] ?? null;
             $terminalStatus = is_string($terminalStatusValue) ? $terminalStatusValue : null;
             $category = is_string($categoryValue) ? $categoryValue : null;
             $classificationRule = is_string($classificationRuleValue)
                 ? $classificationRuleValue
+                : null;
+            $canonicalResourceId = is_string($canonicalResourceIdValue)
+                ? $canonicalResourceIdValue
                 : null;
             $httpStatus = is_int($httpStatusValue) ? $httpStatusValue : null;
             $successCount = $successfulDocuments[$id] ?? 0;
@@ -663,7 +668,10 @@ final readonly class RunExporter
                 ],
             );
 
-            if ($terminalStatus === 'not_eligible') {
+            if ($terminalStatus === 'duplicate_reference') {
+                $measurementStatus = 'duplicate_reference';
+                $primaryReason = 'duplicate_source_url';
+            } elseif ($terminalStatus === 'not_eligible') {
                 $measurementStatus = 'not_eligible';
                 $primaryReason = $classificationRule ?? $category ?? 'not_eligible';
             } elseif ($terminalStatus === 'invalid_url') {
@@ -709,6 +717,7 @@ final readonly class RunExporter
                 'budgetLimited' => $budgetLimited,
                 'antiBotChallenge' => $antiBotChallenge,
                 'measurementLimitReasons' => $measurementLimitReasons,
+                'canonicalResourceId' => $canonicalResourceId,
             ];
         }
 
@@ -735,6 +744,10 @@ final readonly class RunExporter
                 !empty($outcome['budgetLimited']) ? '1' : '0',
                 !empty($outcome['antiBotChallenge']) ? '1' : '0',
                 $this->stringList($outcome['measurementLimitReasons'] ?? []),
+                Value::nullableString(
+                    $outcome['canonicalResourceId'] ?? null,
+                    'outcome.canonicalResourceId',
+                ),
             ];
         }
 
@@ -797,7 +810,6 @@ final readonly class RunExporter
             }
 
             $outcome = $outcomeById[$idValue] ?? [];
-            $lgpd = $lgpdById[$idValue] ?? [];
             /** @psalm-suppress MixedAssignment */
             $classificationValue = $resource['classification'] ?? [];
             $classification = is_array($classificationValue) ? $classificationValue : [];
@@ -811,6 +823,12 @@ final readonly class RunExporter
                 ? []
                 : ($resourceIdsByNormalizedUrl[$normalizedUrl] ?? []);
             $duplicateGroupSize = count($duplicateIds);
+            $canonicalResourceId = $duplicateGroupSize > 1
+                ? $duplicateIds[0]
+                : $idValue;
+            $lgpd = $lgpdById[$idValue]
+                ?? $lgpdById[$canonicalResourceId]
+                ?? [];
 
             $results[] = [
                 'resourceId' => $idValue,
@@ -827,7 +845,7 @@ final readonly class RunExporter
                 'duplicateNormalizedUrl' => $duplicateGroupSize > 1,
                 'duplicateGroupSize' => $duplicateGroupSize,
                 'duplicateCanonicalResourceId' => $duplicateGroupSize > 1
-                    ? $duplicateIds[0]
+                    ? $canonicalResourceId
                     : null,
                 'eligibleForWebsiteMeasurement' => $type === 'institutional_website',
                 'measurementStatus' => is_string($outcome['measurementStatus'] ?? null)
@@ -862,6 +880,7 @@ final readonly class RunExporter
         $accounted = 0;
         $duplicateResources = 0;
         $duplicateGroups = [];
+        $uniqueWebsiteMeasurementUnits = 0;
 
         foreach ($results as $result) {
             /** @psalm-suppress MixedAssignment */
@@ -885,6 +904,20 @@ final readonly class RunExporter
 
             if (!empty($result['eligibleForWebsiteMeasurement'])) {
                 $eligible++;
+
+                /** @psalm-suppress MixedAssignment */
+                $resourceIdValue = $result['resourceId'] ?? null;
+                /** @psalm-suppress MixedAssignment */
+                $duplicateCanonicalValue = $result['duplicateCanonicalResourceId'] ?? null;
+                if (
+                    is_string($resourceIdValue)
+                    && (
+                        $duplicateCanonicalValue === null
+                        || $duplicateCanonicalValue === $resourceIdValue
+                    )
+                ) {
+                    $uniqueWebsiteMeasurementUnits++;
+                }
             }
             if ($measurementStatus !== 'missing_outcome') {
                 $accounted++;
@@ -911,6 +944,7 @@ final readonly class RunExporter
             'accountedResources' => $accounted,
             'completePopulationAccounting' => $accounted === count($results),
             'eligibleForWebsiteMeasurement' => $eligible,
+            'uniqueWebsiteMeasurementUnits' => $uniqueWebsiteMeasurementUnits,
             'classificationByType' => $classification,
             'measurementByStatus' => $measurement,
             'primaryReasons' => $reasons,
@@ -1173,8 +1207,11 @@ final readonly class RunExporter
             '',
             '- Population: ' . $this->intValue($populationSummary['population'] ?? 0),
             '- Accounted resources: ' . $this->intValue($populationSummary['accountedResources'] ?? 0),
-            '- Website-measurement eligible: ' . $this->intValue(
+            '- Website-measurement eligible records: ' . $this->intValue(
                 $populationSummary['eligibleForWebsiteMeasurement'] ?? 0,
+            ),
+            '- Unique website measurement units: ' . $this->intValue(
+                $populationSummary['uniqueWebsiteMeasurementUnits'] ?? 0,
             ),
             '- Complete accounting: ' . (!empty($populationSummary['completePopulationAccounting'])
                 ? 'yes'

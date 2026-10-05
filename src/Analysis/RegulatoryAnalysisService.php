@@ -19,17 +19,28 @@ final readonly class RegulatoryAnalysisService
 
     public function analyze(string $runId): void
     {
-        $eligible = [];
+        /** @var array<string,list<string>> $eligibleIdsByUrl */
+        $eligibleIdsByUrl = [];
         foreach ($this->store->resourceRecords($runId) as $resource) {
             /** @psalm-suppress MixedAssignment */
             $resourceIdValue = $resource['id'] ?? null;
             /** @psalm-suppress MixedAssignment */
             $typeValue = $resource['type'] ?? null;
-            $resourceId = is_string($resourceIdValue) ? $resourceIdValue : null;
-            $type = is_string($typeValue) ? $typeValue : null;
-            if ($resourceId !== null && $type === 'institutional_website') {
-                $eligible[$resourceId] = true;
+            /** @psalm-suppress MixedAssignment */
+            $normalizedUrlValue = $resource['normalizedUrl'] ?? null;
+            if (
+                is_string($resourceIdValue)
+                && $typeValue === 'institutional_website'
+                && is_string($normalizedUrlValue)
+            ) {
+                $eligibleIdsByUrl[$normalizedUrlValue][] = $resourceIdValue;
             }
+        }
+
+        $eligible = [];
+        foreach ($eligibleIdsByUrl as $resourceIds) {
+            sort($resourceIds, SORT_STRING);
+            $eligible[$resourceIds[0]] = true;
         }
 
         foreach ($this->store->resourceIds($runId) as $resourceId) {

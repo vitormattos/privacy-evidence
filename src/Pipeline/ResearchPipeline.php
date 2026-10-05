@@ -46,7 +46,27 @@ final readonly class ResearchPipeline
     {
         $this->runs->create($run);
 
-        foreach ($source->resources() as $resource) {
+        $resources = iterator_to_array($source->resources(), false);
+
+        /** @var array<string,list<string>> $eligibleIdsByUrl */
+        $eligibleIdsByUrl = [];
+        foreach ($resources as $resource) {
+            if (
+                $resource->type === ResourceType::InstitutionalWebsite
+                && $resource->normalizedUrl !== null
+            ) {
+                $eligibleIdsByUrl[$resource->normalizedUrl][] = $resource->id;
+            }
+        }
+
+        /** @var array<string,string> $canonicalIdByUrl */
+        $canonicalIdByUrl = [];
+        foreach ($eligibleIdsByUrl as $url => $resourceIds) {
+            sort($resourceIds, SORT_STRING);
+            $canonicalIdByUrl[$url] = $resourceIds[0];
+        }
+
+        foreach ($resources as $resource) {
             $this->observations->recordResource($run->id, $resource);
             $this->runs->increment($run->id, 'resources_imported');
 
@@ -75,6 +95,24 @@ final readonly class ResearchPipeline
                     'resource_terminal',
                     $resource->id,
                     ['status' => 'invalid_url'],
+                );
+                continue;
+            }
+
+            $canonicalId = $canonicalIdByUrl[$resource->normalizedUrl] ?? $resource->id;
+            if ($canonicalId !== $resource->id) {
+                $this->runs->increment($run->id, 'resources_duplicate_reference');
+                $this->runs->increment($run->id, 'jobs_skipped');
+                $this->runs->recordEvent(
+                    $run->id,
+                    'resource_terminal',
+                    $resource->id,
+                    [
+                        'status' => 'duplicate_reference',
+                        'category' => 'duplicate_source_url',
+                        'canonical_resource_id' => $canonicalId,
+                        'url' => $resource->normalizedUrl,
+                    ],
                 );
                 continue;
             }
