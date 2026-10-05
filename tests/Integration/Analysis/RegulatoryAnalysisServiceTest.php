@@ -17,6 +17,39 @@ use PrivacyEvidence\Storage\SqliteObservationStore;
 
 final class RegulatoryAnalysisServiceTest extends TestCase
 {
+    public function testNonWebsitePopulationMembersDoNotReceiveWebsiteRegulatoryResults(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            self::markTestSkipped('pdo_sqlite not available');
+        }
+
+        $store = new SqliteObservationStore(new PDO('sqlite::memory:'));
+        $store->recordResource('run-population', new ImportedResource(
+            'site-1',
+            'Website',
+            'https://example.test/',
+            'https://example.test/',
+            ResourceType::InstitutionalWebsite,
+        ));
+        $store->recordResource('run-population', new ImportedResource(
+            'social-1',
+            'Social',
+            'https://instagram.com/example',
+            'https://instagram.com/example',
+            ResourceType::SocialNetwork,
+        ));
+
+        $service = new RegulatoryAnalysisService($store, DefaultProfileRegistry::create());
+        $service->analyze('run-population');
+
+        $results = $store->profileResults('run-population');
+        self::assertNotEmpty($results);
+
+        foreach ($results as $result) {
+            self::assertSame('site-1', $result['resourceId'] ?? null);
+        }
+    }
+
     public function testReanalysisReplacesCurrentProfileVersionResultsDeterministically(): void
     {
         if (!extension_loaded('pdo_sqlite')) {
