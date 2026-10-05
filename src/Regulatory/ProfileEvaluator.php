@@ -30,8 +30,7 @@ final class ProfileEvaluator
         RegulatoryProfile $profile,
         array $evidence,
         bool $negativeEvidenceReliable = true,
-    ): array
-    {
+    ): array {
         /** @var array<string,list<ObservationState>> $states */
         $states = [];
         foreach ($evidence as $item) {
