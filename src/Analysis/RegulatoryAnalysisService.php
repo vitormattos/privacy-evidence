@@ -21,9 +21,13 @@ final readonly class RegulatoryAnalysisService
     {
         $eligible = [];
         foreach ($this->store->resourceRecords($runId) as $resource) {
-            $resourceId = $resource['id'] ?? null;
-            $type = $resource['type'] ?? null;
-            if (is_string($resourceId) && $type === 'institutional_website') {
+            /** @psalm-suppress MixedAssignment */
+            $resourceIdValue = $resource['id'] ?? null;
+            /** @psalm-suppress MixedAssignment */
+            $typeValue = $resource['type'] ?? null;
+            $resourceId = is_string($resourceIdValue) ? $resourceIdValue : null;
+            $type = is_string($typeValue) ? $typeValue : null;
+            if ($resourceId !== null && $type === 'institutional_website') {
                 $eligible[$resourceId] = true;
             }
         }

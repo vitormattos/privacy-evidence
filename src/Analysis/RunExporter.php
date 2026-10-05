@@ -548,7 +548,7 @@ final readonly class RunExporter
             }
 
             $eventData[$resourceId] ??= [
-                'terminal' => null,
+                'terminal' => [],
                 'httpErrors' => 0,
                 'noRelevantLinks' => false,
                 'budgetLimited' => false,
@@ -582,13 +582,13 @@ final readonly class RunExporter
 
             $data = $eventData[$id] ?? [];
             /** @var array<string,scalar|null> $terminal */
-            $terminal = [];
-            if (isset($data['terminal']) && is_array($data['terminal'])) {
-                $terminal = $data['terminal'];
-            }
-            $terminalStatus = is_string($terminal['status'] ?? null) ? $terminal['status'] : null;
-            $category = is_string($terminal['category'] ?? null) ? $terminal['category'] : null;
-            $httpStatus = is_int($terminal['http_status'] ?? null) ? $terminal['http_status'] : null;
+            $terminal = $data['terminal'] ?? [];
+            $terminalStatusValue = $terminal['status'] ?? null;
+            $categoryValue = $terminal['category'] ?? null;
+            $httpStatusValue = $terminal['http_status'] ?? null;
+            $terminalStatus = is_string($terminalStatusValue) ? $terminalStatusValue : null;
+            $category = is_string($categoryValue) ? $categoryValue : null;
+            $httpStatus = is_int($httpStatusValue) ? $httpStatusValue : null;
             $successCount = $successfulDocuments[$id] ?? 0;
             $noRelevantLinks = $data['noRelevantLinks'] ?? false;
             $budgetLimited = $data['budgetLimited'] ?? false;
