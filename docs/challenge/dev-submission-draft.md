@@ -10,7 +10,7 @@ tags: devchallenge, weekendchallenge, hf26challenge
 
 - [What I Built](#what-i-built)
 - [Demo](#demo)
-- [Research Methodology](#research-methodology)
+- [Method](#method)
 - [Results from the IPB Analysis](#results-from-the-ipb-analysis)
 - [Code](#code)
 - [How I Built It](#how-i-built-it)
@@ -46,7 +46,7 @@ A public website is only one observable slice of a broader privacy program. The 
 
 The immediate problem came from IPB websites, but the architecture is source-agnostic. The same workflow can be used for another denomination, an organization that owns many public sites, or an empirical research population supplied as a list of URLs.
 
-What I consider new here is not any single crawler, detector or ML model. It is the combination of **full-population accounting, immutable acquisition evidence, versioned regulatory mapping, reproducible research runs and auditable human/ML disagreement handling** in one open-source workflow. The design is intended to make the research process itself inspectable, not only its final report.
+The technical contribution is not a single crawler, detector or ML model. It is the integration of **full-population accounting, immutable acquisition evidence, versioned regulatory mapping, reproducible research runs and auditable human/ML disagreement handling** in one open-source workflow. The design makes the research process itself inspectable, rather than exposing only the final report.
 
 ## Demo
 
@@ -72,9 +72,9 @@ Inspect the successful public Hacktoberfest demo
 
 This GitHub Actions run executes the real PHP-native Rubix model build and inference path in public. The successful output shows `aiAtCore: true`, `modelRequired: true`, a `controller_identity` ML candidate with probability `1`, rule/ML disagreement, one pending review case and an auditable `ai_suggestion`.
 
-## Research Methodology
+## Method
 
-This project is not only a crawler or a classifier. I designed it as a **reproducible empirical software-engineering study and an open research artifact**. The implementation combines web measurement, privacy-evidence classification, reproducibility controls and an experimental local ML path while keeping each research layer independently auditable.
+Privacy Evidence was designed as a **reproducible empirical software-engineering study and an open research artifact**. The implementation combines web measurement, privacy-evidence classification, reproducibility controls and an experimental local ML path while keeping each research layer independently auditable.
 
 The research protocol uses the **Goal-Question-Metric (GQM)** paradigm to connect the research goal, research questions and observable measurements. The reporting and study-design choices also use the **ACM SIGSOFT Empirical Standards** as a methodological reference.
 
@@ -84,7 +84,18 @@ The object of study is deliberately narrow:
 
 It is **not** a measurement of organization-wide legal compliance.
 
-### Research design
+### Research questions
+
+The complete project protocol defines seven research questions. This IPB analysis primarily addresses the first five:
+
+1. **RQ1, resource availability:** What proportion of declared digital resources is technically observable under the acquisition protocol?
+2. **RQ2, resource type:** What types of public digital resources are declared or discovered?
+3. **RQ3, privacy evidence:** Which defined privacy-evidence signals are publicly observable?
+4. **RQ4, evidence intensity and uncertainty:** How complete, specific and review-dependent are the observed signals?
+5. **RQ5, regulatory-profile mapping:** How do reviewed generic evidence items map to versioned LGPD requirements under explicit applicability rules?
+
+The protocol also defines questions about detector performance and acquisition cost. Those are relevant to the broader project, but they are not used here to claim that the current ML experiment has been validated as a production-quality classifier.
+### Study design
 
 The study follows seven measurement layers. Each layer preserves the previous observation instead of silently replacing it:
 
@@ -194,7 +205,7 @@ Read the original monograph (PDF)
 
 ### 2025 vs 2026: from a partially automated baseline to a reproducible run
 
-The original monograph gives this project something unusually useful: a **historical baseline collected before Privacy Evidence existed**. The 2025 workflow was not fully manual. It already used scripts to extract and structure data, persist records in SQLite, validate URLs and support parts of the analysis.
+The original monograph provides a **historical baseline collected before Privacy Evidence existed**. The 2025 workflow was partially automated: scripts extracted and structured data, persisted records in SQLite, validated URLs and supported parts of the analysis, while other cleaning and inspection steps remained manual.
 
 The first dataset was processed on **June 20, 2025**. The new full-population validation run was executed on **October 5, 2026**. The table below puts both observations side by side.
 
@@ -221,7 +232,7 @@ What can be compared more confidently is **research capability**. The 2025 study
 
 ### What the new tool adds to the original study
 
-The clearest evidence of the tool's effectiveness is therefore not that a particular percentage became larger or smaller. It is that the same research problem can now be executed with much stronger traceability:
+The clearest demonstrated improvement is therefore not a change in any particular percentage. It is the stronger traceability with which the same research problem can now be executed:
 
 | Research capability | 2025 monograph workflow | 2026 Privacy Evidence run |
 | --- | --- | --- |
@@ -340,7 +351,7 @@ Privacy Evidence does not evaluate an organization's complete privacy governance
 
 The distinction matters because absence of observable website evidence can have different causes: the information may genuinely be missing, may exist outside the crawled pages, may be provided through another channel, or the site may not have been measurable enough to support a conclusion.
 
-### What the results say about the research method
+### Discussion
 
 > **The most relevant outcome was not a single percentage.** It was the ability to reproduce the complete path from all 2,993 IPB source records to the final analytical state.
 
@@ -355,9 +366,21 @@ For every source record, the system can explain:
 7. which rule or model produced a classification;
 8. which cases still require human review.
 
-That provenance is what the original manual study was missing.
+That end-to-end provenance was not fully preserved in the 2025 hybrid workflow.
 
 It also exposes an important methodological limitation: **website observability and legal or organizational privacy maturity are different constructs**. A future academic study should therefore treat these results as measurements of public privacy evidence availability, not as a compliance score.
+
+### Threats to validity
+
+The results should be interpreted within several limitations:
+
+- **Construct validity:** public website evidence is an incomplete proxy for an organization's privacy practices. The study therefore reports observability, not legal compliance.
+- **Temporal validity:** websites and directory records change over time. The 2025 and 2026 observations were collected under different temporal conditions and cannot be interpreted as a controlled before-and-after experiment.
+- **Measurement reliability:** deterministic detectors may produce false positives or false negatives, while the ML path remains experimental. Ambiguous cases are therefore kept reviewable rather than promoted to ground truth.
+- **Network and acquisition effects:** DNS, TLS, rate limiting, anti-bot behavior, timeouts and crawl budgets can prevent observation. These cases are recorded as unavailable or partial rather than as negative evidence.
+- **Conclusion validity:** several metrics use different denominators and operational definitions. Counts and percentages are interpreted only within their stated measurement layer.
+
+These limitations are part of the protocol rather than exceptions removed during analysis.
 
 ### Implications for future research
 
@@ -435,7 +458,7 @@ That matters because a scientific workflow should be inspectable enough that ano
 - which probability and threshold produced the candidate result;
 - how disagreement reached human review.
 
-A closed API can be useful, but it introduces a research dependency whose implementation and model can change outside the repository. For the specific problem I was trying to fix: a previous study that was not reproducible enough: moving the crucial classification step behind an opaque remote API would solve the wrong problem.
+A closed API can be useful, but it introduces a research dependency whose implementation and model can change outside the repository. For a project motivated by insufficient reproducibility in the earlier study, moving a crucial classification step behind an opaque remote API would reproduce the same methodological problem in a different form.
 
 Open-source local ML gives me a model I can version, inspect, replace, benchmark and rerun as part of the same research instrument. More broadly, keeping the complete toolchain open turns the project from a one-off analysis into reusable technical infrastructure for reproducible privacy research.
 
@@ -443,4 +466,4 @@ There is also an important result I am **not** claiming: the ML model has not be
 
 External development data is useful for engineering and feasibility, but the project requires evaluation against independently human-reviewed project evidence before a model can be promoted. Until that exists, deterministic detectors remain the default and ML remains an experimental second opinion.
 
-That limitation is part of the result, not something I want to hide.
+That limitation is reported explicitly as part of the current state of the research.
