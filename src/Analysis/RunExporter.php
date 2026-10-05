@@ -48,6 +48,7 @@ final readonly class RunExporter
         $counts = $this->runtime->observations->counts($runId);
         $resourceOutcomes = $this->resourceOutcomes($resources, $documents, $events);
         $populationResults = $this->populationResults($resources, $resourceOutcomes, $profileSummary);
+        $populationSummary = $this->populationSummary($populationResults);
 
         $analysis = $this->analysis(
             runId: $runId,
@@ -77,6 +78,7 @@ final readonly class RunExporter
         $this->json($directory . '/analysis.json', $analysis);
         $this->json($directory . '/resource-outcomes.json', $resourceOutcomes);
         $this->json($directory . '/population-results.json', $populationResults);
+        $this->json($directory . '/population-summary.json', $populationSummary);
 
         $this->csv(
             $directory . '/resources.csv',
@@ -109,6 +111,9 @@ final readonly class RunExporter
                 'classificationType',
                 'classificationRule',
                 'classificationConfidence',
+                'duplicateNormalizedUrl',
+                'duplicateGroupSize',
+                'duplicateCanonicalResourceId',
                 'eligibleForWebsiteMeasurement',
                 'measurementStatus',
                 'primaryReason',
@@ -225,6 +230,7 @@ final readonly class RunExporter
             $analysis,
             $profileSummary,
             $profileMetrics,
+            $populationSummary,
         );
     }
 
@@ -722,6 +728,22 @@ final readonly class RunExporter
             }
         }
 
+        /** @var array<string,list<string>> $resourceIdsByNormalizedUrl */
+        $resourceIdsByNormalizedUrl = [];
+        foreach ($resources as $resource) {
+            /** @psalm-suppress MixedAssignment */
+            $resourceIdValue = $resource['id'] ?? null;
+            /** @psalm-suppress MixedAssignment */
+            $normalizedUrlValue = $resource['normalizedUrl'] ?? null;
+            if (is_string($resourceIdValue) && is_string($normalizedUrlValue)) {
+                $resourceIdsByNormalizedUrl[$normalizedUrlValue][] = $resourceIdValue;
+            }
+        }
+        foreach ($resourceIdsByNormalizedUrl as &$resourceIds) {
+            sort($resourceIds, SORT_STRING);
+        }
+        unset($resourceIds);
+
         $results = [];
         foreach ($resources as $resource) {
             /** @psalm-suppress MixedAssignment */
@@ -738,14 +760,19 @@ final readonly class RunExporter
             /** @psalm-suppress MixedAssignment */
             $typeValue = $resource['type'] ?? null;
             $type = is_string($typeValue) ? $typeValue : 'unknown';
+            /** @psalm-suppress MixedAssignment */
+            $normalizedUrlValue = $resource['normalizedUrl'] ?? null;
+            $normalizedUrl = is_string($normalizedUrlValue) ? $normalizedUrlValue : null;
+            $duplicateIds = $normalizedUrl === null
+                ? []
+                : ($resourceIdsByNormalizedUrl[$normalizedUrl] ?? []);
+            $duplicateGroupSize = count($duplicateIds);
 
             $results[] = [
                 'resourceId' => $idValue,
                 'name' => is_string($resource['name'] ?? null) ? $resource['name'] : $idValue,
                 'sourceValue' => is_string($resource['sourceValue'] ?? null) ? $resource['sourceValue'] : '',
-                'normalizedUrl' => is_string($resource['normalizedUrl'] ?? null)
-                    ? $resource['normalizedUrl']
-                    : null,
+                'normalizedUrl' => $normalizedUrl,
                 'classificationType' => $type,
                 'classificationRule' => is_string($classification['rule'] ?? null)
                     ? $classification['rule']
@@ -753,6 +780,11 @@ final readonly class RunExporter
                 'classificationConfidence' => is_float($classification['confidence'] ?? null)
                     ? $classification['confidence']
                     : 0.0,
+                'duplicateNormalizedUrl' => $duplicateGroupSize > 1,
+                'duplicateGroupSize' => $duplicateGroupSize,
+                'duplicateCanonicalResourceId' => $duplicateGroupSize > 1
+                    ? ($duplicateIds[0] ?? null)
+                    : null,
                 'eligibleForWebsiteMeasurement' => $type === 'institutional_website',
                 'measurementStatus' => is_string($outcome['measurementStatus'] ?? null)
                     ? $outcome['measurementStatus']
@@ -774,6 +806,80 @@ final readonly class RunExporter
 
     /**
      * @param list<array<string,mixed>> $results
+     * @return array<string,mixed>
+     */
+    private function populationSummary(array $results): array
+    {
+        $classification = [];
+        $measurement = [];
+        $reasons = [];
+        $lgpdStates = [];
+        $eligible = 0;
+        $accounted = 0;
+        $duplicateResources = 0;
+        $duplicateGroups = [];
+
+        foreach ($results as $result) {
+            /** @psalm-suppress MixedAssignment */
+            $classificationValue = $result['classificationType'] ?? null;
+            /** @psalm-suppress MixedAssignment */
+            $measurementValue = $result['measurementStatus'] ?? null;
+            /** @psalm-suppress MixedAssignment */
+            $reasonValue = $result['primaryReason'] ?? null;
+            /** @psalm-suppress MixedAssignment */
+            $lgpdValue = $result['lgpdPublicEvidenceState'] ?? null;
+            /** @psalm-suppress MixedAssignment */
+            $canonicalValue = $result['duplicateCanonicalResourceId'] ?? null;
+
+            $classificationType = is_string($classificationValue) ? $classificationValue : 'unknown';
+            $measurementStatus = is_string($measurementValue) ? $measurementValue : 'missing_outcome';
+            $reason = is_string($reasonValue) ? $reasonValue : 'missing_outcome';
+
+            $classification[$classificationType] = ($classification[$classificationType] ?? 0) + 1;
+            $measurement[$measurementStatus] = ($measurement[$measurementStatus] ?? 0) + 1;
+            $reasons[$reason] = ($reasons[$reason] ?? 0) + 1;
+
+            if (!empty($result['eligibleForWebsiteMeasurement'])) {
+                $eligible++;
+            }
+            if ($measurementStatus !== 'missing_outcome') {
+                $accounted++;
+            }
+            if (!empty($result['duplicateNormalizedUrl'])) {
+                $duplicateResources++;
+                if (is_string($canonicalValue)) {
+                    $duplicateGroups[$canonicalValue] = true;
+                }
+            }
+            if (is_string($lgpdValue)) {
+                $lgpdStates[$lgpdValue] = ($lgpdStates[$lgpdValue] ?? 0) + 1;
+            }
+        }
+
+        ksort($classification);
+        ksort($measurement);
+        ksort($reasons);
+        ksort($lgpdStates);
+
+        return [
+            'schemaVersion' => '1.0.0',
+            'population' => count($results),
+            'accountedResources' => $accounted,
+            'completePopulationAccounting' => $accounted === count($results),
+            'eligibleForWebsiteMeasurement' => $eligible,
+            'classificationByType' => $classification,
+            'measurementByStatus' => $measurement,
+            'primaryReasons' => $reasons,
+            'duplicates' => [
+                'groups' => count($duplicateGroups),
+                'resources' => $duplicateResources,
+            ],
+            'lgpdPublicEvidenceStates' => $lgpdStates,
+        ];
+    }
+
+    /**
+     * @param list<array<string,mixed>> $results
      * @return list<list<scalar|null>>
      */
     private function populationResultRows(array $results): array
@@ -788,6 +894,12 @@ final readonly class RunExporter
                 Value::string($result['classificationType'] ?? null, 'population.classificationType'),
                 Value::string($result['classificationRule'] ?? null, 'population.classificationRule'),
                 $this->floatValue($result['classificationConfidence'] ?? null),
+                !empty($result['duplicateNormalizedUrl']) ? '1' : '0',
+                $this->intValue($result['duplicateGroupSize'] ?? 0),
+                Value::nullableString(
+                    $result['duplicateCanonicalResourceId'] ?? null,
+                    'population.duplicateCanonicalResourceId',
+                ),
                 !empty($result['eligibleForWebsiteMeasurement']) ? '1' : '0',
                 Value::string($result['measurementStatus'] ?? null, 'population.measurementStatus'),
                 Value::string($result['primaryReason'] ?? null, 'population.primaryReason'),
@@ -890,7 +1002,14 @@ final readonly class RunExporter
         array $telemetry,
         array $counts,
     ): array {
-        $resourceCount = count($resources);
+        $eligibleResourceCount = 0;
+        foreach ($resources as $resource) {
+            /** @psalm-suppress MixedAssignment */
+            $typeValue = $resource['type'] ?? null;
+            if ($typeValue === 'institutional_website') {
+                $eligibleResourceCount++;
+            }
+        }
 
         /** @var array<string,array{eligibleResources:int,observations:int,states:array<string,int>}> $byType */
         $byType = [];
@@ -901,7 +1020,7 @@ final readonly class RunExporter
 
             if (!isset($byType[$type])) {
                 $byType[$type] = [
-                    'eligibleResources' => $resourceCount,
+                    'eligibleResources' => $eligibleResourceCount,
                     'observations' => 0,
                     'states' => [],
                 ];
@@ -974,6 +1093,7 @@ final readonly class RunExporter
         array $analysis,
         array $profileSummary,
         array $profileMetrics,
+        array $populationSummary,
     ): void {
         $counts = $analysis['metrics']['counts'];
         $byType = $analysis['metrics']['evidenceByType'];
@@ -988,6 +1108,17 @@ final readonly class RunExporter
             '- Documents: ' . ($counts['documents'] ?? 0),
             '- Evidence items: ' . ($counts['evidence'] ?? 0),
             '- Regulatory profile results: ' . ($counts['profile_results'] ?? 0),
+            '',
+            '## Population accounting',
+            '',
+            '- Population: ' . $this->intValue($populationSummary['population'] ?? 0),
+            '- Accounted resources: ' . $this->intValue($populationSummary['accountedResources'] ?? 0),
+            '- Website-measurement eligible: ' . $this->intValue(
+                $populationSummary['eligibleForWebsiteMeasurement'] ?? 0,
+            ),
+            '- Complete accounting: ' . (!empty($populationSummary['completePopulationAccounting'])
+                ? 'yes'
+                : 'no'),
             '',
             '## Evidence summary',
             '',

@@ -121,6 +121,7 @@ final class RunExporterTest extends TestCase
             self::assertSame('not_eligible', $byId['social-1']['measurementStatus'] ?? null);
             self::assertSame('known_social_host', $byId['social-1']['primaryReason'] ?? null);
             self::assertNull($byId['social-1']['lgpdPublicEvidenceState'] ?? null);
+            self::assertFalse($byId['social-1']['duplicateNormalizedUrl'] ?? true);
             self::assertArrayHasKey('site-1', $byId);
             self::assertArrayHasKey('lgpdPublicEvidenceState', $byId['site-1']);
         } finally {
@@ -205,6 +206,7 @@ final class RunExporterTest extends TestCase
         self::assertFileExists($directory . '/resource-outcomes.csv');
         self::assertFileExists($directory . '/population-results.json');
         self::assertFileExists($directory . '/population-results.csv');
+        self::assertFileExists($directory . '/population-summary.json');
         self::assertFileExists($directory . '/resources.csv');
         self::assertFileExists($directory . '/documents.csv');
         self::assertFileExists($directory . '/evidence.csv');
@@ -278,6 +280,18 @@ final class RunExporterTest extends TestCase
         self::assertTrue($populationRow['eligibleForWebsiteMeasurement'] ?? false);
         self::assertSame('measured', $populationRow['measurementStatus'] ?? null);
         self::assertArrayHasKey('lgpdPublicEvidenceState', $populationRow);
+
+        /** @var mixed $populationSummary */
+        $populationSummary = json_decode(
+            (string) file_get_contents($directory . '/population-summary.json'),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+        self::assertIsArray($populationSummary);
+        self::assertSame(1, $populationSummary['population'] ?? null);
+        self::assertSame(1, $populationSummary['accountedResources'] ?? null);
+        self::assertTrue($populationSummary['completePopulationAccounting'] ?? false);
+        self::assertSame(1, $populationSummary['eligibleForWebsiteMeasurement'] ?? null);
 
         /** @var mixed $summaryDecoded */
         $summaryDecoded = json_decode(
