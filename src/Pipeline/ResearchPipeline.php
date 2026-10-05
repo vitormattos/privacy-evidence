@@ -52,7 +52,7 @@ final readonly class ResearchPipeline
         $eligibleIdsByUrl = [];
         foreach ($resources as $resource) {
             if (
-                $resource->type === ResourceType::InstitutionalWebsite
+                $resource->type->isWebsiteMeasurementEligible()
                 && $resource->normalizedUrl !== null
             ) {
                 $eligibleIdsByUrl[$resource->normalizedUrl][] = $resource->id;
@@ -70,7 +70,7 @@ final readonly class ResearchPipeline
             $this->observations->recordResource($run->id, $resource);
             $this->runs->increment($run->id, 'resources_imported');
 
-            if ($resource->type !== ResourceType::InstitutionalWebsite) {
+            if (!$resource->type->isWebsiteMeasurementEligible()) {
                 $this->runs->increment($run->id, 'resources_not_eligible');
                 $this->runs->increment($run->id, 'resources_not_eligible.' . $resource->type->value);
                 $this->runs->increment($run->id, 'jobs_skipped');

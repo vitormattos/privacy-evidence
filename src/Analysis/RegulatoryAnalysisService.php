@@ -6,6 +6,7 @@ namespace PrivacyEvidence\Analysis;
 
 use PrivacyEvidence\Pipeline\ProfileRegistry;
 use PrivacyEvidence\Regulatory\ProfileEvaluator;
+use PrivacyEvidence\Source\ResourceType;
 use PrivacyEvidence\Storage\ObservationStore;
 
 final readonly class RegulatoryAnalysisService
@@ -30,7 +31,8 @@ final readonly class RegulatoryAnalysisService
             $normalizedUrlValue = $resource['normalizedUrl'] ?? null;
             if (
                 is_string($resourceIdValue)
-                && $typeValue === 'institutional_website'
+                && is_string($typeValue)
+                && ResourceType::tryFrom($typeValue)?->isWebsiteMeasurementEligible() === true
                 && is_string($normalizedUrlValue)
             ) {
                 $eligibleIdsByUrl[$normalizedUrlValue][] = $resourceIdValue;

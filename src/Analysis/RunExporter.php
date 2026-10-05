@@ -7,6 +7,7 @@ namespace PrivacyEvidence\Analysis;
 use PrivacyEvidence\Core\Value;
 use PrivacyEvidence\Evidence\PrivacyEvidence;
 use PrivacyEvidence\Runtime\RuntimeContext;
+use PrivacyEvidence\Source\ResourceType;
 
 final readonly class RunExporter
 {
@@ -799,7 +800,10 @@ final readonly class RunExporter
             $typeValue = $resource['type'] ?? null;
             if (is_string($resourceIdValue) && is_string($normalizedUrlValue)) {
                 $resourceIdsByNormalizedUrl[$normalizedUrlValue][] = $resourceIdValue;
-                if ($typeValue === 'institutional_website') {
+                if (
+                    is_string($typeValue)
+                    && ResourceType::tryFrom($typeValue)?->isWebsiteMeasurementEligible() === true
+                ) {
                     $websiteIdsByNormalizedUrl[$normalizedUrlValue][] = $resourceIdValue;
                 }
             }
@@ -839,7 +843,7 @@ final readonly class RunExporter
                 ? $duplicateIds[0]
                 : null;
             $websiteIds = (
-                $type === 'institutional_website'
+                ResourceType::tryFrom($type)?->isWebsiteMeasurementEligible() === true
                 && $normalizedUrl !== null
             )
                 ? ($websiteIdsByNormalizedUrl[$normalizedUrl] ?? [])
@@ -869,7 +873,8 @@ final readonly class RunExporter
                 'duplicateGroupSize' => $duplicateGroupSize,
                 'duplicateCanonicalResourceId' => $duplicateCanonicalResourceId,
                 'websiteMeasurementCanonicalResourceId' => $websiteMeasurementCanonicalResourceId,
-                'eligibleForWebsiteMeasurement' => $type === 'institutional_website',
+                'eligibleForWebsiteMeasurement' =>
+                    ResourceType::tryFrom($type)?->isWebsiteMeasurementEligible() === true,
                 'measurementStatus' => is_string($outcome['measurementStatus'] ?? null)
                     ? $outcome['measurementStatus']
                     : 'missing_outcome',
@@ -1127,14 +1132,24 @@ final readonly class RunExporter
         array $telemetry,
         array $counts,
     ): array {
-        $eligibleResourceCount = 0;
+        /** @var array<string,true> $eligibleUrls */
+        $eligibleUrls = [];
         foreach ($resources as $resource) {
             /** @psalm-suppress MixedAssignment */
             $typeValue = $resource['type'] ?? null;
-            if ($typeValue === 'institutional_website') {
-                $eligibleResourceCount++;
+            if (
+                is_string($typeValue)
+                && ResourceType::tryFrom($typeValue)?->isWebsiteMeasurementEligible() === true
+            ) {
+                /** @psalm-suppress MixedAssignment */
+                $normalizedUrlValue = $resource['normalizedUrl'] ?? null;
+                if (is_string($normalizedUrlValue)) {
+                    $eligibleUrls[$normalizedUrlValue] = true;
+                }
             }
         }
+
+        $eligibleResourceCount = count($eligibleUrls);
 
         /** @var array<string,array{eligibleResources:int,observations:int,states:array<string,int>}> $byType */
         $byType = [];

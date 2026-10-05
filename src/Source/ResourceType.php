@@ -13,4 +13,13 @@ enum ResourceType: string
     case ThirdPartyHostedPage = 'third_party_hosted_page';
     case Malformed = 'malformed';
     case Unknown = 'unknown';
+
+    public function isWebsiteMeasurementEligible(): bool
+    {
+        return match ($this) {
+            self::InstitutionalWebsite,
+            self::ThirdPartyHostedPage => true,
+            default => false,
+        };
+    }
 }

@@ -61,6 +61,17 @@ final class FullPopulationEndToEndTest extends TestCase
                         'response_headers' => ['content-type: text/html'],
                     ],
                 ),
+                new MockResponse('', [
+                    'http_code' => 200,
+                    'response_headers' => ['content-type: text/html'],
+                ]),
+                new MockResponse(
+                    '<html><body><p>Política de privacidade hospedada</p></body></html>',
+                    [
+                        'http_code' => 200,
+                        'response_headers' => ['content-type: text/html'],
+                    ],
+                ),
             ]);
 
             $pdo = new PDO('sqlite::memory:');
@@ -140,7 +151,11 @@ final class FullPopulationEndToEndTest extends TestCase
             self::assertTrue($byId['website']['eligibleForWebsiteMeasurement'] ?? false);
             self::assertIsString($byId['website']['lgpdPublicEvidenceState'] ?? null);
 
-            foreach (['social', 'hosted', 'malformed', 'empty'] as $id) {
+            self::assertSame('measured', $byId['hosted']['measurementStatus'] ?? null);
+            self::assertTrue($byId['hosted']['eligibleForWebsiteMeasurement'] ?? false);
+            self::assertIsString($byId['hosted']['lgpdPublicEvidenceState'] ?? null);
+
+            foreach (['social', 'malformed', 'empty'] as $id) {
                 self::assertFalse($byId[$id]['eligibleForWebsiteMeasurement'] ?? true);
                 self::assertSame('not_eligible', $byId[$id]['measurementStatus'] ?? null);
                 self::assertNull($byId[$id]['lgpdPublicEvidenceState'] ?? null);
@@ -157,12 +172,16 @@ final class FullPopulationEndToEndTest extends TestCase
             self::assertSame(5, $summary['population'] ?? null);
             self::assertSame(5, $summary['accountedResources'] ?? null);
             self::assertTrue($summary['completePopulationAccounting'] ?? false);
-            self::assertSame(1, $summary['eligibleForWebsiteMeasurement'] ?? null);
+            self::assertSame(2, $summary['eligibleForWebsiteMeasurement'] ?? null);
+            self::assertSame(2, $summary['uniqueWebsiteMeasurementUnits'] ?? null);
 
             $profileResults = $observations->profileResults($run->id);
             self::assertNotEmpty($profileResults);
             foreach ($profileResults as $profileResult) {
-                self::assertSame('website', $profileResult['resourceId'] ?? null);
+                self::assertContains(
+                    $profileResult['resourceId'] ?? null,
+                    ['website', 'hosted'],
+                );
             }
         } finally {
             $this->removeDirectory($directory);
