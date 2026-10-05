@@ -98,6 +98,7 @@ final readonly class RunExporter
                 'noRelevantLinks',
                 'budgetLimited',
                 'antiBotChallenge',
+                'measurementLimitReasons',
             ],
             $this->resourceOutcomeRows($resourceOutcomes),
         );
@@ -581,6 +582,7 @@ final readonly class RunExporter
                 'noRelevantLinks' => false,
                 'budgetLimited' => false,
                 'antiBotChallenge' => false,
+                'measurementLimits' => [],
             ];
 
             if ($event['type'] === 'resource_terminal') {
@@ -593,6 +595,11 @@ final readonly class RunExporter
                 }
             } elseif ($event['type'] === 'crawl_budget_stop') {
                 $eventData[$resourceId]['budgetLimited'] = true;
+            } elseif ($event['type'] === 'measurement_limit') {
+                $reason = $event['detail']['reason'] ?? null;
+                if (is_string($reason)) {
+                    $eventData[$resourceId]['measurementLimits'][$reason] = true;
+                }
             } elseif ($event['type'] === 'job_failure') {
                 $category = $event['detail']['category'] ?? null;
                 if ($category === 'anti_bot_challenge') {
@@ -625,6 +632,42 @@ final readonly class RunExporter
             $noRelevantLinks = $data['noRelevantLinks'] ?? false;
             $budgetLimited = $data['budgetLimited'] ?? false;
             $antiBotChallenge = $data['antiBotChallenge'] ?? false;
+            /** @var array<string,bool> $measurementLimitMap */
+            $measurementLimitMap = is_array($data['measurementLimits'] ?? null)
+                ? $data['measurementLimits']
+                : [];
+            $measurementLimitReasons = array_keys($measurementLimitMap);
+            sort($measurementLimitReasons, SORT_STRING);
+            $hasHardMeasurementLimit = in_array(
+                'root_non_html',
+                $measurementLimitReasons,
+                true,
+            ) || in_array(
+                'empty_html_content',
+                $measurementLimitReasons,
+                true,
+            ) || in_array(
+                'anti_bot_challenge_browser_unavailable',
+                $measurementLimitReasons,
+                true,
+            ) || in_array(
+                'dynamic_content_browser_unavailable',
+                $measurementLimitReasons,
+                true,
+            );
+            $hasPartialMeasurementLimit = in_array(
+                'response_truncated',
+                $measurementLimitReasons,
+                true,
+            ) || in_array(
+                'behavioral_evidence_browser_unavailable',
+                $measurementLimitReasons,
+                true,
+            ) || in_array(
+                'browser_required_unavailable',
+                $measurementLimitReasons,
+                true,
+            );
 
             if ($terminalStatus === 'not_eligible') {
                 $measurementStatus = 'not_eligible';
@@ -641,9 +684,14 @@ final readonly class RunExporter
             } elseif ($antiBotChallenge) {
                 $measurementStatus = 'not_measurable';
                 $primaryReason = 'anti_bot_challenge';
-            } elseif ($budgetLimited) {
+            } elseif ($hasHardMeasurementLimit) {
+                $measurementStatus = 'not_measurable';
+                $primaryReason = $measurementLimitReasons[0];
+            } elseif ($budgetLimited || $hasPartialMeasurementLimit) {
                 $measurementStatus = 'partially_measured';
-                $primaryReason = 'crawl_budget_exhausted';
+                $primaryReason = $budgetLimited
+                    ? 'crawl_budget_exhausted'
+                    : $measurementLimitReasons[0];
             } elseif ($successCount > 0 && $noRelevantLinks) {
                 $measurementStatus = 'measured';
                 $primaryReason = 'homepage_only_no_relevant_links';
@@ -666,6 +714,7 @@ final readonly class RunExporter
                 'noRelevantLinks' => $noRelevantLinks,
                 'budgetLimited' => $budgetLimited,
                 'antiBotChallenge' => $antiBotChallenge,
+                'measurementLimitReasons' => $measurementLimitReasons,
             ];
         }
 
@@ -691,6 +740,7 @@ final readonly class RunExporter
                 !empty($outcome['noRelevantLinks']) ? '1' : '0',
                 !empty($outcome['budgetLimited']) ? '1' : '0',
                 !empty($outcome['antiBotChallenge']) ? '1' : '0',
+                $this->stringList($outcome['measurementLimitReasons'] ?? []),
             ];
         }
 

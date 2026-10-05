@@ -295,6 +295,33 @@ final readonly class ResearchPipeline
             return;
         }
 
+        if ($depth === 0) {
+            if (!str_contains(strtolower($document->mediaType), 'html')) {
+                $this->recordMeasurementLimit(
+                    $runId,
+                    $resourceId,
+                    'root_non_html',
+                    $document->finalUrl,
+                );
+            } elseif (trim(strip_tags($document->body)) === '') {
+                $this->recordMeasurementLimit(
+                    $runId,
+                    $resourceId,
+                    'empty_html_content',
+                    $document->finalUrl,
+                );
+            }
+
+            if ($document->truncated) {
+                $this->recordMeasurementLimit(
+                    $runId,
+                    $resourceId,
+                    'response_truncated',
+                    $document->finalUrl,
+                );
+            }
+        }
+
         $this->scheduleLinks(
             runId: $runId,
             resourceId: $resourceId,
@@ -302,10 +329,6 @@ final readonly class ResearchPipeline
             depth: $depth,
             crawlStartedAt: $crawlStartedAt,
         );
-
-        if (!$this->config->enableBrowserEscalation || $this->browser === null) {
-            return;
-        }
 
         $decision = $this->browserPolicy->decide($document);
         if (!$decision->required) {
@@ -317,6 +340,26 @@ final readonly class ResearchPipeline
             $runId,
             'browser_escalation.' . $decision->reason,
         );
+
+        if (!$this->config->enableBrowserEscalation || $this->browser === null) {
+            $limitReason = match ($decision->reason) {
+                'anti_bot_challenge_candidate' => 'anti_bot_challenge_browser_unavailable',
+                'javascript_application_shell',
+                'javascript_challenge_candidate' => 'dynamic_content_browser_unavailable',
+                'consent_behavior_candidate' => 'behavioral_evidence_browser_unavailable',
+                default => 'browser_required_unavailable',
+            };
+            $this->recordMeasurementLimit(
+                $runId,
+                $resourceId,
+                $limitReason,
+                $document->finalUrl,
+            );
+            $this->runs->increment($runId, 'browser_escalations_unavailable');
+            $this->runs->increment($runId, 'jobs_skipped');
+
+            return;
+        }
 
         $scheduledBrowserPages = $this->jobs->scheduledCount(
             $runId,
@@ -611,6 +654,25 @@ final readonly class ResearchPipeline
         $wait = max(0, $job->reservedAtMs - $job->enqueuedAtMs);
         $this->runs->increment($runId, 'queue_wait_ms.' . $job->stage, $wait);
         $this->runs->increment($runId, 'queue_reservations.' . $job->stage);
+    }
+
+    private function recordMeasurementLimit(
+        string $runId,
+        string $resourceId,
+        string $reason,
+        string $url,
+    ): void {
+        $this->runs->increment($runId, 'measurement_limits');
+        $this->runs->increment($runId, 'measurement_limit.' . $reason);
+        $this->runs->recordEvent(
+            $runId,
+            'measurement_limit',
+            $resourceId,
+            [
+                'reason' => $reason,
+                'url' => $url,
+            ],
+        );
     }
 
     private function recordBudgetStop(
