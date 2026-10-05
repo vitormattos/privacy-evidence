@@ -71,11 +71,61 @@ This GitHub Actions run executes the real PHP-native Rubix model build and infer
 
 ## Results from the IPB Analysis
 
-The full-population run made it possible to move beyond a proof of concept and observe how the research protocol behaves on a real, heterogeneous population.
+The empirical study did **not** start with 566 websites. It started with the complete source population available from the public IPB directory: **2,993 records representing congregations and related entries across Brazil**.
 
-The source contained **2,993 records** from the public IPB directory. After classification and normalization, **589 records were considered eligible for website measurement**, corresponding to **566 unique website measurement units** after duplicate references were resolved.
+That full population is part of the result.
 
-This distinction matters methodologically. The original source is not equivalent to a clean list of independent websites: it contains duplicated references, social-network pages, malformed entries, third-party pages and addresses that no longer resolve. Treating those cases explicitly prevents the analysis from silently shrinking the population and makes the selection process reproducible.
+The research pipeline had to determine what each source record actually represented before any privacy analysis could begin. Some entries pointed to independent institutional websites, while others pointed to social networks, third-party hosted pages, video platforms, link aggregators, malformed addresses or no usable website source at all.
+
+### From the full IPB population to measurable websites
+
+The complete accounting of the **2,993 source records** was:
+
+| Source classification | Records |
+| --- | ---: |
+| Institutional website | **529** |
+| Third-party hosted page | **60** |
+| Social network | **61** |
+| Video platform | **6** |
+| Link aggregator | **1** |
+| Malformed source | **20** |
+| Unknown / no usable website source | **2,316** |
+| **Total source population** | **2,993** |
+
+{% card %}
+### Why this population accounting matters
+
+The **2,404 records that were not eligible for website measurement were not silently removed from the study**.
+
+They remain part of the research population with an explicit classification explaining why the website-measurement stage did not apply. This is important for reproducibility because another researcher can reconstruct how the original IPB directory became the final set of measurable websites.
+{% endcard %}
+
+After source classification, **589 records were eligible for website measurement**. Because some source records referred to the same website, deduplication produced **566 unique website measurement units**.
+
+The study therefore followed this population flow:
+
+```text
+2,993 IPB source records
+        |
+        v
+source classification
+        |
+        +--> 2,404 not eligible for website measurement
+        |
+        v
+589 eligible source records
+        |
+        v
+deduplication
+        |
+        v
+566 unique websites
+        |
+        v
+measurement and evidence analysis
+```
+
+This distinction is methodologically important. The source population is not equivalent to a ready-made website sample. Building the measurable population is itself an empirical step of the study.
 
 ### Measurement outcomes
 
@@ -90,9 +140,9 @@ Among the **566 unique websites**:
 
 The high proportion of non-measurable websites is itself an important empirical result. It shows that large-scale public-web research is constrained not only by the analytical method, but also by the condition of the web population being studied.
 
-The most frequent obstacles included DNS failures, anti-bot mechanisms, HTTP 429 rate limiting, unavailable or redirected websites, TLS failures, timeouts and crawl-budget limits. Instead of excluding these cases after collection begins, Privacy Evidence records them as explicit terminal outcomes.
+The most frequent obstacles included DNS failures, anti-bot mechanisms, HTTP 429 rate limiting, unavailable or redirected websites, TLS failures, timeouts and crawl-budget limits. Instead of excluding these cases after collection begins, Privacy Evidence records them as explicit outcomes.
 
-That decision changes the interpretation of the study: the result is not simply a set of websites for which evidence was found, but a complete accounting of what happened to every source record and why some observations could not be produced.
+That changes the interpretation of the study. The result is not merely the subset of websites from which evidence could be extracted. It is a complete trace from the original IPB population to the final state of every source record.
 
 ### Observable LGPD-related evidence
 
@@ -104,7 +154,7 @@ For the websites that could be evaluated, the aggregate observability metrics we
 | Average full observed support | **5.3%** |
 | Average any observed support | **6.6%** |
 
-These low values suggest that the privacy-related information evaluated by the protocol is often not clearly observable on public-facing church websites. In particular, evidence related to controller identification, processing purpose, data-sharing information, data-subject rights and retention/duration was frequently absent or indeterminate in the collected public content.
+These values suggest that the privacy-related information evaluated by the protocol is often not clearly observable on public-facing church websites. Evidence related to controller identification, processing purpose, data-sharing information, data-subject rights and retention/duration was frequently absent or indeterminate in the collected public content.
 
 {% card %}
 ### How to read these percentages
@@ -114,17 +164,26 @@ These values are **not compliance rates**.
 Privacy Evidence does not evaluate an organization's complete privacy governance program and does not establish legal compliance or non-compliance. It reports whether predefined evidence could be observed on the public website under the documented acquisition and classification protocol.
 {% endcard %}
 
-The distinction is important because absence of observable website evidence can mean several different things: the information may genuinely be missing, it may exist outside the crawled pages, it may be provided through another channel, or the site may not have been measurable enough to support a conclusion.
+The distinction matters because absence of observable website evidence can have different causes: the information may genuinely be missing, may exist outside the crawled pages, may be provided through another channel, or the site may not have been measurable enough to support a conclusion.
 
 ### What the results say about the research method
 
-> **The most relevant outcome was not a single percentage.** It was the ability to reproduce the entire path from the original directory to the final analytical state.
+> **The most relevant outcome was not a single percentage.** It was the ability to reproduce the complete path from all 2,993 IPB source records to the final analytical state.
 
-For every source record, the system can explain whether it represented an independent website, whether it was eligible for measurement, whether acquisition succeeded, what evidence was observed, which detector or model produced the classification, and why a case remained unavailable, indeterminate or pending human review.
+For every source record, the system can explain:
+
+1. what kind of source it represented;
+2. whether website measurement was applicable;
+3. whether it referred to a unique website or duplicated another source;
+4. whether acquisition succeeded;
+5. why measurement was complete, partial or unavailable;
+6. what observable privacy evidence was detected;
+7. which rule or model produced a classification;
+8. which cases still require human review.
 
 That provenance is what the original manual study was missing.
 
-The results also expose an important methodological limitation for future work: website observability and legal or organizational privacy maturity are different constructs. A future academic study should therefore treat these results as measurements of **public privacy evidence availability**, not as a compliance score.
+It also exposes an important methodological limitation: **website observability and legal or organizational privacy maturity are different constructs**. A future academic study should therefore treat these results as measurements of public privacy evidence availability, not as a compliance score.
 
 ### Implications for future research
 
@@ -136,8 +195,7 @@ The full-population run provides a baseline for several follow-up studies:
 4. **Website characteristics** — whether particular technical or organizational characteristics are associated with greater privacy-information visibility.
 5. **Regulatory-profile replication** — reevaluating the same collected evidence against other regulatory profiles without repeating acquisition.
 
-In that sense, the main contribution of the run is not only the descriptive result for the IPB population. It is the creation of a reproducible research instrument that can support new empirical questions while preserving the limits of what the collected evidence can actually demonstrate.
-
+In that sense, the main contribution of the run is not only the descriptive result for the websites that could be measured. It is the preservation of the **entire research population**, including the records for which website analysis was not applicable or technically possible, together with an auditable explanation of how every record reached its final state.
 
 ## Code
 
