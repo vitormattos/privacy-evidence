@@ -183,22 +183,41 @@ final class ReviewWorkflowCommandTest extends TestCase
     {
         $runtime = RuntimeFactory::create($this->projectRoot);
         $run = new ResearchRun(
-            id: 'context-run', startedAt: '2026-10-05T00:00:00Z', gitCommit: 'fixture',
-            datasetHash: str_repeat('a', 64), protocolVersion: '1.0.0', versions: [], configuration: [],
+            id: 'context-run',
+            startedAt: '2026-10-05T00:00:00Z',
+            gitCommit: 'fixture',
+            datasetHash: str_repeat('a', 64),
+            protocolVersion: '1.0.0',
+            versions: [],
+            configuration: [],
         );
         $runtime->runs->create($run);
         $runtime->observations->recordResource($run->id, new ImportedResource(
-            'sample-1', 'Synthetic Example', 'https://example.test/', 'https://example.test/',
+            'sample-1',
+            'Synthetic Example',
+            'https://example.test/',
+            'https://example.test/',
         ));
         $document = new FetchedDocument(
-            'sample-1', 'https://example.test/policy', 'https://example.test/policy', 200, 'text/html',
-            '<p>The responsible organization is Synthetic Example Ltd.</p>', '2026-10-05T00:00:00Z',
+            'sample-1',
+            'https://example.test/policy',
+            'https://example.test/policy',
+            200,
+            'text/html',
+            '<p>The responsible organization is Synthetic Example Ltd.</p>',
+            '2026-10-05T00:00:00Z',
         );
         (new FilesystemDocumentStore($runtime->artifactDirectory))->put($document);
         $runtime->observations->recordDocument($run->id, $document);
         $evidence = new PrivacyEvidence(
-            EvidenceType::ControllerIdentity, ObservationState::Absent, 'sample-1', $document->sha256,
-            $document->finalUrl, 'fixture', '1.0.0', 'test',
+            EvidenceType::ControllerIdentity,
+            ObservationState::Absent,
+            'sample-1',
+            $document->sha256,
+            $document->finalUrl,
+            'fixture',
+            '1.0.0',
+            'test',
         );
         $runtime->observations->recordEvidence($run->id, $evidence);
         $path = $this->projectRoot . '/context.json';

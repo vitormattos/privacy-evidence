@@ -74,10 +74,13 @@ final class ReviewImportCommand extends Command
 
         // Compute eligibility from local source data, never from reviewer-editable context.
         $sourceCases = [];
+        $validatedCases = [];
         foreach ($cases as $submittedCase) {
             if (!is_array($submittedCase)) {
                 return Command::INVALID;
             }
+            /** @var array<string, mixed> $submittedCase */
+            $validatedCases[] = $submittedCase;
             /** @var mixed $submittedId */
             $submittedId = $submittedCase['evidenceId'] ?? null;
             if (!is_string($submittedId) || !isset($evidenceById[$submittedId])) {
@@ -112,10 +115,14 @@ final class ReviewImportCommand extends Command
 
         $imported = 0;
         $deferred = [];
-        foreach ($cases as $case) {
+        foreach ($validatedCases as $case) {
+            /** @var mixed $evidenceId */
             $evidenceId = $case['evidenceId'] ?? null;
+            /** @var mixed $typeRaw */
             $typeRaw = $case['evidenceType'] ?? null;
+            /** @var mixed $stateRaw */
             $stateRaw = $case['humanState'] ?? null;
+            /** @var mixed $rationale */
             $rationale = $case['rationale'] ?? null;
 
             $sourceEvidence = is_string($evidenceId) ? ($evidenceById[$evidenceId] ?? null) : null;
@@ -150,6 +157,8 @@ final class ReviewImportCommand extends Command
                 return Command::INVALID;
             }
 
+            /** @var mixed $submittedAt */
+            $submittedAt = $case['reviewedAt'] ?? null;
             $runtime->reviews->decide(new ReviewDecision(
                 runId: $runId,
                 evidenceId: $evidenceId,
@@ -157,11 +166,7 @@ final class ReviewImportCommand extends Command
                 state: $state,
                 reviewerType: ReviewerType::Human,
                 reviewerId: $reviewerId,
-                reviewedAt: isset($case['reviewedAt'])
-                    && is_string($case['reviewedAt'])
-                    && $case['reviewedAt'] !== ''
-                        ? $case['reviewedAt']
-                        : gmdate(DATE_ATOM),
+                reviewedAt: is_string($submittedAt) && $submittedAt !== '' ? $submittedAt : gmdate(DATE_ATOM),
                 rationale: $rationale,
             ));
             $imported++;
