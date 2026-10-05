@@ -6,11 +6,12 @@ namespace PrivacyEvidence\Crawl;
 
 use DOMElement;
 use PrivacyEvidence\Acquisition\FetchedDocument;
+use PrivacyEvidence\Source\UrlNormalizer;
 use Symfony\Component\DomCrawler\Crawler;
 
 final class LinkDiscoverer
 {
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.1.0';
 
     /** @var list<string> */
     private array $privacyTerms;
@@ -31,6 +32,7 @@ final class LinkDiscoverer
         ?array $controlTerms = null,
         ?array $supportingTerms = null,
         private readonly string $version = self::VERSION,
+        private readonly UrlNormalizer $urlNormalizer = new UrlNormalizer(),
     ) {
         $this->privacyTerms = $privacyTerms ?? [
             'privacy', 'privacidade', 'proteção de dados', 'protecao-de-dados', 'lgpd', 'gdpr',
@@ -74,10 +76,15 @@ final class LinkDiscoverer
                 continue;
             }
 
-            $absolute = $this->withoutFragment($absolute);
-            $current = $this->withoutFragment($document->finalUrl);
+            $absolute = $this->urlNormalizer->normalize(
+                $this->withoutFragment($absolute),
+            );
+            $current = $this->urlNormalizer->normalize(
+                $this->withoutFragment($document->finalUrl),
+            );
             if (
-                $absolute === ''
+                $absolute === null
+                || $current === null
                 || $absolute === $current
                 || !$this->sameHost($current, $absolute)
             ) {

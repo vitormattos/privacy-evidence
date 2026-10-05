@@ -73,9 +73,23 @@ final class LinkDiscovererTest extends TestCase
         $links = (new LinkDiscoverer())->discover($document);
 
         self::assertCount(1, $links);
-        self::assertSame('https://example.TEST/NOTICE', $links[0]->url);
+        self::assertSame('https://example.test/NOTICE', $links[0]->url);
         self::assertSame(100, $links[0]->priority);
         self::assertSame('PRIVACIDADE', $links[0]->anchorText);
+    }
+
+    public function testNormalizesUnicodePathsBeforeScheduling(): void
+    {
+        $links = (new LinkDiscoverer())->discover(
+            $this->document('<a href="/sobre-nós">Privacidade</a>'),
+        );
+
+        self::assertCount(1, $links);
+        self::assertSame(
+            'https://example.test/sobre-n%C3%B3s',
+            $links[0]->url,
+        );
+        self::assertSame(100, $links[0]->priority);
     }
 
     public function testPrivacyTermCanMatchUrlWhenAnchorDoesNot(): void

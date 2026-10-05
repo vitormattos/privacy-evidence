@@ -26,6 +26,14 @@ final class UrlNormalizerTest extends TestCase
         yield ['http://example.com', 'http://example.com/'];
         yield ['https://Example.COM.:8443/path?q=1#fragment', 'https://example.com:8443/path?q=1'];
         yield ['https://example.com?x=1', 'https://example.com/?x=1'];
+        yield [
+            'https://example.com/sobre-nós',
+            'https://example.com/sobre-n%C3%B3s',
+        ];
+        yield [
+            'https://example.com/política de privacidade',
+            'https://example.com/pol%C3%ADtica%20de%20privacidade',
+        ];
         yield ['foo https://example.com', null];
         yield ['mailto:user@example.com', null];
         yield ['http://church@gmail.com', null];
