@@ -138,7 +138,7 @@ const i18n = {
     inspectLast: 'Último caso desta fila',
     empty: 'Este pacote não contém casos para revisar.',
     noReviewable: 'Nenhum caso disponível para revisão',
-    preparationRequired: 'O pacote ainda precisa ser preparado: recupere o material original ou uma nova coleta antes de enviá-lo aos revisores. Os sites e os motivos da pendência estão abaixo.',
+    preparationRequired: 'O pacote ainda precisa ser preparado: recupere o material original ou faça uma nova coleta antes de enviá-lo aos revisores. Os sites e os motivos da pendência estão abaixo.',
     pendingExport: 'Exportar pacote com pendências',
     storageError: 'Não foi possível salvar no navegador. Mantenha esta página aberta e exporte ao terminar.',
     finished: 'Revisão concluída. Exporte o JSON; os casos para investigação continuam no pacote sem rótulo humano.',
@@ -197,7 +197,7 @@ const i18n = {
     inspectLast: 'Last case in this queue',
     empty: 'This packet contains no cases to review.',
     noReviewable: 'No cases available for review',
-    preparationRequired: 'The packet still needs preparation: recover the original material or a new collection before sending it to reviewers. Sites and reasons for deferral are shown below.',
+    preparationRequired: 'The packet still needs preparation: recover the original material or perform a new collection before sending it to reviewers. Sites and reasons for deferral are shown below.',
     pendingExport: 'Export pending packet',
     storageError: 'Browser storage is unavailable. Keep this page open and export when finished.',
     finished: 'Review complete. Export JSON; cases requiring investigation remain in the packet without human labels.',
@@ -532,7 +532,7 @@ function render() {
   document.getElementById('guidance').textContent = guidanceFor(c.evidenceType);
   document.getElementById('excerpt').textContent = doc && doc.text
     ? doc.text
-    : (locale === 'pt' ? '[Nenhuma evidência textual foi preservada neste caso.]' : '[No preserved text evidence is available for this case.]');
+    : (locale === 'pt' ? '[O conteúdo textual não está disponível neste pacote.]' : '[No preserved text evidence is available for this case.]');
 
   const missing = document.getElementById('missingEvidence');
   missing.hidden = hasPreservedExcerpt(c);
