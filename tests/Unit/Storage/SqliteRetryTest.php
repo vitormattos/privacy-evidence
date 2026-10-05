@@ -43,6 +43,44 @@ final class SqliteRetryTest extends TestCase
         self::assertSame(2, $attempts);
     }
 
+    public function testMisuseImmediatelyAfterBusyIsRetried(): void
+    {
+        $statement = $this->createMock(PDOStatement::class);
+        $attempts = 0;
+
+        $statement
+            ->expects(self::exactly(3))
+            ->method('execute')
+            ->willReturnCallback(
+                static function () use (&$attempts): bool {
+                    $attempts++;
+
+                    if ($attempts === 1) {
+                        throw new PDOException(
+                            'SQLSTATE[HY000]: General error: 5 database is locked',
+                        );
+                    }
+
+                    if ($attempts === 2) {
+                        throw new PDOException(
+                            'SQLSTATE[HY000]: General error: 21 bad parameter or other API misuse',
+                        );
+                    }
+
+                    return true;
+                },
+            );
+
+        $statement
+            ->expects(self::exactly(2))
+            ->method('closeCursor')
+            ->willReturn(true);
+
+        SqliteRetry::execute($statement, []);
+
+        self::assertSame(3, $attempts);
+    }
+
     public function testNonBusyFailureIsNotRetried(): void
     {
         $statement = $this->createMock(PDOStatement::class);

@@ -21,13 +21,17 @@ final class SqliteRetry
                 $statement->execute($parameters);
                 return;
             } catch (PDOException $exception) {
-                if (!self::isBusy($exception) || $attempt >= 19) {
+                $busy = self::isBusy($exception);
+                $misuseAfterBusy = $attempt > 0 && self::isStatementMisuse($exception);
+                if ((!$busy && !$misuseAfterBusy) || $attempt >= 19) {
                     throw $exception;
                 }
 
-                // PDO SQLite can leave a statement in a non-reset state after
-                // SQLITE_BUSY. Reset it before re-executing the same prepared
-                // statement, otherwise SQLite may return SQLITE_MISUSE (21).
+                // PDO SQLite can leave a prepared statement in a transient
+                // SQLITE_MISUSE state after a busy/locked write. Resetting
+                // the cursor and retrying is safe only after this retry path
+                // has already observed contention; an isolated MISUSE remains
+                // a programming error and is propagated.
                 $statement->closeCursor();
                 usleep(self::delayUs($attempt));
                 $attempt++;
@@ -41,6 +45,14 @@ final class SqliteRetry
 
         return str_contains($message, 'database is locked')
             || str_contains($message, 'database is busy');
+    }
+
+    private static function isStatementMisuse(PDOException $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+
+        return str_contains($message, 'bad parameter or other api misuse')
+            || str_contains($message, 'api misuse');
     }
 
     private static function delayUs(int $attempt): int
