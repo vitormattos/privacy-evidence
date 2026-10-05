@@ -7,6 +7,7 @@ namespace PrivacyEvidence\Review;
 use PDO;
 use PDOStatement;
 use PrivacyEvidence\Core\Value;
+use PrivacyEvidence\Storage\SqliteRetry;
 
 final class SqliteReviewQueue implements ReviewQueue
 {
@@ -22,7 +23,7 @@ final class SqliteReviewQueue implements ReviewQueue
             'INSERT OR IGNORE INTO review_queue (run_id, evidence_id, payload, status)
              VALUES (:run_id, :id, :payload, "pending")',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'run_id' => $runId,
             'id' => $evidenceId,
             'payload' => $payload,
@@ -45,7 +46,7 @@ final class SqliteReviewQueue implements ReviewQueue
                  WHERE run_id = :run_id AND status = "pending"
                  ORDER BY evidence_id',
             );
-            $stmt->execute(['run_id' => $runId]);
+            SqliteRetry::execute($stmt, ['run_id' => $runId]);
         }
 
         if (!$stmt instanceof PDOStatement) {
@@ -79,7 +80,7 @@ final class SqliteReviewQueue implements ReviewQueue
                  VALUES (:run_id, :evidence_id, :type, :state, :reviewer_type,
                          :reviewer_id, :reviewed_at, :rationale)',
             );
-            $stmt->execute([
+            SqliteRetry::execute($stmt, [
                 'run_id' => $decision->runId,
                 'evidence_id' => $decision->evidenceId,
                 'type' => $decision->type->value,
@@ -96,7 +97,7 @@ final class SqliteReviewQueue implements ReviewQueue
                      SET status = "reviewed"
                      WHERE run_id = :run_id AND evidence_id = :id',
                 );
-                $update->execute([
+                SqliteRetry::execute($update, [
                     'run_id' => $decision->runId,
                     'id' => $decision->evidenceId,
                 ]);
@@ -118,7 +119,7 @@ final class SqliteReviewQueue implements ReviewQueue
              WHERE run_id = :run_id
              ORDER BY evidence_id, reviewed_at, id',
         );
-        $stmt->execute(['run_id' => $runId]);
+        SqliteRetry::execute($stmt, ['run_id' => $runId]);
 
         $records = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {

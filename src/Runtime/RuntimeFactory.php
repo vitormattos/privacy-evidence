@@ -27,7 +27,7 @@ final class RuntimeFactory
 
         $pdo = new PDO('sqlite:' . $derived . '/privacy-evidence.sqlite');
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->exec('PRAGMA busy_timeout = 30000');
+        $pdo->exec('PRAGMA busy_timeout = 1000');
         $pdo->exec('PRAGMA journal_mode = WAL');
         $pdo->exec('PRAGMA synchronous = NORMAL');
 

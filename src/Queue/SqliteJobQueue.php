@@ -7,6 +7,7 @@ namespace PrivacyEvidence\Queue;
 use PDO;
 use PDOException;
 use PrivacyEvidence\Core\Value;
+use PrivacyEvidence\Storage\SqliteRetry;
 
 final class SqliteJobQueue implements JobQueue
 {
@@ -31,7 +32,7 @@ final class SqliteJobQueue implements JobQueue
                AND deduplication_key = :deduplication_key
              LIMIT 1',
         );
-        $existing->execute([
+        SqliteRetry::execute($existing, [
             'run_id' => $job->runId,
             'stage' => $job->stage,
             'deduplication_key' => $job->deduplicationKey,
@@ -60,7 +61,7 @@ final class SqliteJobQueue implements JobQueue
              VALUES (:id, :run_id, :stage, :deduplication_key, :payload, :status, :attempts,
                      :priority, :host, :enqueued_at_ms, :available_at_ms, NULL)',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'id' => $job->id,
             'run_id' => $job->runId,
             'stage' => $job->stage,
@@ -95,7 +96,7 @@ final class SqliteJobQueue implements JobQueue
              ORDER BY priority DESC, enqueued_at_ms ASC, id ASC
              LIMIT 100',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'run_id' => $runId,
             'stage' => $stage,
             'now' => $now,
@@ -137,7 +138,7 @@ final class SqliteJobQueue implements JobQueue
                        AND status = "pending"
                        AND available_at_ms <= :now',
                 );
-                $update->execute([
+                SqliteRetry::execute($update, [
                     'reserved_at' => $now,
                     'id' => $id,
                     'now' => $now,
@@ -156,7 +157,7 @@ final class SqliteJobQueue implements JobQueue
                          ON CONFLICT(run_id, stage, host)
                          DO UPDATE SET last_started_at_ms = excluded.last_started_at_ms',
                     );
-                    $limit->execute([
+                    SqliteRetry::execute($limit, [
                         'run_id' => $runId,
                         'stage' => $stage,
                         'host' => $host,
@@ -167,7 +168,7 @@ final class SqliteJobQueue implements JobQueue
                 $attemptsStatement = $this->pdo->prepare(
                     'SELECT attempts FROM jobs WHERE id = :id',
                 );
-                $attemptsStatement->execute(['id' => $id]);
+                SqliteRetry::execute($attemptsStatement, ['id' => $id]);
                 $attempts = Value::int($attemptsStatement->fetchColumn(), 'attempts');
 
                 $this->pdo->commit();
@@ -212,7 +213,7 @@ final class SqliteJobQueue implements JobQueue
         $stmt = $this->pdo->prepare(
             'UPDATE jobs SET status = "completed", last_error = NULL WHERE id = :id',
         );
-        $stmt->execute(['id' => $jobId]);
+        SqliteRetry::execute($stmt, ['id' => $jobId]);
     }
 
     public function fail(
@@ -231,7 +232,7 @@ final class SqliteJobQueue implements JobQueue
         $stmt = $this->pdo->prepare(
             'SELECT attempts FROM jobs WHERE id = :id',
         );
-        $stmt->execute(['id' => $jobId]);
+        SqliteRetry::execute($stmt, ['id' => $jobId]);
         $attempts = Value::int($stmt->fetchColumn(), 'attempts');
         $status = $attempts >= $maxAttempts ? $terminalStatus : JobStatus::Pending;
         $exponent = min(max($attempts - 1, 0), 16);
@@ -248,7 +249,7 @@ final class SqliteJobQueue implements JobQueue
                  reserved_at_ms = NULL
              WHERE id = :id',
         );
-        $update->execute([
+        SqliteRetry::execute($update, [
             'status' => $status->value,
             'error' => $error,
             'available_at' => self::nowMs() + $delayMs,
@@ -265,7 +266,7 @@ final class SqliteJobQueue implements JobQueue
              SET status = "pending", reserved_at_ms = NULL, available_at_ms = :now
              WHERE run_id = :run_id AND status = "running"',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'now' => self::nowMs(),
             'run_id' => $runId,
         ]);
@@ -306,7 +307,7 @@ final class SqliteJobQueue implements JobQueue
                AND stage = :stage
                AND deduplication_key LIKE :prefix',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'run_id' => $runId,
             'stage' => $stage,
             'prefix' => $deduplicationPrefix . '%',
@@ -324,7 +325,7 @@ final class SqliteJobQueue implements JobQueue
                AND last_error IS NOT NULL
              ORDER BY stage, id',
         );
-        $stmt->execute(['run_id' => $runId]);
+        SqliteRetry::execute($stmt, ['run_id' => $runId]);
 
         $failures = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
@@ -362,7 +363,7 @@ final class SqliteJobQueue implements JobQueue
     private function countQuery(string $sql, array $parameters): array
     {
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($parameters);
+        SqliteRetry::execute($stmt, $parameters);
 
         $result = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
@@ -390,7 +391,7 @@ final class SqliteJobQueue implements JobQueue
                AND host = :host
                AND status = "running"',
         );
-        $running->execute([
+        SqliteRetry::execute($running, [
             'run_id' => $runId,
             'stage' => $stage,
             'host' => $host,
@@ -407,7 +408,7 @@ final class SqliteJobQueue implements JobQueue
             'SELECT last_started_at_ms FROM host_limiter
              WHERE run_id = :run_id AND stage = :stage AND host = :host',
         );
-        $last->execute([
+        SqliteRetry::execute($last, [
             'run_id' => $runId,
             'stage' => $stage,
             'host' => $host,

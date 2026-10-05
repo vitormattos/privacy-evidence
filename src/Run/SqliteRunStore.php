@@ -7,6 +7,7 @@ namespace PrivacyEvidence\Run;
 use PDO;
 use PDOStatement;
 use PrivacyEvidence\Core\Value;
+use PrivacyEvidence\Storage\SqliteRetry;
 
 final class SqliteRunStore implements RunStore
 {
@@ -24,7 +25,7 @@ final class SqliteRunStore implements RunStore
              VALUES (:id, :started_at, :git_commit, :dataset_hash, :protocol_version, :versions, :configuration, :status)',
         );
 
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'id' => $run->id,
             'started_at' => $run->startedAt,
             'git_commit' => $run->gitCommit,
@@ -41,7 +42,7 @@ final class SqliteRunStore implements RunStore
         $stmt = $this->pdo->prepare(
             'UPDATE research_runs SET status = :status WHERE id = :id',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'status' => $status->value,
             'id' => $runId,
         ]);
@@ -52,7 +53,7 @@ final class SqliteRunStore implements RunStore
         $stmt = $this->pdo->prepare(
             'SELECT * FROM research_runs WHERE id = :id',
         );
-        $stmt->execute(['id' => $runId]);
+        SqliteRetry::execute($stmt, ['id' => $runId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!is_array($row)) {
@@ -89,7 +90,7 @@ final class SqliteRunStore implements RunStore
         $stmt = $this->pdo->prepare(
             'SELECT status FROM research_runs WHERE id = :id',
         );
-        $stmt->execute(['id' => $runId]);
+        SqliteRetry::execute($stmt, ['id' => $runId]);
         /** @psalm-suppress MixedAssignment */
         $value = $stmt->fetchColumn();
 
@@ -101,7 +102,7 @@ final class SqliteRunStore implements RunStore
         $stmt = $this->pdo->prepare(
             'SELECT metric, value FROM run_telemetry WHERE run_id = :run_id ORDER BY metric',
         );
-        $stmt->execute(['run_id' => $runId]);
+        SqliteRetry::execute($stmt, ['run_id' => $runId]);
 
         /** @var list<array<string, mixed>> $rows */
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -128,7 +129,7 @@ final class SqliteRunStore implements RunStore
              ON CONFLICT(run_id, metric)
              DO UPDATE SET value = value + excluded.value',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'run_id' => $runId,
             'metric' => $metric,
             'value' => $amount,
@@ -143,7 +144,7 @@ final class SqliteRunStore implements RunStore
              ON CONFLICT(run_id, metric)
              DO UPDATE SET value = excluded.value',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'run_id' => $runId,
             'metric' => $metric,
             'value' => $value,
@@ -160,7 +161,7 @@ final class SqliteRunStore implements RunStore
             'INSERT INTO run_events (run_id, type, subject_id, occurred_at, detail_json)
              VALUES (:run_id, :type, :subject_id, :occurred_at, :detail_json)',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'run_id' => $runId,
             'type' => $type,
             'subject_id' => $subjectId,
@@ -177,7 +178,7 @@ final class SqliteRunStore implements RunStore
              WHERE run_id = :run_id
              ORDER BY id',
         );
-        $stmt->execute(['run_id' => $runId]);
+        SqliteRetry::execute($stmt, ['run_id' => $runId]);
 
         /** @var list<array{
          *   type:string,
