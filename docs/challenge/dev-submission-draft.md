@@ -8,7 +8,7 @@ tags: devchallenge, weekendchallenge, hf26challenge, opensource
 
 ## Abstract
 
-This article reports the design and first full-population application of **Privacy Evidence**, an open-source research instrument for reproducible measurement of publicly observable privacy evidence on websites. The study revisits a 2025 analysis of websites associated with the Igreja Presbiteriana do Brasil (IPB), replacing a partially automated but incompletely preserved workflow with a versioned pipeline for source classification, deduplication, bounded web acquisition, evidence detection, human review and regulatory mapping. The October 2026 run accounted for all **2,993 source records**, identified **566 unique website measurement units**, fully measured **193**, partially measured **12**, and retained **361** as explicitly not measurable under the protocol. The contribution is methodological rather than a claim of legal compliance: the pipeline preserves provenance, missing-data states and acquisition failures so that future replications and longitudinal comparisons can distinguish changes in the population, websites and measurement process.
+This article reports the design and first full-source-population application of **Privacy Evidence**, an open-source research instrument for reproducible measurement of publicly observable privacy evidence on websites. The study revisits a 2025 analysis of websites associated with the Igreja Presbiteriana do Brasil (IPB), replacing a partially automated but incompletely preserved workflow with a versioned pipeline for source classification, deduplication, bounded web acquisition, evidence detection, human review and regulatory mapping. The October 2026 run accounted for all **2,993 source records**, identified **566 unique website measurement units**, fully measured **193**, partially measured **12**, and retained **361** as explicitly not measurable under the protocol. The contribution is methodological rather than a claim of legal compliance: the pipeline preserves provenance, missing-data states and acquisition failures so that future replications and longitudinal comparisons can distinguish changes in the population, websites and measurement process.
 
 **Keywords:** empirical software engineering, reproducibility, web measurement, privacy, LGPD, open science, machine learning.
 
@@ -198,7 +198,7 @@ https://github.com/vitormattos/privacy-evidence/blob/main/docs/research/protocol
 
 ### Methodological flow
 
-![Privacy Evidence methodological flow](https://raw.githubusercontent.com/vitormattos/privacy-evidence/main/docs/challenge/research-method-flow.svg)
+![Privacy Evidence methodological flow](https://github.com/vitormattos/privacy-evidence/raw/main/docs/challenge/research-method-flow.svg)
 
 *Figure 1. Methodological flow from source population to research interpretation. The version-controlled Mermaid source is available in [`research-method-flow.mmd`](https://github.com/vitormattos/privacy-evidence/blob/main/docs/challenge/research-method-flow.mmd).*
 
@@ -228,7 +228,7 @@ The first dataset was processed on **June 20, 2025**. The new full-population va
 
 | Dimension | June 20, 2025 (monograph) | October 5, 2026 (Privacy Evidence) | How to interpret it |
 | --- | ---: | ---: | --- |
-| Source population | **2,935 churches** | **2,993 source records** | The underlying directory changed over time; the 2026 run contains 58 more source records. |
+| Source population | **2,935 churches** | **2,993 source records** | The 2026 source snapshot contains 58 more records, but this difference must not be interpreted as 58 additional churches because the directory contents and record semantics may have changed. |
 | Website addresses / website-eligible records | **640 addresses informed** | **589 eligible source records** | The criteria are not identical. The current protocol classifies resource type before deciding website eligibility. |
 | Non-social / web resources | **532 addresses that were not social networks** | **529 institutional websites + 60 third-party hosted pages** | The 2026 taxonomy is more granular, so these categories should not be treated as a direct percentage comparison. |
 | Unique website units | *Not reported separately* | **566 unique websites** | Privacy Evidence explicitly deduplicates website measurement units. The run found **23 duplicate references in 9 groups**. |
@@ -305,7 +305,7 @@ After source classification, **589 records were eligible for website measurement
 
 The study therefore followed this population flow:
 
-![IPB population accounting flow](https://raw.githubusercontent.com/vitormattos/privacy-evidence/main/docs/challenge/population-flow.svg)
+![IPB population accounting flow](https://github.com/vitormattos/privacy-evidence/raw/main/docs/challenge/population-flow.svg)
 
 *Figure 2. Population accounting from the 2,993 source records to the 566 unique website measurement units. Non-eligible records remain represented with an explicit reason. The Mermaid source is available in [`population-flow.mmd`](https://github.com/vitormattos/privacy-evidence/blob/main/docs/challenge/population-flow.mmd).*
 
