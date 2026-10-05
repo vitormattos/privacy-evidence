@@ -1,10 +1,10 @@
 ---
-title: I turned my old privacy study into a reproducible research tool for my master's advisor
+title: Privacy Evidence: A Reproducible Web Measurement Pipeline for Empirical Privacy Research
 published: true
 tags: devchallenge, weekendchallenge, hf26challenge
 ---
 
-*This is a submission for the [Hacktoberfest Weekend Challenge: Build for a Friend](https://dev.to/challenges/hacktoberfest-weekend-2026-10-01).*
+*This article is a submission for the [Hacktoberfest Weekend Challenge: Build for a Friend](https://dev.to/challenges/hacktoberfest-weekend-2026-10-01). The project was built during the challenge window for a real academic beneficiary, my master's advisor, while the article reports the work as an empirical software-engineering research artifact.*
 
 ## Abstract
 
@@ -29,6 +29,8 @@ This article reports the design and first full-population application of **Priva
 ---
 
 ## What I Built
+
+### Background and motivation
 
 I dedicate **Privacy Evidence** to **[Igor Scaliante Wiese](http://lattes.cnpq.br/0447444423694007)**, my master's advisor at UTFPR and professor of the Free Software Development course.
 
@@ -196,42 +198,9 @@ https://github.com/vitormattos/privacy-evidence/blob/main/docs/research/protocol
 
 ### Methodological flow
 
-The source for the diagram below is kept as Mermaid in the repository so the research flow remains version-controlled even though DEV does not render Mermaid natively.
+![Privacy Evidence methodological flow](https://raw.githubusercontent.com/vitormattos/privacy-evidence/main/docs/challenge/research-method-flow.svg)
 
-```text
-source population
-      |
-      v
-source preservation
-      |
-      v
-normalization + resource classification
-      |
-      v
-eligibility + deduplication
-      |
-      v
-bounded HTTP/browser acquisition
-      |
-      v
-immutable documents
-      |
-      +----------------------+
-      |                      |
-      v                      v
-deterministic evidence    PHP-native ML
-      |                      |
-      +----------+-----------+
-                 |
-                 v
-          human review
-                 |
-                 v
-       regulatory mapping
-                 |
-                 v
-     metrics + interpretation
-```
+*Figure 1. Methodological flow from source population to research interpretation. The version-controlled Mermaid source is available in [`research-method-flow.mmd`](https://github.com/vitormattos/privacy-evidence/blob/main/docs/challenge/research-method-flow.mmd).*
 
 ## Results from the IPB Analysis
 
@@ -336,26 +305,9 @@ After source classification, **589 records were eligible for website measurement
 
 The study therefore followed this population flow:
 
-```text
-2,993 IPB source records
-        |
-        v
-source classification
-        |
-        +--> 2,404 not eligible for website measurement
-        |
-        v
-589 eligible source records
-        |
-        v
-deduplication
-        |
-        v
-566 unique websites
-        |
-        v
-measurement and evidence analysis
-```
+![IPB population accounting flow](https://raw.githubusercontent.com/vitormattos/privacy-evidence/main/docs/challenge/population-flow.svg)
+
+*Figure 2. Population accounting from the 2,993 source records to the 566 unique website measurement units. Non-eligible records remain represented with an explicit reason. The Mermaid source is available in [`population-flow.mmd`](https://github.com/vitormattos/privacy-evidence/blob/main/docs/challenge/population-flow.mmd).*
 
 This distinction is methodologically important. The source population is not equivalent to a ready-made website sample. Building the measurable population is itself an empirical step of the study.
 
