@@ -32,7 +32,7 @@ For the initial PoC, a smaller reliability subset may be used, but it must be id
 
 ## Independent human review
 
-Give identical blank copies of the selected package to at least two humans. Each reviewer fills:
+Give identical blank copies of the selected package to at least two humans. Prefer the self-contained `review:html` interface so reviewers do not edit JSON directly and automated classifier metadata is not visually emphasized. Each reviewer fills:
 - `humanState`;
 - `rationale`;
 - optionally `reviewedAt`.
@@ -75,3 +75,25 @@ This produces per-signal confusion matrices, precision, recall, F1, support, abs
 ## Publication and privacy
 
 Raw annotation packages belong under restricted data unless the data policy explicitly classifies them as publishable. Public replication packages should minimize excerpts and personal data while preserving stable evidence/artifact identifiers and derived metrics.
+
+
+## Reviewer experience
+
+Generate an offline browser interface for each blank package:
+
+```bash
+bin/privacy-evidence review:html reviewer-a.json reviewer-a.html
+bin/privacy-evidence review:html reviewer-b.json reviewer-b.html
+```
+
+The generated page:
+- sends no annotation data to a server;
+- autosaves progress locally in the reviewer's browser;
+- groups cases by evidence type to reduce cognitive switching;
+- hides automated state/confidence from the normal decision view to reduce anchoring bias;
+- embeds concise handbook guidance;
+- supports keyboard labels and concise rationale helpers;
+- estimates remaining time from the reviewer's observed pace;
+- exports the original JSON package with only human review fields filled.
+
+The canonical package and import semantics remain unchanged.
