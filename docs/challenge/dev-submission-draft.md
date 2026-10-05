@@ -30,7 +30,7 @@ I started from the public IPB directory and worked through entries one by one. S
 
 That process helped answer the research question, but it had a serious empirical-software-engineering problem: too much of the workflow was manual. Another researcher could read the methodology, but could not reliably replay the same sequence of filtering, collection, classification and review from the original source data.
 
-Privacy Evidence is the tool I wanted that study to have, but the current goal is broader: turn the old work into something my advisor can inspect as empirical software-engineering research and that can support the scientific publications I need to produce during the master's program.
+Privacy Evidence is the tool I wanted that study to have. I designed and implemented it as an open-source research instrument that turns the original study into a versioned, inspectable and reproducible software-engineering workflow. The current goal is broader than reproducing the monograph: I want the project to support empirical research that my advisor can inspect and that can later be developed into scientific publications during my master's program.
 
 Igor did not ask me to build this exact software, and I am not claiming that he has already validated its results. I am dedicating the work to him because his role as my advisor and as a professor of Free Software Development makes him a real academic reference for the kind of research artifact I want this project to become: open, inspectable, reproducible and suitable for scientific scrutiny.
 
@@ -45,6 +45,8 @@ A public website is only one observable slice of a broader privacy program. The 
 {% endcard %}
 
 The immediate problem came from IPB websites, but the architecture is source-agnostic. The same workflow can be used for another denomination, an organization that owns many public sites, or an empirical research population supplied as a list of URLs.
+
+What I consider new here is not any single crawler, detector or ML model. It is the combination of **full-population accounting, immutable acquisition evidence, versioned regulatory mapping, reproducible research runs and auditable human/ML disagreement handling** in one open-source workflow. The design is intended to make the research process itself inspectable, not only its final report.
 
 ## Demo
 
@@ -72,7 +74,7 @@ This GitHub Actions run executes the real PHP-native Rubix model build and infer
 
 ## Research Methodology
 
-This project is not only a crawler or a classifier. I designed it as a **reproducible empirical software-engineering study**.
+This project is not only a crawler or a classifier. I designed it as a **reproducible empirical software-engineering study and an open research artifact**. The implementation combines web measurement, privacy-evidence classification, reproducibility controls and an experimental local ML path while keeping each research layer independently auditable.
 
 The research protocol uses the **Goal-Question-Metric (GQM)** paradigm to connect the research goal, research questions and observable measurements. The reporting and study-design choices also use the **ACM SIGSOFT Empirical Standards** as a methodological reference.
 
@@ -369,6 +371,8 @@ The full-population run provides a baseline for several follow-up studies:
 
 In that sense, the main contribution of the run is not only the descriptive result for the websites that could be measured. It is the preservation of the **entire research population**, including the records for which website analysis was not applicable or technically possible, together with an auditable explanation of how every record reached its final state.
 
+Because the source-specific extraction is kept outside the core measurement engine, the same research instrument can be reused with other populations and regulatory profiles. That separation is intentional: the IPB study is the first real population I used to validate the approach, not a hard-coded limit of the software.
+
 ## Code
 
 {% embed https://github.com/vitormattos/privacy-evidence %}
@@ -416,7 +420,9 @@ That boundary matters to the research design as much as the model itself.
 
 ## Why Does Open Innovation Matter?
 
-For this project, open innovation is about reproducibility and control.
+For this project, open innovation is about reproducibility, control and reuse.
+
+I chose to publish the implementation, research protocol, architecture decisions and validation runs because the useful output is not only a set of percentages. Other developers and researchers should be able to inspect how those percentages were produced, challenge the assumptions, replace components and repeat the experiment with another population.
 
 The entire challenge demo runs locally. It does not require an OpenAI API key, an Ollama server, Python, a remote inference endpoint or a third-party service holding the research text.
 
@@ -431,7 +437,7 @@ That matters because a scientific workflow should be inspectable enough that ano
 
 A closed API can be useful, but it introduces a research dependency whose implementation and model can change outside the repository. For the specific problem I was trying to fix: a previous study that was not reproducible enough: moving the crucial classification step behind an opaque remote API would solve the wrong problem.
 
-Open-source local ML gives me a model I can version, inspect, replace, benchmark and rerun as part of the same research instrument.
+Open-source local ML gives me a model I can version, inspect, replace, benchmark and rerun as part of the same research instrument. More broadly, keeping the complete toolchain open turns the project from a one-off analysis into reusable technical infrastructure for reproducible privacy research.
 
 There is also an important result I am **not** claiming: the ML model has not been promoted to the project's default detector.
 
