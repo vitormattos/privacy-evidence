@@ -136,7 +136,10 @@ const i18n = {
     showReview: 'Voltar à revisão',
     inspectNext: 'Próximo caso',
     inspectLast: 'Último caso desta fila',
-    empty: 'Não há casos nesta fila.',
+    empty: 'Este pacote não contém casos para revisar.',
+    noReviewable: 'Nenhum caso disponível para revisão',
+    preparationRequired: 'O pacote ainda precisa ser preparado: recupere o material original ou faça uma nova coleta antes de enviá-lo aos revisores. Os sites e os motivos da pendência estão abaixo.',
+    pendingExport: 'Exportar pacote com pendências',
     storageError: 'Não foi possível salvar no navegador. Mantenha esta página aberta e exporte ao terminar.',
     finished: 'Revisão concluída. Exporte o JSON; os casos para investigação continuam no pacote sem rótulo humano.',
     sourceHelp: 'A página ao vivo pode ter mudado. Use-a apenas como contexto e baseie a classificação na página preservada abaixo.',
@@ -192,7 +195,10 @@ const i18n = {
     showReview: 'Return to review',
     inspectNext: 'Next case',
     inspectLast: 'Last case in this queue',
-    empty: 'There are no cases in this queue.',
+    empty: 'This packet contains no cases to review.',
+    noReviewable: 'No cases available for review',
+    preparationRequired: 'The packet still needs preparation: recover the original material or perform a new collection before sending it to reviewers. Sites and reasons for deferral are shown below.',
+    pendingExport: 'Export pending packet',
     storageError: 'Browser storage is unavailable. Keep this page open and export when finished.',
     finished: 'Review complete. Export JSON; cases requiring investigation remain in the packet without human labels.',
     sourceHelp: 'The live page may have changed. Use it only as context and base the classification on the preserved page below.',
@@ -369,8 +375,8 @@ function hasPreservedExcerpt(c) {
 }
 const reviewOrder = sortedOrder.filter(i => testMode || hasPreservedExcerpt(cases[i]));
 const deferredOrder = sortedOrder.filter(i => !hasPreservedExcerpt(cases[i]));
-let order = reviewOrder;
-let showingDeferred = false;
+let showingDeferred = !testMode && reviewOrder.length === 0 && deferredOrder.length > 0;
+let order = showingDeferred ? deferredOrder : reviewOrder;
 const storageKey = 'privacy-evidence-review:' + reviewConfig.packageHash + ':' + (testMode ? 'test' : 'research') + ':' + location.pathname;
 let position = 0;
 let locale = 'pt';
@@ -476,12 +482,12 @@ function renderStaticText() {
   document.getElementById('rationaleHelp').textContent = text.rationaleHelp;
   document.getElementById('previous').textContent = text.previous;
   document.getElementById('nextUnanswered').textContent = text.nextUnanswered;
-  document.getElementById('export').textContent = text.export;
+  document.getElementById('export').textContent = !testMode && reviewOrder.length === 0 ? text.pendingExport : text.export;
   document.getElementById('biasNotice').textContent = text.bias;
   document.getElementById('testNotice').hidden = !testMode;
   document.getElementById('testNotice').textContent = text.testNotice;
   document.getElementById('queueNotice').textContent = text.queue + ' ' + cases.length + ' — ' + sortedOrder.filter(i => hasPreservedExcerpt(cases[i])).length + ' ' + text.reviewable + '; ' + deferredOrder.length + ' ' + text.deferred + '.';
-  document.getElementById('queueToggle').hidden = testMode || deferredOrder.length === 0;
+  document.getElementById('queueToggle').hidden = testMode || deferredOrder.length === 0 || reviewOrder.length === 0;
   document.getElementById('queueToggle').textContent = showingDeferred ? text.showReview : text.showDeferred;
 }
 
@@ -492,12 +498,20 @@ function render() {
   document.getElementById('evidenceCard').hidden = !c;
   document.getElementById('decisionCard').hidden = !c || showingDeferred;
   document.getElementById('next').disabled = !c;
+  document.getElementById('next').hidden = !c;
+  document.getElementById('previous').hidden = !c;
+  document.getElementById('nextUnanswered').hidden = !c || showingDeferred;
   document.getElementById('previous').disabled = !c || position === 0;
   document.getElementById('nextUnanswered').disabled = !c || showingDeferred || completedCount() === reviewOrder.length;
-  document.getElementById('export').disabled = completedCount() !== reviewOrder.length;
-  document.getElementById('progressText').textContent = completedCount() + ' / ' + reviewOrder.length + ' ' + text.completed;
+  document.getElementById('export').disabled = cases.length === 0 || completedCount() !== reviewOrder.length;
+  document.getElementById('progressText').textContent = reviewOrder.length
+    ? completedCount() + ' / ' + reviewOrder.length + ' ' + text.completed
+    : (cases.length ? text.noReviewable : text.empty);
+  document.getElementById('progressBar').style.width = (reviewOrder.length ? completedCount() / reviewOrder.length * 100 : 0) + '%';
   document.getElementById('categoryText').textContent = c ? text.case + ' ' + (position + 1) + ' / ' + order.length : text.empty;
-  document.getElementById('timeText').textContent = completedCount() === reviewOrder.length ? text.finished : '';
+  document.getElementById('timeText').textContent = reviewOrder.length
+    ? (completedCount() === reviewOrder.length ? text.finished : '')
+    : (cases.length ? text.preparationRequired : '');
   if (!storageAvailable) document.getElementById('saveStatus').textContent = text.storageError;
   if (!c) return;
   const context = c.reviewContext || {};
@@ -518,7 +532,7 @@ function render() {
   document.getElementById('guidance').textContent = guidanceFor(c.evidenceType);
   document.getElementById('excerpt').textContent = doc && doc.text
     ? doc.text
-    : (locale === 'pt' ? '[Nenhuma evidência textual foi preservada neste caso.]' : '[No preserved text evidence is available for this case.]');
+    : (locale === 'pt' ? '[O conteúdo textual não está disponível neste pacote.]' : '[No preserved text evidence is available for this case.]');
 
   const missing = document.getElementById('missingEvidence');
   missing.hidden = hasPreservedExcerpt(c);
@@ -539,13 +553,17 @@ function render() {
   renderStateButtons();
 
   const done = completedCount();
-  const pct = reviewOrder.length ? (done / reviewOrder.length) * 100 : 100;
+  const pct = reviewOrder.length ? (done / reviewOrder.length) * 100 : 0;
   document.getElementById('progressBar').style.width = pct.toFixed(1) + '%';
-  document.getElementById('progressText').textContent = done + ' / ' + reviewOrder.length + ' ' + text.completed;
+  document.getElementById('progressText').textContent = reviewOrder.length
+    ? done + ' / ' + reviewOrder.length + ' ' + text.completed
+    : text.noReviewable;
   document.getElementById('categoryText').textContent = text.case + ' ' + (position + 1) + ' / ' + order.length;
 
   const validDurations = (timing.durations || []).filter(v => v >= 5 && v <= 600);
-  if (done === reviewOrder.length) {
+  if (reviewOrder.length === 0) {
+    document.getElementById('timeText').textContent = text.preparationRequired;
+  } else if (done === reviewOrder.length) {
     document.getElementById('timeText').textContent = text.finished;
   } else if (done < minimumForEstimate || validDurations.length < minimumForEstimate) {
     document.getElementById('timeText').textContent = done === 0
@@ -562,7 +580,7 @@ function render() {
     ? (position === order.length - 1 ? text.inspectLast : text.inspectNext)
     : (position === order.length - 1 ? text.save : text.next);
   document.getElementById('next').disabled = showingDeferred && position === order.length - 1;
-  document.getElementById('export').disabled = done !== reviewOrder.length;
+  document.getElementById('export').disabled = cases.length === 0 || done !== reviewOrder.length;
 }
 
 function chooseState(state) {
@@ -629,12 +647,13 @@ function saveDraftRationale() {
 
 function exportPackage() {
   saveDraftRationale();
-  if (completedCount() !== reviewOrder.length) return;
+  if (cases.length === 0 || completedCount() !== reviewOrder.length) return;
   const blob = new Blob([JSON.stringify(packageData, null, 2) + '\n'], {type: 'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = testMode ? 'privacy-evidence-review-TEST.json' : 'privacy-evidence-review-completed.json';
+  a.download = testMode ? 'privacy-evidence-review-TEST.json'
+    : (reviewOrder.length === 0 ? 'privacy-evidence-review-pending.json' : 'privacy-evidence-review-completed.json');
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -653,7 +672,7 @@ document.getElementById('rationale').addEventListener('input', () => {
   document.getElementById('validation').textContent = '';
   saveDraftRationale();
   const done = completedCount();
-  document.getElementById('export').disabled = done !== reviewOrder.length;
+  document.getElementById('export').disabled = cases.length === 0 || done !== reviewOrder.length;
   document.getElementById('nextUnanswered').disabled = done === reviewOrder.length;
   document.getElementById('progressText').textContent = done + ' / ' + reviewOrder.length + ' ' + t().completed;
   document.getElementById('progressBar').style.width = (reviewOrder.length ? done / reviewOrder.length * 100 : 100) + '%';
