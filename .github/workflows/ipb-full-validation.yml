@@ -7,6 +7,13 @@ on:
       - agent/ipb-live-demo
     paths:
       - .github/workflows/ipb-full-validation.yml
+      - bin/privacy-evidence
+      - composer.json
+      - composer.lock
+      - browser/**
+      - examples/hacktoberfest/ipb/**
+      - src/**
+      - tests/**
 
 permissions:
   contents: read
