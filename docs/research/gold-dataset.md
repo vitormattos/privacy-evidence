@@ -97,3 +97,8 @@ The generated page:
 - exports the original JSON package with only human review fields filled.
 
 The canonical package and import semantics remain unchanged.
+
+
+### Annotation-packet sufficiency
+
+A human label is valid only when the reviewer can inspect enough preserved evidence to support the decision. The reviewer UI must not encourage a binary `present`/`absent` decision when the annotation packet contains no preserved excerpt or equivalent reviewable evidence. Such cases remain explicit as `unknown`/`unavailable` or another justified non-binary state until richer preserved context is available.
