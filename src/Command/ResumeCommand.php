@@ -62,6 +62,7 @@ final class ResumeCommand extends Command
             (new RegulatoryAnalysisService(
                 $runtime->observations,
                 DefaultProfileRegistry::create(),
+                runs: $runtime->runs,
             ))->analyze($value);
         }
 

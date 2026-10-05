@@ -43,6 +43,62 @@ final class ProfileEvaluatorTest extends TestCase
         self::assertSame(['privacy_contact'], $controller['absent']);
     }
 
+    public function testIncompleteMeasurementDoesNotTurnAbsenceIntoNoSupport(): void
+    {
+        $evidence = [
+            new PrivacyEvidence(
+                EvidenceType::PurposeDisclosure,
+                ObservationState::Absent,
+                'x',
+                str_repeat('a', 64),
+                'https://e.test',
+                'd',
+                '1',
+                'rule',
+            ),
+        ];
+
+        $results = (new ProfileEvaluator())->evaluate(
+            new LgpdProfile(),
+            $evidence,
+            negativeEvidenceReliable: false,
+        );
+        $byId = array_column($results, null, 'id');
+
+        self::assertSame('indeterminate', $byId['lgpd-art9-purpose']['state'] ?? null);
+    }
+
+    public function testUnavailablePartOfCompoundRequirementPreventsNegativeConclusion(): void
+    {
+        $evidence = [
+            new PrivacyEvidence(
+                EvidenceType::ControllerIdentity,
+                ObservationState::Absent,
+                'x',
+                str_repeat('a', 64),
+                'https://e.test',
+                'd',
+                '1',
+                'rule',
+            ),
+            new PrivacyEvidence(
+                EvidenceType::PrivacyContact,
+                ObservationState::Unavailable,
+                'x',
+                str_repeat('a', 64),
+                'https://e.test',
+                'd',
+                '1',
+                'rule',
+            ),
+        ];
+
+        $results = (new ProfileEvaluator())->evaluate(new LgpdProfile(), $evidence);
+        $byId = array_column($results, null, 'id');
+
+        self::assertSame('unavailable', $byId['lgpd-art9-controller']['state'] ?? null);
+    }
+
     public function testConditionalRequirementDoesNotTurnAbsenceIntoNegativeSupport(): void
     {
         $evidence = [

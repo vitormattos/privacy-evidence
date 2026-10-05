@@ -6,6 +6,7 @@ namespace PrivacyEvidence\Analysis;
 
 use PrivacyEvidence\Pipeline\ProfileRegistry;
 use PrivacyEvidence\Regulatory\ProfileEvaluator;
+use PrivacyEvidence\Run\RunStore;
 use PrivacyEvidence\Source\ResourceType;
 use PrivacyEvidence\Storage\ObservationStore;
 
@@ -15,6 +16,7 @@ final readonly class RegulatoryAnalysisService
         private ObservationStore $store,
         private ProfileRegistry $profiles,
         private ProfileEvaluator $evaluator = new ProfileEvaluator(),
+        private ?RunStore $runs = null,
     ) {
     }
 
@@ -45,6 +47,8 @@ final readonly class RegulatoryAnalysisService
             $eligible[$resourceIds[0]] = true;
         }
 
+        $incompleteResources = $this->incompleteResources($runId);
+
         foreach ($this->store->resourceIds($runId) as $resourceId) {
             if (!isset($eligible[$resourceId])) {
                 continue;
@@ -60,7 +64,13 @@ final readonly class RegulatoryAnalysisService
                     $profile->version(),
                 );
 
-                foreach ($this->evaluator->evaluate($profile, $evidence) as $result) {
+                foreach (
+                    $this->evaluator->evaluate(
+                        $profile,
+                        $evidence,
+                        negativeEvidenceReliable: !isset($incompleteResources[$resourceId]),
+                    ) as $result
+                ) {
                     $this->store->recordProfileResult(
                         runId: $runId,
                         resourceId: $resourceId,
@@ -71,5 +81,52 @@ final readonly class RegulatoryAnalysisService
                 }
             }
         }
+    }
+
+    /**
+     * @return array<string,true>
+     */
+    private function incompleteResources(string $runId): array
+    {
+        if ($this->runs === null) {
+            return [];
+        }
+
+        $incomplete = [];
+        foreach ($this->runs->events($runId) as $event) {
+            $resourceId = $event['subjectId'];
+            if ($resourceId === null) {
+                continue;
+            }
+
+            if (in_array($event['type'], ['crawl_budget_stop', 'measurement_limit'], true)) {
+                $incomplete[$resourceId] = true;
+                continue;
+            }
+
+            if (
+                $event['type'] === 'job_failure'
+                && in_array($event['detail']['status'] ?? null, ['failed', 'dead'], true)
+            ) {
+                $incomplete[$resourceId] = true;
+                continue;
+            }
+
+            if ($event['type'] === 'resource_terminal') {
+                $status = $event['detail']['status'] ?? null;
+                if (
+                    is_string($status)
+                    && in_array(
+                        $status,
+                        ['unreachable', 'http_error', 'failed', 'invalid_url'],
+                        true,
+                    )
+                ) {
+                    $incomplete[$resourceId] = true;
+                }
+            }
+        }
+
+        return $incomplete;
     }
 }

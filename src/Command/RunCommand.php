@@ -199,6 +199,7 @@ final class RunCommand extends Command
             (new RegulatoryAnalysisService(
                 $runtime->observations,
                 $profiles,
+                runs: $runtime->runs,
             ))->analyze($run->id);
         }
 

@@ -26,7 +26,11 @@ final class ProfileEvaluator
      *   interpretation:string
      * }>
      */
-    public function evaluate(RegulatoryProfile $profile, array $evidence): array
+    public function evaluate(
+        RegulatoryProfile $profile,
+        array $evidence,
+        bool $negativeEvidenceReliable = true,
+    ): array
     {
         /** @var array<string,list<ObservationState>> $states */
         $states = [];
@@ -69,6 +73,7 @@ final class ProfileEvaluator
                 $unavailable,
                 $notApplicable,
                 $requirement->conditionalApplicability,
+                $negativeEvidenceReliable,
             );
 
             $results[] = [
@@ -136,6 +141,7 @@ final class ProfileEvaluator
         array $unavailable,
         array $notApplicable,
         bool $conditionalApplicability,
+        bool $negativeEvidenceReliable,
     ): string {
         if ($present !== [] && count($present) === $requiredTypes) {
             return 'observed_support';
@@ -145,14 +151,12 @@ final class ProfileEvaluator
             return 'partial_observed_support';
         }
 
-        if ($absent !== []) {
-            return $conditionalApplicability
-                ? 'applicability_unknown'
-                : 'no_observed_support';
-        }
-
         if (count($notApplicable) === $requiredTypes) {
             return 'not_applicable';
+        }
+
+        if ($conditionalApplicability && $absent !== []) {
+            return 'applicability_unknown';
         }
 
         if ($unknown !== []) {
@@ -161,6 +165,12 @@ final class ProfileEvaluator
 
         if ($unavailable !== []) {
             return 'unavailable';
+        }
+
+        if ($absent !== []) {
+            return $negativeEvidenceReliable
+                ? 'no_observed_support'
+                : 'indeterminate';
         }
 
         return 'indeterminate';

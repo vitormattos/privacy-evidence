@@ -42,6 +42,7 @@ final class AnalyzeCommand extends Command
         (new RegulatoryAnalysisService(
             $runtime->observations,
             DefaultProfileRegistry::create(),
+            runs: $runtime->runs,
         ))->analyze($value);
 
         return Command::SUCCESS;
