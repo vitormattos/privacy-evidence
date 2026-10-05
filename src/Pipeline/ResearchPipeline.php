@@ -18,6 +18,7 @@ use PrivacyEvidence\Review\ReviewQueue;
 use PrivacyEvidence\Run\ResearchRun;
 use PrivacyEvidence\Run\RunStatus;
 use PrivacyEvidence\Run\RunStore;
+use PrivacyEvidence\Source\ResourceClassifier;
 use PrivacyEvidence\Source\ResourceType;
 use PrivacyEvidence\Source\SourceAdapter;
 use PrivacyEvidence\Storage\ObservationStore;
@@ -35,6 +36,7 @@ final readonly class ResearchPipeline
         private DetectorRegistry $detectors,
         private BrowserEscalationPolicy $browserPolicy = new BrowserEscalationPolicy(),
         private LinkDiscoverer $linkDiscoverer = new LinkDiscoverer(),
+        private ResourceClassifier $resourceClassifier = new ResourceClassifier(),
         private ?BrowserProvider $browser = null,
         private PipelineConfig $config = new PipelineConfig(),
     ) {
@@ -296,6 +298,33 @@ final readonly class ResearchPipeline
         }
 
         if ($depth === 0) {
+            $finalClassification = $this->resourceClassifier->classifyDetailed(
+                $document->finalUrl,
+                $document->finalUrl,
+            );
+            if ($document->finalUrl !== $url) {
+                $this->runs->recordEvent(
+                    $runId,
+                    'root_redirect',
+                    $resourceId,
+                    [
+                        'requested_url' => $url,
+                        'final_url' => $document->finalUrl,
+                        'final_type' => $finalClassification->type->value,
+                        'classification_rule' => $finalClassification->rule,
+                    ],
+                );
+            }
+
+            if ($finalClassification->type !== ResourceType::InstitutionalWebsite) {
+                $this->recordMeasurementLimit(
+                    $runId,
+                    $resourceId,
+                    'redirected_to_' . $finalClassification->type->value,
+                    $document->finalUrl,
+                );
+            }
+
             if (!str_contains(strtolower($document->mediaType), 'html')) {
                 $this->recordMeasurementLimit(
                     $runId,

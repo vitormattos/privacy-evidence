@@ -637,6 +637,14 @@ final readonly class RunExporter
             $measurementLimitReasons = array_keys($measurementLimitMap);
             sort($measurementLimitReasons, SORT_STRING);
 
+            $redirectLimitReason = null;
+            foreach ($measurementLimitReasons as $reason) {
+                if (str_starts_with($reason, 'redirected_to_')) {
+                    $redirectLimitReason = $reason;
+                    break;
+                }
+            }
+
             $hardMeasurementLimitReason = $this->firstMatchingReason(
                 $measurementLimitReasons,
                 [
@@ -645,7 +653,7 @@ final readonly class RunExporter
                     'root_non_html',
                     'empty_html_content',
                 ],
-            );
+            ) ?? $redirectLimitReason;
             $partialMeasurementLimitReason = $this->firstMatchingReason(
                 $measurementLimitReasons,
                 [
