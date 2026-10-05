@@ -116,6 +116,7 @@ final readonly class RunExporter
                 'duplicateNormalizedUrl',
                 'duplicateGroupSize',
                 'duplicateCanonicalResourceId',
+                'websiteMeasurementCanonicalResourceId',
                 'eligibleForWebsiteMeasurement',
                 'measurementStatus',
                 'primaryReason',
@@ -787,19 +788,30 @@ final readonly class RunExporter
 
         /** @var array<string,list<string>> $resourceIdsByNormalizedUrl */
         $resourceIdsByNormalizedUrl = [];
+        /** @var array<string,list<string>> $websiteIdsByNormalizedUrl */
+        $websiteIdsByNormalizedUrl = [];
         foreach ($resources as $resource) {
             /** @psalm-suppress MixedAssignment */
             $resourceIdValue = $resource['id'] ?? null;
             /** @psalm-suppress MixedAssignment */
             $normalizedUrlValue = $resource['normalizedUrl'] ?? null;
+            /** @psalm-suppress MixedAssignment */
+            $typeValue = $resource['type'] ?? null;
             if (is_string($resourceIdValue) && is_string($normalizedUrlValue)) {
                 $resourceIdsByNormalizedUrl[$normalizedUrlValue][] = $resourceIdValue;
+                if ($typeValue === 'institutional_website') {
+                    $websiteIdsByNormalizedUrl[$normalizedUrlValue][] = $resourceIdValue;
+                }
             }
         }
         foreach ($resourceIdsByNormalizedUrl as &$resourceIds) {
             sort($resourceIds, SORT_STRING);
         }
         unset($resourceIds);
+        foreach ($websiteIdsByNormalizedUrl as &$websiteIds) {
+            sort($websiteIds, SORT_STRING);
+        }
+        unset($websiteIds);
 
         $results = [];
         foreach ($resources as $resource) {
@@ -823,11 +835,22 @@ final readonly class RunExporter
                 ? []
                 : ($resourceIdsByNormalizedUrl[$normalizedUrl] ?? []);
             $duplicateGroupSize = count($duplicateIds);
-            $canonicalResourceId = $duplicateGroupSize > 1
+            $duplicateCanonicalResourceId = $duplicateGroupSize > 1
                 ? $duplicateIds[0]
-                : $idValue;
+                : null;
+            $websiteIds = (
+                $type === 'institutional_website'
+                && $normalizedUrl !== null
+            )
+                ? ($websiteIdsByNormalizedUrl[$normalizedUrl] ?? [])
+                : [];
+            $websiteMeasurementCanonicalResourceId = $websiteIds[0] ?? null;
             $lgpd = $lgpdById[$idValue]
-                ?? $lgpdById[$canonicalResourceId]
+                ?? (
+                    $websiteMeasurementCanonicalResourceId === null
+                        ? null
+                        : ($lgpdById[$websiteMeasurementCanonicalResourceId] ?? null)
+                )
                 ?? [];
 
             $results[] = [
@@ -844,9 +867,8 @@ final readonly class RunExporter
                     : 0.0,
                 'duplicateNormalizedUrl' => $duplicateGroupSize > 1,
                 'duplicateGroupSize' => $duplicateGroupSize,
-                'duplicateCanonicalResourceId' => $duplicateGroupSize > 1
-                    ? $canonicalResourceId
-                    : null,
+                'duplicateCanonicalResourceId' => $duplicateCanonicalResourceId,
+                'websiteMeasurementCanonicalResourceId' => $websiteMeasurementCanonicalResourceId,
                 'eligibleForWebsiteMeasurement' => $type === 'institutional_website',
                 'measurementStatus' => is_string($outcome['measurementStatus'] ?? null)
                     ? $outcome['measurementStatus']
@@ -876,6 +898,7 @@ final readonly class RunExporter
         $measurement = [];
         $reasons = [];
         $lgpdStates = [];
+        $lgpdUniqueWebsiteStates = [];
         $eligible = 0;
         $accounted = 0;
         $duplicateResources = 0;
@@ -908,15 +931,18 @@ final readonly class RunExporter
                 /** @psalm-suppress MixedAssignment */
                 $resourceIdValue = $result['resourceId'] ?? null;
                 /** @psalm-suppress MixedAssignment */
-                $duplicateCanonicalValue = $result['duplicateCanonicalResourceId'] ?? null;
+                $websiteCanonicalValue = $result['websiteMeasurementCanonicalResourceId'] ?? null;
                 if (
                     is_string($resourceIdValue)
-                    && (
-                        $duplicateCanonicalValue === null
-                        || $duplicateCanonicalValue === $resourceIdValue
-                    )
+                    && $websiteCanonicalValue === $resourceIdValue
                 ) {
                     $uniqueWebsiteMeasurementUnits++;
+                    /** @psalm-suppress MixedAssignment */
+                    $lgpdValueForUnique = $result['lgpdPublicEvidenceState'] ?? null;
+                    if (is_string($lgpdValueForUnique)) {
+                        $lgpdUniqueWebsiteStates[$lgpdValueForUnique]
+                            = ($lgpdUniqueWebsiteStates[$lgpdValueForUnique] ?? 0) + 1;
+                    }
                 }
             }
             if ($measurementStatus !== 'missing_outcome') {
@@ -937,6 +963,7 @@ final readonly class RunExporter
         ksort($measurement);
         ksort($reasons);
         ksort($lgpdStates);
+        ksort($lgpdUniqueWebsiteStates);
 
         return [
             'schemaVersion' => '1.0.0',
@@ -953,6 +980,7 @@ final readonly class RunExporter
                 'resources' => $duplicateResources,
             ],
             'lgpdPublicEvidenceStates' => $lgpdStates,
+            'lgpdUniqueWebsiteStates' => $lgpdUniqueWebsiteStates,
         ];
     }
 
@@ -977,6 +1005,10 @@ final readonly class RunExporter
                 Value::nullableString(
                     $result['duplicateCanonicalResourceId'] ?? null,
                     'population.duplicateCanonicalResourceId',
+                ),
+                Value::nullableString(
+                    $result['websiteMeasurementCanonicalResourceId'] ?? null,
+                    'population.websiteMeasurementCanonicalResourceId',
                 ),
                 !empty($result['eligibleForWebsiteMeasurement']) ? '1' : '0',
                 Value::string($result['measurementStatus'] ?? null, 'population.measurementStatus'),

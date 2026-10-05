@@ -223,6 +223,118 @@ final class RunExporterTest extends TestCase
         }
     }
 
+    public function testCrossTypeDuplicateDoesNotChangeWebsiteMeasurementCanonical(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            self::markTestSkipped('pdo_sqlite not available');
+        }
+
+        $pdo = new PDO('sqlite::memory:');
+        $runs = new SqliteRunStore($pdo);
+        $observations = new SqliteObservationStore($pdo);
+        $reviews = new SqliteReviewQueue($pdo);
+        $jobs = new SqliteJobQueue($pdo);
+
+        $run = new ResearchRun(
+            id: 'cross-type-duplicate',
+            startedAt: '2026-10-05T00:00:00Z',
+            gitCommit: 'fixture',
+            datasetHash: str_repeat('d', 64),
+            protocolVersion: 'test',
+            versions: ['schema' => 'test'],
+            configuration: [],
+        );
+        $runs->create($run);
+        $runs->setStatus($run->id, RunStatus::Completed);
+
+        $social = new ImportedResource(
+            'a-social',
+            'Social alias',
+            'https://shared.example/',
+            'https://shared.example/',
+            ResourceType::SocialNetwork,
+            classificationRule: 'fixture_social',
+            classificationConfidence: 1.0,
+        );
+        $site = new ImportedResource(
+            'z-site',
+            'Website',
+            'https://shared.example/',
+            'https://shared.example/',
+            ResourceType::InstitutionalWebsite,
+        );
+        $observations->recordResource($run->id, $social);
+        $observations->recordResource($run->id, $site);
+        $runs->recordEvent(
+            $run->id,
+            'resource_terminal',
+            $social->id,
+            [
+                'status' => 'not_eligible',
+                'category' => 'social_network',
+                'classification_rule' => 'fixture_social',
+            ],
+        );
+
+        (new RegulatoryAnalysisService(
+            $observations,
+            DefaultProfileRegistry::create(),
+        ))->analyze($run->id);
+
+        $directory = sys_get_temp_dir() . '/privacy-evidence-cross-type-' . bin2hex(random_bytes(4));
+        try {
+            (new RunExporter(new RuntimeContext(
+                runs: $runs,
+                jobs: $jobs,
+                observations: $observations,
+                reviews: $reviews,
+                artifactDirectory: $directory . '/artifacts',
+            )))->export($run->id, $directory);
+
+            /** @var mixed $population */
+            $population = json_decode(
+                (string) file_get_contents($directory . '/population-results.json'),
+                true,
+                flags: JSON_THROW_ON_ERROR,
+            );
+            self::assertIsArray($population);
+
+            /** @var array<string,array<array-key,mixed>> $byId */
+            $byId = [];
+            /** @psalm-suppress MixedAssignment */
+            foreach ($population as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                /** @psalm-suppress MixedAssignment */
+                $id = $row['resourceId'] ?? null;
+                if (is_string($id)) {
+                    $byId[$id] = $row;
+                }
+            }
+
+            self::assertSame(
+                'a-social',
+                $byId['z-site']['duplicateCanonicalResourceId'] ?? null,
+            );
+            self::assertSame(
+                'z-site',
+                $byId['z-site']['websiteMeasurementCanonicalResourceId'] ?? null,
+            );
+
+            /** @var mixed $summary */
+            $summary = json_decode(
+                (string) file_get_contents($directory . '/population-summary.json'),
+                true,
+                flags: JSON_THROW_ON_ERROR,
+            );
+            self::assertIsArray($summary);
+            self::assertSame(1, $summary['uniqueWebsiteMeasurementUnits'] ?? null);
+        } finally {
+            $this->removeDirectory($directory);
+        }
+    }
+
     public function testExportsDeterministicJsonCsvAndReportFromPersistedState(): void
     {
         if (!extension_loaded('pdo_sqlite')) {
