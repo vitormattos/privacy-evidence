@@ -629,7 +629,10 @@ final readonly class ResearchPipeline
             $stopReason = 'pages';
         } elseif ($usage['bytes'] >= $budget->maxBytes) {
             $stopReason = 'bytes';
-        } elseif ((time() - $crawlStartedAt) >= $budget->maxDurationSeconds) {
+        } elseif (
+            $budget->maxDurationSeconds > 0
+            && (time() - $crawlStartedAt) >= $budget->maxDurationSeconds
+        ) {
             $stopReason = 'duration';
         }
 

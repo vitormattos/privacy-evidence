@@ -10,7 +10,7 @@ final readonly class CrawlBudget
         public int $maxPages = 20,
         public int $maxDepth = 3,
         public int $maxBytes = 5_000_000,
-        public int $maxDurationSeconds = 60,
+        public int $maxDurationSeconds = 0,
         public int $maxBrowserPages = 3,
         public int $minLinkPriority = 50,
     ) {

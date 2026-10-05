@@ -35,6 +35,42 @@ final class HttpFetcher
         }
 
         $probe = $this->probe->probe($url);
+        $fallback = null;
+
+        if (
+            !$probe->succeeded()
+            && $probe->failure === ProbeFailure::Dns
+            && $probe->dnsState === 'not_found'
+        ) {
+            $withoutWww = $this->withoutWww($url);
+            if ($withoutWww !== null) {
+                $fallbackProbe = $this->probe->probe($withoutWww);
+                if ($fallbackProbe->succeeded()) {
+                    $probe = $fallbackProbe;
+                    $fallback = ['reason' => 'www_dns_fallback', 'url' => $withoutWww];
+                }
+            }
+        }
+
+        if (
+            !$probe->succeeded()
+            && parse_url($url, PHP_URL_SCHEME) === 'http'
+            && in_array(
+                $probe->failure,
+                [ProbeFailure::Timeout, ProbeFailure::ConnectionRefused, ProbeFailure::Transport],
+                true,
+            )
+        ) {
+            $httpsUrl = preg_replace('~^http://~i', 'https://', $url, 1);
+            if (is_string($httpsUrl) && $httpsUrl !== $url) {
+                $fallbackProbe = $this->probe->probe($httpsUrl);
+                if ($fallbackProbe->succeeded()) {
+                    $probe = $fallbackProbe;
+                    $fallback = ['reason' => 'https_transport_fallback', 'url' => $httpsUrl];
+                }
+            }
+        }
+
         if (!$probe->succeeded() || $probe->finalUrl === null || $probe->statusCode === null) {
             $failure = $probe->failure ?? ProbeFailure::Transport;
             $retryable = match ($failure) {
@@ -116,8 +152,42 @@ final class HttpFetcher
             fetchedAt: gmdate(DATE_ATOM),
             acquisitionMode: 'http',
             truncated: $truncated,
-            metadata: $retryAfterMs === null ? [] : ['retryAfterMs' => $retryAfterMs],
+            metadata: array_filter(
+                [
+                    'retryAfterMs' => $retryAfterMs,
+                    'transportFallback' => $fallback,
+                ],
+                static fn (mixed $value): bool => $value !== null,
+            ),
         );
+    }
+
+    private function withoutWww(string $url): ?string
+    {
+        $parts = parse_url($url);
+        if ($parts === false || !isset($parts['scheme'], $parts['host'])) {
+            return null;
+        }
+
+        $host = strtolower($parts['host']);
+        if (!str_starts_with($host, 'www.')) {
+            return null;
+        }
+
+        $replacementHost = substr($host, 4);
+        if ($replacementHost === '') {
+            return null;
+        }
+
+        $authority = $replacementHost;
+        if (isset($parts['port'])) {
+            $authority .= ':' . $parts['port'];
+        }
+
+        $path = $parts['path'] ?? '/';
+        $query = isset($parts['query']) ? '?' . $parts['query'] : '';
+
+        return $parts['scheme'] . '://' . $authority . $path . $query;
     }
 
     private function retryAfterMs(?string $value): ?int
