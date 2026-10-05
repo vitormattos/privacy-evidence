@@ -20,7 +20,7 @@ tags: devchallenge, weekendchallenge, hf26challenge
 
 ## What I Built
 
-I dedicate **Privacy Evidence** to **Igor Scaliante Wiese, my master's advisor at UTFPR and professor of the Free Software Development course**.
+I dedicate **Privacy Evidence** to **[Igor Scaliante Wiese](http://lattes.cnpq.br/0447444423694007)**, my master's advisor at UTFPR and professor of the Free Software Development course.
 
 A previous academic monograph I wrote at Seminário Simonton explored digital ethics and the effect of digital practices on Christian fellowship. One part of the research looked at privacy and data-protection practices on websites associated with churches of the Igreja Presbiteriana do Brasil (IPB).
 
