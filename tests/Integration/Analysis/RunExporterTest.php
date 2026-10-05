@@ -103,8 +103,14 @@ final class RunExporterTest extends TestCase
             $byId = [];
             /** @psalm-suppress MixedAssignment */
             foreach ($population as $row) {
-                if (is_array($row) && is_string($row['resourceId'] ?? null)) {
-                    $byId[$row['resourceId']] = $row;
+                if (!is_array($row)) {
+                    continue;
+                }
+
+                /** @psalm-suppress MixedAssignment */
+                $resourceIdValue = $row['resourceId'] ?? null;
+                if (is_string($resourceIdValue)) {
+                    $byId[$resourceIdValue] = $row;
                 }
             }
 
