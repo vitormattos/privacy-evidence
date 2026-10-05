@@ -6,15 +6,25 @@ tags: devchallenge, weekendchallenge, hf26challenge
 
 *This is a submission for the [Hacktoberfest Weekend Challenge: Build for a Friend](https://dev.to/challenges/hacktoberfest-weekend-2026-10-01).*
 
+## Abstract
+
+This article reports the design and first full-population application of **Privacy Evidence**, an open-source research instrument for reproducible measurement of publicly observable privacy evidence on websites. The study revisits a 2025 analysis of websites associated with the Igreja Presbiteriana do Brasil (IPB), replacing a partially automated but incompletely preserved workflow with a versioned pipeline for source classification, deduplication, bounded web acquisition, evidence detection, human review and regulatory mapping. The October 2026 run accounted for all **2,993 source records**, identified **566 unique website measurement units**, fully measured **193**, partially measured **12**, and retained **361** as explicitly not measurable under the protocol. The contribution is methodological rather than a claim of legal compliance: the pipeline preserves provenance, missing-data states and acquisition failures so that future replications and longitudinal comparisons can distinguish changes in the population, websites and measurement process.
+
+**Keywords:** empirical software engineering, reproducibility, web measurement, privacy, LGPD, open science, machine learning.
+
+
 ## Table of Contents
 
+- [Abstract](#abstract)
 - [What I Built](#what-i-built)
 - [Demo](#demo)
 - [Method](#method)
 - [Results from the IPB Analysis](#results-from-the-ipb-analysis)
+- [Conclusion](#conclusion)
 - [Code](#code)
 - [How I Built It](#how-i-built-it)
 - [Why Does Open Innovation Matter?](#why-does-open-innovation-matter)
+- [References](#references)
 
 ---
 
@@ -24,11 +34,11 @@ I dedicate **Privacy Evidence** to **[Igor Scaliante Wiese](http://lattes.cnpq.b
 
 A previous academic monograph I wrote at Seminário Simonton explored digital ethics and the effect of digital practices on Christian fellowship. One part of the research looked at privacy and data-protection practices on websites associated with churches of the Igreja Presbiteriana do Brasil (IPB).
 
-The hard part was not only interpreting LGPD-related evidence. It was building the sample itself.
+The difficult part was not only interpreting LGPD-related evidence. It was constructing a defensible analytical population from the public IPB directory.
 
-I started from the public IPB directory and worked through entries one by one. Some links were Facebook or Instagram pages. Some were link aggregators. Some domains existed but no longer served a site. Some returned errors. After manually reducing the list to actual websites, I still had to inspect the remaining sites individually.
+The 2025 workflow was hybrid rather than purely manual. Scripts extracted and structured records, stored them in SQLite, validated URLs and supported parts of the cleaning process. Manual inspection was then used for ambiguous cases and for page-by-page enrichment of privacy-related observations. The main methodological limitation was not the absence of automation, but the incomplete preservation of the source snapshot, intermediate database and transformation decisions required to reproduce the full workflow later.
 
-That process helped answer the research question, but it had a serious empirical-software-engineering problem: too much of the workflow was manual. Another researcher could read the methodology, but could not reliably replay the same sequence of filtering, collection, classification and review from the original source data.
+As a result, another researcher can inspect the original code and reported method, but cannot reconstruct every entity-level transition from the 2025 source population to the final analytical set with the same precision now available in Privacy Evidence.
 
 Privacy Evidence is the tool I wanted that study to have. I designed and implemented it as an open-source research instrument that turns the original study into a versioned, inspectable and reproducible software-engineering workflow. The current goal is broader than reproducing the monograph: I want the project to support empirical research that my advisor can inspect and that can later be developed into scientific publications during my master's program.
 
@@ -76,7 +86,7 @@ This GitHub Actions run executes the real PHP-native Rubix model build and infer
 
 Privacy Evidence was designed as a **reproducible empirical software-engineering study and an open research artifact**. The implementation combines web measurement, privacy-evidence classification, reproducibility controls and an experimental local ML path while keeping each research layer independently auditable.
 
-The research protocol uses the **Goal-Question-Metric (GQM)** paradigm to connect the research goal, research questions and observable measurements. The reporting and study-design choices also use the **ACM SIGSOFT Empirical Standards** as a methodological reference.
+The research protocol uses the **Goal-Question-Metric (GQM)** paradigm to connect the research goal, research questions and observable measurements [1]. The study design and reporting are also informed by established empirical software-engineering guidance [2] and the **ACM SIGSOFT Empirical Standards** [3].
 
 The object of study is deliberately narrow:
 
@@ -95,6 +105,13 @@ The complete project protocol defines seven research questions. This IPB analysi
 5. **RQ5, regulatory-profile mapping:** How do reviewed generic evidence items map to versioned LGPD requirements under explicit applicability rules?
 
 The protocol also defines questions about detector performance and acquisition cost. Those are relevant to the broader project, but they are not used here to claim that the current ML experiment has been validated as a production-quality classifier.
+
+### Methodological context
+
+The work sits at the intersection of empirical software engineering and automated web measurement. Large-scale privacy-measurement systems such as OpenWPM demonstrated the value of reproducible browser instrumentation, explicit acquisition behavior and failure recovery for web research [4]. Privacy Evidence addresses a different research object: it measures the availability of predefined public privacy evidence and keeps regulatory interpretation separate from the acquisition layer.
+
+Reproducibility is treated as a first-class design concern rather than only a documentation task. Prior work in empirical software engineering has shown that source code alone is often insufficient when datasets, parameters and transformation steps are not preserved [5]. This observation directly matches the limitation encountered when attempting to reconstruct the 2025 monograph workflow.
+
 ### Study design
 
 The study follows seven measurement layers. Each layer preserves the previous observation instead of silently replacing it:
@@ -104,7 +121,7 @@ The study follows seven measurement layers. Each layer preserves the previous ob
 3. **Technical acquisition**: attempt HTTP acquisition and, when justified, browser-based acquisition under bounded crawl rules.
 4. **Automated evidence classification**: apply deterministic detectors to immutable acquired documents.
 5. **Human review and adjudication**: keep uncertain, conflicting or review-dependent evidence separate from automated output.
-6. **Regulatory mapping**: map generic reviewed evidence to versioned regulatory profiles such as LGPD.
+6. **Regulatory mapping**: map generic reviewed evidence to versioned regulatory profiles such as Brazil's LGPD, Lei 13.709/2018 [6].
 7. **Derived metrics and interpretation**: aggregate only after the earlier states and denominators are preserved.
 
 ### Population and units of analysis
@@ -121,6 +138,37 @@ The protocol distinguishes several units:
 - **ResearchRun**: the versioned execution context binding dataset, code, protocol, profiles and configuration.
 
 This distinction prevents sample construction from becoming an undocumented preprocessing step.
+
+### Data source and observation window
+
+The source population was obtained from the public IPB directory exposed through iCalvinus. The 2026 source snapshot was acquired on **October 5, 2026** and converted into a canonical population dataset containing **2,993 records**.
+
+The run preserves identifiers that make this observation independently auditable:
+
+| Artifact | Identifier |
+| --- | --- |
+| Canonical population dataset | SHA-256 `094e991b22293d78a11bc18ec2fb191d612b66ecad65145466d22108db4bf022` |
+| ResearchRun | `01a10a29-cf8d-7711-8e6d-ec954e592cc2` |
+| GitHub Actions validation run | `37260583969` |
+| Uploaded validation artifact | SHA-256 `fec211aa0a9ab0898123e1c4f7018810d116e0a572784a5abbcfd925736620a2` |
+
+The 2025 baseline was processed on **June 20, 2025**, as recorded in the original monograph [7]. Because the entity-level 2025 source snapshot and SQLite database are no longer available, the two periods are treated as related observational snapshots, not as a controlled longitudinal experiment.
+
+### Operational definitions
+
+The analysis distinguishes resource classification from measurement outcome:
+
+- **eligible resource:** a source record classified as suitable for website measurement under the current protocol;
+- **duplicate reference:** a source record that resolves to a website already represented by another canonical measurement unit;
+- **measured:** at least one document was acquired successfully and no hard or partial measurement limit prevented the configured observation;
+- **partially measured:** useful acquisition occurred, but a bounded-crawl or partial measurement condition limited completeness, such as crawl-budget exhaustion, response truncation or unavailable browser evidence;
+- **not measurable:** the protocol could not support website measurement because of conditions such as an invalid URL, DNS/TLS/network failure, HTTP error, anti-bot challenge, redirect outside the website class or absence of any successful document.
+
+These states are distinct from the later regulatory evidence states. A network or acquisition failure is never interpreted as evidence that a privacy requirement is absent.
+
+### Ethical and operational constraints
+
+The 2026 run is limited to publicly accessible resources. It does not authenticate into target systems, bypass CAPTCHA or anti-bot controls, disable TLS verification, or access private-network targets. Acquisition is bounded by explicit concurrency and crawl budgets. These constraints reduce operational impact on third-party websites and prevent technical access failures from being converted into legal or compliance conclusions.
 
 ### Acquisition protocol
 
@@ -263,7 +311,6 @@ Inspect the October 5, 2026 full-population validation run
 
 ### From the full IPB population to measurable websites
 
-
 The complete accounting of the **2,993 source records** was:
 
 | Source classification | Records |
@@ -370,6 +417,10 @@ That end-to-end provenance was not fully preserved in the 2025 hybrid workflow.
 
 It also exposes an important methodological limitation: **website observability and legal or organizational privacy maturity are different constructs**. A future academic study should therefore treat these results as measurements of public privacy evidence availability, not as a compliance score.
 
+The change from **2,935 records in 2025 to 2,993 in 2026** confirms that the source population itself changed between observations. Differences in website-related counts may be caused by several mechanisms, including new congregations, directory corrections, expired domains, discontinued websites, migration from standalone sites to social-media pages, or changes in the 2026 classification protocol. These explanations are plausible hypotheses, but they cannot be distinguished reliably without the missing entity-level 2025 snapshot. They are therefore reported as hypotheses rather than findings.
+
+This limitation also illustrates why preserving the complete source snapshot matters. A future Privacy Evidence run can compare entity-level transitions directly because the 2026 population, classifications and acquisition outcomes are retained as versioned research artifacts.
+
 ### Threats to validity
 
 The results should be interpreted within several limitations:
@@ -396,7 +447,19 @@ In that sense, the main contribution of the run is not only the descriptive resu
 
 Because the source-specific extraction is kept outside the core measurement engine, the same research instrument can be reused with other populations and regulatory profiles. That separation is intentional: the IPB study is the first real population I used to validate the approach, not a hard-coded limit of the software.
 
+## Conclusion
+
+This study demonstrates that a privacy-oriented web analysis can preserve the complete path from a source population to its final analytical states without treating unavailable resources as silent exclusions. In the October 2026 run, all **2,993 source records** were accounted for, **566 unique websites** formed the measurement population, and acquisition failures remained explicit research outcomes.
+
+The comparison with the 2025 monograph is intentionally conservative. It does not establish improvement or deterioration in legal compliance. Instead, it shows the methodological difference between a partially automated historical workflow whose intermediate state was not fully preserved and a versioned research instrument designed for reproduction, audit and future longitudinal replication.
+
+The next scientific step is independent human annotation of a representative evidence subset, followed by detector evaluation using per-signal precision, recall and F1. That validation is necessary before the experimental ML path can support stronger claims about classification performance.
+
 ## Code
+
+### Research artifact availability
+
+The source code, research protocol, architecture decisions, validation workflows and challenge materials are public in the project repository.
 
 {% embed https://github.com/vitormattos/privacy-evidence %}
 
@@ -467,3 +530,19 @@ There is also an important result I am **not** claiming: the ML model has not be
 External development data is useful for engineering and feasibility, but the project requires evaluation against independently human-reviewed project evidence before a model can be promoted. Until that exists, deterministic detectors remain the default and ML remains an experimental second opinion.
 
 That limitation is reported explicitly as part of the current state of the research.
+
+## References
+
+1. Basili, V. R., Caldiera, G., & Rombach, H. D. (1994). *The Goal Question Metric Approach*. In **Encyclopedia of Software Engineering**, pp. 528-532.
+2. Wohlin, C., Runeson, P., Höst, M., Ohlsson, M. C., Regnell, B., & Wesslén, A. (2012). *Experimentation in Software Engineering*. Springer. https://doi.org/10.1007/978-3-642-29044-2
+3. Ralph, P., et al. (2020). *Empirical Standards for Software Engineering Research*. arXiv:2010.03525. https://doi.org/10.48550/arXiv.2010.03525
+4. Englehardt, S., & Narayanan, A. (2016). *Online Tracking: A 1-million-site Measurement and Analysis*. Proceedings of ACM CCS 2016, 1388-1401. https://doi.org/10.1145/2976749.2978313
+5. González-Barahona, J. M., & Robles, G. (2012). *On the reproducibility of empirical software engineering studies based on data retrieved from development repositories*. Empirical Software Engineering, 17, 75-89. https://doi.org/10.1007/s10664-011-9181-9
+6. Brasil. (2018). *Lei nº 13.709, de 14 de agosto de 2018. Lei Geral de Proteção de Dados Pessoais (LGPD).* Presidência da República. https://planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709compilado.htm
+7. Mattos de Souza, V. (2025). *A comunhão dos santos frente aos dilemas da ética digital: uma abordagem bíblica sobre a gestão de dados sensíveis na igreja*. Monografia de Bacharelado em Teologia, Seminário Teológico Presbiteriano Rev. Ashbel Green Simonton. https://vitormattos.github.io/monografia-teologia/monografia.pdf
+
+### Supporting methodological resources
+
+- ACM SIGSOFT Empirical Standards: https://www2.sigsoft.org/EmpiricalStandards/
+- Versioned Privacy Evidence research protocol: https://github.com/vitormattos/privacy-evidence/blob/main/docs/research/protocol.md
+- Original 2025 analysis code: https://github.com/vitormattos/webscraping-anuario-igrejas-ipb
