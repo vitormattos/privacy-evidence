@@ -2,6 +2,9 @@ name: IPB full validation
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - agent/ipb-live-demo
 
 permissions:
   contents: read
