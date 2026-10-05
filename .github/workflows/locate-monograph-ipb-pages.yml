@@ -1,0 +1,34 @@
+name: Locate monograph IPB pages
+
+on:
+  push:
+    branches:
+      - analysis/find-monograph-ipb-pages
+
+permissions:
+  contents: read
+
+jobs:
+  locate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout published monograph PDF
+        uses: actions/checkout@v7
+        with:
+          repository: vitormattos/monografia-teologia
+          ref: gh-pages
+          path: monograph
+      - name: Locate IPB website analysis
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=monograph/monografia.pdf
+          pdfinfo "$file" | grep '^Pages:'
+          pages=$(pdfinfo "$file" | awk '/^Pages:/ {print $2}')
+          for p in $(seq 1 "$pages"); do
+            page_text=$(pdftotext -f "$p" -l "$p" -layout "$file" - 2>/dev/null || true)
+            if printf '%s' "$page_text" | grep -Eqi 'Panorama da conformidade digital|Total de igrejas IPB analisadas|Adequação à LGPD em sites de igrejas|2.935 igrejas|2935'; then
+              echo "MATCH_PAGE=$p"
+              printf '%s\n' "$page_text" | grep -Ein -C 8 'Panorama da conformidade digital|Total de igrejas IPB analisadas|Adequação à LGPD em sites de igrejas|2.935 igrejas|2935' || true
+            fi
+          done
