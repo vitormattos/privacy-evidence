@@ -198,9 +198,9 @@ https://github.com/vitormattos/privacy-evidence/blob/main/docs/research/protocol
 
 ### Methodological flow
 
-![Privacy Evidence methodological flow](https://github.com/vitormattos/privacy-evidence/raw/main/docs/challenge/research-method-flow.svg)
+![Privacy Evidence methodological flow](https://mermaid.ink/img/pako:eNpdkk9vGjEQxb-K5TOodw6VIEsCaVKtVNSLy8HYAzuS_2zHNohG-e6dtUNL69vYv-d5fuM3aaIFuZBHFy9m0JTFrvsRBK-l2vYrkWIhA2KMY3E6Ywx7MZ9_FivVEySgM9wIAhPJpn0Tryr1oL5G8trhLxA6WGGcTgmPV4ab6oY_VLxTa4cnPKDDfK0CC7aMDk3r3Niusmu1iiXwudjsdr34JA4UL2xIaPOzYMI7wboKHtXW-5L1wUFjiLU2muIh5JuPx4o-qQ4ykMeAKaMRcEYLgd9oedvkSP_iG9Vv-nlgj5zG64tInAR7jyPr_5h4quhWLYvFZmIoXgdO4oxw-YA2DWrFthbP6jtQ4nvYLcFpGkKkq_B65OtPH7rnin5h28QerPCQCU2qEU5j0mQGgYHfNBLk-zBb8C88pzCHGr67TTSJicWp8QXzwJVO_2X6qpZ_0xZHja7QvU4nEQ_TL6kt017OpOdcNVq5eJN5AD99vQAlk3byfSZ1yfHbNRi5yFRgJstodYYO9Ym0b5vvvwHvYehC?type=png&bgColor=!white)
 
-*Figure 1. Methodological flow from source population to research interpretation. The version-controlled Mermaid source is available in [`research-method-flow.mmd`](https://github.com/vitormattos/privacy-evidence/blob/main/docs/challenge/research-method-flow.mmd).*
+*Figure 1. Methodological flow from source population to research interpretation. The figure is rendered as PNG for DEV compatibility; the version-controlled Mermaid source is available in [`research-method-flow.mmd`](https://github.com/vitormattos/privacy-evidence/blob/main/docs/challenge/research-method-flow.mmd).*
 
 ## Results from the IPB Analysis
 
@@ -305,9 +305,9 @@ After source classification, **589 records were eligible for website measurement
 
 The study therefore followed this population flow:
 
-![IPB population accounting flow](https://github.com/vitormattos/privacy-evidence/raw/main/docs/challenge/population-flow.svg)
+![IPB population accounting flow](https://mermaid.ink/img/pako:eNplkE1PAjEQhv_KZM4LMYrE5WAiLhgPJiZ4Ew9DO8Ak3Rb7ISGE_-6wG4PR3tp5nnfe9IgmWMYJrl3Ymy3FDG_N0oOeh_clXld1fQPPr1NIoUTDENmEaNMSP2AwuIepMot-YhylJGsxlCV4BfqUKQyGamUSzxb2krd6oxQ8DNV_7HaMrkbgQwZ2spGVY1iHCHteJckMrdIlcss-_w5VuVH59q6-aP869nTT0TOlG7Zl5_5WnHXz-TltPIbi5bPwz_pLyryjnpR6uTQC8hb4Syx7XUye3CHJ2cEKW44ticXJEfNWaf1kzyVHcniqkEoOi4M3OMmxcIVlZylzI7SJ1PaPp2_ntYWp?type=png&bgColor=!white)
 
-*Figure 2. Population accounting from the 2,993 source records to the 566 unique website measurement units. Non-eligible records remain represented with an explicit reason. The Mermaid source is available in [`population-flow.mmd`](https://github.com/vitormattos/privacy-evidence/blob/main/docs/challenge/population-flow.mmd).*
+*Figure 2. Population accounting from the 2,993 source records to the 566 unique website measurement units. Non-eligible records remain represented with an explicit reason. The figure is rendered as PNG for DEV compatibility; the Mermaid source is available in [`population-flow.mmd`](https://github.com/vitormattos/privacy-evidence/blob/main/docs/challenge/population-flow.mmd).*
 
 This distinction is methodologically important. The source population is not equivalent to a ready-made website sample. Building the measurable population is itself an empirical step of the study.
 
