@@ -94,16 +94,32 @@ The generated page:
 - groups cases by evidence type to reduce cognitive switching;
 - hides automated state/confidence from the normal decision view to reduce anchoring bias;
 - embeds concise handbook guidance;
-- supports keyboard labels and concise rationale helpers;
+- supports keyboard labels and short reviewer-written rationales;
 - estimates remaining time from the reviewer's observed pace;
-- exports the original JSON package with only human review fields filled.
+- exports the enriched package with only human review fields filled.
 
 Research exports retain all original cases and provenance. Blank cases without preserved text are deferred, not assigned a human label. Human import reports their count and evidence IDs without creating decisions for them. Test exports add `testMode: true` and are rejected by human import. Existing completed annotation packages remain supported.
 
 
 ### Annotation-packet sufficiency
 
-A human label is valid only when the reviewer can inspect enough preserved evidence to support the decision. The reviewer UI must not encourage a binary `present`/`absent` decision when the annotation packet contains no preserved excerpt or equivalent reviewable evidence. The HTML puts these cases in an explicit investigation/recollection queue, showing source URLs, evidence IDs and artifact hashes. They do not require repetitive human answers merely confirming a packet limitation. They remain in the exported package with blank human fields and remain accounted for in the source population. A preserved excerpt is an entry criterion, not proof that it is sufficient: reviewers still use `unknown` or another justified state when the text does not support a conclusion. Recovering an original artifact or collecting a new observation is researcher work before issuing a revised, frozen packet to both reviewers. A live visit must never be used to label the historical observation. This HTML version supports text excerpts only; screenshots/HTML/browser traces require a separately prepared reviewable packet.
+Review workflow 1.2.0 uses annotation-package schema 1.1.0. Collection protocol, detectors and annotation handbook remain 1.0.0. New samples include the sampled resource's name/root URL, collected page URL/date/truncation flag and full text extracted from the hash-verified original artifact. Documents are embedded once per hash, with case-specific provenance. No live page is fetched. HTML is converted to inert text (including link destinations), without scripts, styles or a rendering guarantee. The extraction is review material, not a new detector result. It preserves the original case selection, excerpts, detector states and artifact hashes.
+
+A missing detector match is not missing evidence: a case with a null excerpt remains reviewable when its preserved document and provenance are available. A short keyword alone no longer qualifies a case for review. Missing/corrupt artifacts, mismatched provenance, unsupported formats and behavioral questions requiring storage/request traces stay in the investigation queue with explicit reasons. Text alone does not establish pre-consent behavior. No cases are removed and no human labels are required to repeat those packet limitations. Import recomputes deferral eligibility from local source data, not editable reviewer metadata. Previously completed packages remain supported.
+
+Assess the collected page, without treating a crawler link or sampled resource name as proof that an external document describes the sampled organization. Use `unknown` when context, truncation, static text, hidden/dynamic controls or ambiguity prevent a conclusion. An `absent` label concerns the supplied page, not every page on the site or legal compliance. Live visits are new observations and cannot replace the archived material. Freeze the same enriched packet for both reviewers before annotation; expanded material changes the review conditions and should be reported separately from earlier excerpt-only reviews.
+
+For an existing selected package, recover context from the original run export and artifact directory (without sampling again):
+
+```bash
+docker compose run --rm app review:html \
+  data/poc-review/exports/RUN_ID/review/reviewer-a.json \
+  data/poc-review/reviewer-test.html \
+  --context-dir=data/poc-review/exports/RUN_ID \
+  --artifacts-dir=data/poc-review/raw/artifacts --test-mode
+```
+
+The context directory must contain `resources.json` and `documents.json`. `--artifacts-dir` points to the original `.bin` files; adjust it to the archive's actual location. Without options, legacy packets look for context in their parent run directory and artifacts under `data/raw/artifacts`. A standalone 1.1.0 packet already contains review material and does not need archive access. Generating HTML leaves the selected JSON unchanged; the exported JSON includes the material shown to the reviewer. If archive files are absent, the form reports that limitation instead of treating a keyword as sufficient material.
 
 
 

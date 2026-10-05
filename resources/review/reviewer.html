@@ -20,7 +20,7 @@ h1 { margin-bottom: 8px; }
 .meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: .92rem; margin-top: 8px; }
 .card { border: 1px solid ButtonBorder; border-radius: 12px; padding: 18px; margin: 18px 0; }
 .label { font-size: .78rem; letter-spacing: .04em; opacity: .72; }
-.excerpt { white-space: pre-wrap; padding: 14px; border-left: 4px solid AccentColor; background: color-mix(in srgb, CanvasText 5%, Canvas); margin: 12px 0; }
+.excerpt { max-height: 55vh; overflow: auto; overflow-wrap: anywhere; white-space: pre-wrap; padding: 14px; border-left: 4px solid AccentColor; background: color-mix(in srgb, CanvasText 5%, Canvas); margin: 12px 0; }
 .guidance { font-size: .95rem; }
 .states { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 8px; margin: 12px 0; }
 .secondary-states { margin-top: 8px; }
@@ -48,11 +48,11 @@ a { color: LinkText; overflow-wrap: anywhere; }
 <h1 id="title">Revisão humana independente</h1>
 <button id="languageToggle" type="button">English</button>
 </div>
-<p id="intro"></p>
+<details><summary id="instructionsLabel">Instruções</summary><p id="intro"></p>
 <div id="testNotice" class="notice warning" hidden></div>
 <div id="queueNotice" class="notice"></div>
 <div class="controls"><button id="queueToggle" type="button"></button></div>
-<div class="notice"><strong id="privacyTitle"></strong> <span id="privacyText"></span></div>
+<div class="notice"><strong id="privacyTitle"></strong> <span id="privacyText"></span></div></details>
 <div class="progress-shell"><div id="progressBar" class="progress-bar"></div></div>
 <div class="meta">
 <span id="progressText"></span>
@@ -62,13 +62,15 @@ a { color: LinkText; overflow-wrap: anywhere; }
 </header>
 
 <section class="card" id="evidenceCard">
+<h2 id="sampleSite"></h2><p id="sampleUrl" class="small"></p>
 <div class="notice"><strong id="sourceContextLabel"></strong> <a id="sourceUrl" target="_blank" rel="noopener noreferrer"></a><p class="small" id="sourceContextHelp"></p></div>
 <div class="label" id="evidenceTypeLabel"></div>
 <h2 id="type"></h2>
-<div id="guidance" class="guidance notice"></div>
+<details><summary id="criteriaLabel">Critério de avaliação</summary><div id="guidance" class="guidance notice"></div></details>
+<p id="pageContext" class="small"></p><div id="contextWarning" class="notice warning" hidden></div>
 <div class="label" id="excerptLabel"></div>
 <div id="excerpt" class="excerpt"></div>
-<p class="small" id="artifactContext"></p>
+<details><summary id="provenanceLabel">Proveniência</summary><p class="small" id="artifactContext"></p></details>
 <div id="missingEvidence" class="notice warning" hidden></div>
 
 </section>
@@ -84,7 +86,7 @@ a { color: LinkText; overflow-wrap: anywhere; }
 
 <label for="rationale"><strong id="rationaleLabel"></strong></label>
 <textarea id="rationale"></textarea>
-<div class="controls">
+<div class="controls" hidden>
 <button id="rationaleHelper" type="button"></button>
 <span class="small" id="rationaleHelp"></span>
 </div>
@@ -99,7 +101,7 @@ a { color: LinkText; overflow-wrap: anywhere; }
 <span id="saveStatus" class="small"></span>
 </div>
 
-<div class="notice small" id="biasNotice"></div>
+<details><summary id="methodLabel">Sobre esta revisão</summary><div class="notice small" id="biasNotice"></div></details>
 </main>
 
 <script>
@@ -122,13 +124,13 @@ const i18n = {
     intro: 'Classifique somente o que a evidência preservada permite concluir. Não use IA para escolher respostas e não compare suas respostas com outro revisor antes de ambas as revisões terminarem.',
     privacyTitle: 'Privado e offline:',
     privacyText: 'esta página não envia suas anotações. O progresso fica salvo somente neste navegador. Ao terminar, exporte o JSON e devolva o arquivo ao pesquisador.',
-    evidenceType: 'Tipo de evidência',
-    excerpt: 'Evidência preservada',
+    evidenceType: 'O que avaliar nesta página',
+    excerpt: 'Conteúdo da página preservada',
     noExcerpt: 'Este pacote não contém texto preservado para avaliar o caso. Ele fica pendente de investigação ou nova coleta, sem exigir uma resposta humana. Consulte a URL e o artefato original para recuperar contexto. Uma visita ao site agora é uma nova observação e não comprova o estado na coleta original.',
-    sourceContext: 'Site / página de origem:',
+    sourceContext: 'Página coletada:',
     testNotice: 'Modo teste do formulário. Respostas arbitrárias são permitidas em todos os casos. O progresso é separado da revisão real e o JSON de teste não pode ser importado como avaliação humana.',
     queue: 'Casos no pacote:',
-    reviewable: 'com texto preservado para revisão',
+    reviewable: 'com material e contexto para revisão',
     deferred: 'para investigação / nova coleta',
     showDeferred: 'Ver casos para investigação',
     showReview: 'Voltar à revisão',
@@ -163,13 +165,13 @@ const i18n = {
     shortcuts: 'Atalhos: 1 Present, 2 Absent, 3 Unknown, 4 Unavailable, 5 Invalid, 6 Excluded, 7 Not applicable.',
     bias: 'O estado produzido pelo detector, a confiança e o indicador de revisão ficam ocultos para reduzir viés de ancoragem. Esses dados permanecem inalterados no pacote de pesquisa exportado.',
     states: {
-      present: 'Present',
-      absent: 'Absent',
-      unknown: 'Unknown',
-      unavailable: 'Unavailable',
-      invalid: 'Invalid',
-      excluded: 'Excluded',
-      not_applicable: 'Not applicable'
+      present: 'Presente',
+      absent: 'Ausente',
+      unknown: 'Não é possível concluir',
+      unavailable: 'Indisponível',
+      invalid: 'Inválido',
+      excluded: 'Excluído',
+      not_applicable: 'Não se aplica'
     }
   },
   en: {
@@ -178,13 +180,13 @@ const i18n = {
     intro: 'Classify only what the preserved evidence supports. Do not use AI to choose labels and do not compare answers with another reviewer before both reviews are complete.',
     privacyTitle: 'Private and offline:',
     privacyText: 'this page does not send annotations anywhere. Progress is stored only in this browser. When finished, export the JSON file and return it to the researcher.',
-    evidenceType: 'Evidence type',
-    excerpt: 'Preserved evidence',
+    evidenceType: 'What to assess on this page',
+    excerpt: 'Preserved page content',
     noExcerpt: 'This packet contains no preserved text for assessing the case. It remains pending investigation or recollection without requiring a human answer. Use the source URL and original artifact to recover context. A live visit is a new observation and does not establish the state at the original collection.',
-    sourceContext: 'Source website / page:',
+    sourceContext: 'Collected page:',
     testNotice: 'Form test mode. Arbitrary answers are allowed for all cases. Progress is separate from real review and test JSON cannot be imported as human annotations.',
     queue: 'Cases in packet:',
-    reviewable: 'with preserved text for review',
+    reviewable: 'with source material and context for review',
     deferred: 'requiring investigation / recollection',
     showDeferred: 'View cases for investigation',
     showReview: 'Return to review',
@@ -283,6 +285,57 @@ const guidance = {
   }
 };
 
+const contextReasons = {
+  pt: { missing_provenance: 'Falta o vínculo entre o site da amostra e a página coletada.', missing_artifact: 'O conteúdo original da página não foi encontrado.', hash_mismatch: 'O arquivo encontrado não corresponde ao hash da coleta.', invalid_hash: 'O identificador do artefato é inválido.', unsupported_media: 'Este formato precisa de material de revisão específico.', empty_document: 'Não foi possível extrair texto da página preservada.', behavioral_material_required: 'Esta pergunta exige registros de armazenamento ou requisições antes do consentimento; o texto da página não basta.' },
+  en: { missing_provenance: 'The sampled website and collected page provenance is missing.', missing_artifact: 'The original page content was not found.', hash_mismatch: 'The file does not match the collection hash.', invalid_hash: 'The artifact identifier is invalid.', unsupported_media: 'This format requires specifically prepared review material.', empty_document: 'No text could be extracted from the preserved page.', behavioral_material_required: 'This question requires preserved storage or request observations before consent; page text is insufficient.' }
+};
+
+const questions = {
+  pt: {
+    privacy_notice: 'Esta página tem como finalidade explicar o tratamento de dados pessoais?',
+    privacy_law_reference: 'A página menciona uma lei de proteção de dados?',
+    controller_identity: 'A página identifica quem é o controlador dos dados?',
+    purpose_disclosure: 'A página explica para que os dados pessoais são usados?',
+    legal_basis_disclosure: 'A página informa a base legal do tratamento?',
+    recipient_disclosure: 'A página informa com quem os dados são compartilhados?',
+    retention_disclosure: 'A página informa por quanto tempo os dados são mantidos?',
+    international_transfer_disclosure: 'A página informa sobre transferência internacional de dados?',
+    supervisory_authority_disclosure: 'A página identifica a autoridade de proteção de dados?',
+    privacy_contact: 'Há um contato específico para assuntos de privacidade?',
+    dpo_role: 'Há menção explícita ao papel de encarregado ou DPO?',
+    dpo_identity: 'A página identifica nominalmente o encarregado ou DPO?',
+    dpo_contact: 'Há um contato explicitamente associado ao encarregado ou DPO?',
+    rights_disclosure: 'A página descreve os direitos do titular de dados?',
+    rights_channel: 'Há um canal específico para exercer os direitos do titular?',
+    cookie_notice: 'Há um aviso de cookies no material preservado?',
+    cookie_categories_disclosure: 'A página informa as categorias de cookies?',
+    cookie_third_parties_disclosure: 'A página identifica terceiros associados aos cookies?',
+    cookie_accept_control: 'Há um controle para aceitar cookies?',
+    cookie_reject_control: 'Há um controle para rejeitar cookies?',
+    cookie_preferences_control: 'Há um controle para configurar preferências de cookies?',
+    nonessential_storage_before_consent: 'Foi observado armazenamento não essencial antes do consentimento?',
+    third_party_requests_before_consent: 'Foram observadas requisições a terceiros antes do consentimento?'
+  },
+  en: {
+    privacy_notice: 'Does this page primarily explain personal-data processing?',
+    privacy_law_reference: 'Does the page mention a data-protection law?',
+    controller_identity: 'Does the page identify the data controller?',
+    purpose_disclosure: 'Does the page explain the purposes of processing?',
+    legal_basis_disclosure: 'Does the page disclose the legal basis for processing?',
+    recipient_disclosure: 'Does the page disclose recipients of personal data?',
+    retention_disclosure: 'Does the page disclose how long data is retained?',
+    international_transfer_disclosure: 'Does the page disclose international data transfers?',
+    supervisory_authority_disclosure: 'Does the page identify a data-protection authority?',
+    privacy_contact: 'Is there a privacy-specific contact?', dpo_role: 'Is the DPO role explicitly mentioned?',
+    dpo_identity: 'Is a named DPO identified?', dpo_contact: 'Is there a contact explicitly associated with the DPO?',
+    rights_disclosure: 'Does the page describe data-subject rights?', rights_channel: 'Is there a channel for exercising data-subject rights?',
+    cookie_notice: 'Is there a cookie notice in the preserved material?', cookie_categories_disclosure: 'Are cookie categories disclosed?',
+    cookie_third_parties_disclosure: 'Are third parties associated with cookies disclosed?', cookie_accept_control: 'Is there a control for accepting cookies?',
+    cookie_reject_control: 'Is there a control for rejecting cookies?', cookie_preferences_control: 'Is there a control for configuring cookie preferences?',
+    nonessential_storage_before_consent: 'Was nonessential storage observed before consent?', third_party_requests_before_consent: 'Were third-party requests observed before consent?'
+  }
+};
+
 const rationaleTemplates = {
   pt: {
     present: type => 'A evidência preservada sustenta explicitamente a presença de ' + type + '.',
@@ -309,7 +362,11 @@ const sortedOrder = cases.map((_, i) => i).sort((a, b) => {
   const type = String(cases[a].evidenceType).localeCompare(String(cases[b].evidenceType));
   return type !== 0 ? type : String(cases[a].evidenceId).localeCompare(String(cases[b].evidenceId));
 });
-function hasPreservedExcerpt(c) { return typeof c.excerpt === 'string' && c.excerpt.trim() !== ''; }
+function documentFor(c) { return (packageData.reviewDocuments || {})[c.artifactHash]; }
+function hasPreservedExcerpt(c) {
+  const doc = documentFor(c);
+  return Boolean(c.reviewContext && c.reviewContext.reason === null && doc && typeof doc.text === 'string' && doc.text.trim());
+}
 const reviewOrder = sortedOrder.filter(i => testMode || hasPreservedExcerpt(cases[i]));
 const deferredOrder = sortedOrder.filter(i => !hasPreservedExcerpt(cases[i]));
 let order = reviewOrder;
@@ -376,6 +433,7 @@ function stateButton(state, index) {
   const c = currentCase();
   const button = document.createElement('button');
   button.type = 'button';
+  button.dataset.state = state;
   button.textContent = (index + 1) + '. ' + t().states[state];
   if (showingDeferred) {
     button.disabled = true;
@@ -442,16 +500,25 @@ function render() {
   document.getElementById('timeText').textContent = completedCount() === reviewOrder.length ? text.finished : '';
   if (!storageAvailable) document.getElementById('saveStatus').textContent = text.storageError;
   if (!c) return;
-  const readableType = String(c.evidenceType).replaceAll('_', ' ');
-  document.getElementById('type').textContent = readableType;
+  const context = c.reviewContext || {};
+  const doc = documentFor(c);
+  document.getElementById('sampleSite').textContent = context.resourceName || (locale === 'pt' ? 'Site da amostra não identificado' : 'Sampled website unidentified');
+  document.getElementById('sampleUrl').textContent = (context.resourceUrl || '') + ' · Resource ID: ' + c.resourceId;
+  document.getElementById('type').textContent = questions[locale][c.evidenceType] || String(c.evidenceType).replaceAll('_', ' ');
+  document.getElementById('pageContext').textContent = (doc?.title || '') + ' · ' + (locale === 'pt' ? 'Coletado em: ' : 'Collected at: ') + (context.fetchedAt || '—');
+  document.getElementById('contextWarning').hidden = !context.truncated;
+  document.getElementById('contextWarning').textContent = locale === 'pt' ? 'A coleta foi truncada. Use “Não é possível concluir” se a resposta depender da parte não preservada.' : 'The collection was truncated. Use Unknown if the answer requires the missing part.';
+  const labels = locale === 'pt' ? ['Instruções', 'Critério de avaliação', 'Proveniência', 'Sobre esta revisão'] : ['Instructions', 'Assessment criteria', 'Provenance', 'About this review'];
+  ['instructionsLabel', 'criteriaLabel', 'provenanceLabel', 'methodLabel'].forEach((id, i) => { document.getElementById(id).textContent = labels[i]; });
   document.getElementById('guidance').textContent = guidanceFor(c.evidenceType);
-  document.getElementById('excerpt').textContent = hasPreservedExcerpt(c)
-    ? c.excerpt
+  document.getElementById('excerpt').textContent = doc && doc.text
+    ? doc.text
     : (locale === 'pt' ? '[Nenhuma evidência textual foi preservada neste caso.]' : '[No preserved text evidence is available for this case.]');
 
   const missing = document.getElementById('missingEvidence');
   missing.hidden = hasPreservedExcerpt(c);
-  missing.textContent = text.noExcerpt;
+  const reason = contextReasons[locale][context.reason] || text.noExcerpt;
+  missing.textContent = reason + ' ' + (locale === 'pt' ? 'Caso mantido para investigação, sem exigir uma resposta. O site ao vivo não substitui a coleta original.' : 'Case retained for investigation without requiring an answer. A live website does not replace the original collection.');
 
   const link = document.getElementById('sourceUrl');
   link.removeAttribute('href');

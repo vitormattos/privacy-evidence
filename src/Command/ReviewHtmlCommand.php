@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PrivacyEvidence\Command;
 
+use PrivacyEvidence\Review\ReviewMaterial;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -23,6 +24,8 @@ final class ReviewHtmlCommand extends Command
             ->setDescription('Generate a self-contained offline HTML reviewer from an annotation package.')
             ->addArgument('package', InputArgument::REQUIRED)
             ->addArgument('output', InputArgument::REQUIRED)
+            ->addOption('context-dir', null, InputOption::VALUE_REQUIRED, 'Run export directory containing resources.json and documents.json.')
+            ->addOption('artifacts-dir', null, InputOption::VALUE_REQUIRED, 'Directory of original SHA-256 .bin artifacts.')
             ->addOption('test-mode', null, InputOption::VALUE_NONE, 'Test all form cases without producing human annotations.');
     }
 
@@ -51,6 +54,25 @@ final class ReviewHtmlCommand extends Command
         $decoded = json_decode((string) file_get_contents($packagePath), true, flags: JSON_THROW_ON_ERROR);
         if (!is_array($decoded) || !isset($decoded['cases']) || !is_array($decoded['cases'])) {
             return Command::INVALID;
+        }
+
+        $contextDirectory = $input->getOption('context-dir');
+        $artifactDirectory = $input->getOption('artifacts-dir');
+        if ($contextDirectory !== null && !is_string($contextDirectory)) {
+            return Command::INVALID;
+        }
+        if ($artifactDirectory !== null && !is_string($artifactDirectory)) {
+            return Command::INVALID;
+        }
+        $contextDirectory ??= dirname(dirname($packagePath));
+        $artifactDirectory ??= $this->projectRoot . '/data/raw/artifacts';
+        if (!isset($decoded['reviewDocuments']) || $input->getOption('context-dir') !== null) {
+            /** @var array<string, mixed> $decoded */
+            $decoded = (new ReviewMaterial(
+                $this->records($contextDirectory . '/resources.json'),
+                $this->records($contextDirectory . '/documents.json'),
+                $artifactDirectory,
+            ))->enrich($decoded);
         }
 
         $testMode = $input->getOption('test-mode') === true;
@@ -98,4 +120,27 @@ final class ReviewHtmlCommand extends Command
 
         return Command::SUCCESS;
     }
+    /** @return list<array<string, mixed>> */
+    private function records(string $path): array
+    {
+        if (!is_file($path)) {
+            return [];
+        }
+        /** @var mixed $decoded */
+        $decoded = json_decode((string) file_get_contents($path), true, flags: JSON_THROW_ON_ERROR);
+        if (!is_array($decoded) || !array_is_list($decoded)) {
+            throw new \InvalidArgumentException('Run context must be a list of records.');
+        }
+        $records = [];
+        foreach ($decoded as $record) {
+            if (!is_array($record)) {
+                throw new \InvalidArgumentException('Run context record must be an object.');
+            }
+            /** @var array<string, mixed> $record */
+            $records[] = $record;
+        }
+
+        return $records;
+    }
+
 }

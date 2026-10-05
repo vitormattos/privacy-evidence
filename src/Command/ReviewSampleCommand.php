@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PrivacyEvidence\Command;
 
 use PrivacyEvidence\Review\GoldSampler;
+use PrivacyEvidence\Review\ReviewMaterial;
 use PrivacyEvidence\Runtime\RuntimeFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -87,6 +88,12 @@ final class ReviewSampleCommand extends Command
             'perStratum' => (int) $perStratumRaw,
             'cases' => $cases,
         ];
+
+        $package = (new ReviewMaterial(
+            $runtime->observations->resourceRecords($runId),
+            $runtime->observations->documentRecords($runId),
+            $runtime->artifactDirectory,
+        ))->enrich($package);
 
         $directory = dirname($path);
         if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {

@@ -18,7 +18,7 @@ const fixtureCases = Array.from({ length: 85 }, (_, i) => ({
   evidenceId: String(i).padStart(64, '0'), resourceId: 'resource-' + i,
   evidenceType: i % 2 ? 'privacy_notice' : 'cookie_accept_control',
   sourceUrl: i === 0 ? 'javascript:alert(1)' : 'https://example.test/site-' + i,
-  artifactHash: 'a'.repeat(64), excerpt: i % 3 ? 'Preserved fixture text ' + i : null,
+  artifactHash: String(i).padStart(64, '0'), reviewContext: { resourceName: 'Synthetic site ' + i, resourceUrl: 'https://sample.test/' + i, fetchedAt: '2026-10-05T00:00:00Z', truncated: false, reason: i % 3 ? null : 'missing_artifact' }, excerpt: i % 3 ? 'Preserved fixture text ' + i : null,
   automatedState: 'present', detector: 'fixture', detectorVersion: '1.0.0',
   confidence: 0.9, needsReview: false, humanState: null, rationale: null, reviewedAt: null
 }));
@@ -31,8 +31,12 @@ before(async () => {
     const url = new URL(req.url, 'http://localhost');
     const cases = url.searchParams.has('empty') ? [] : url.searchParams.has('missing')
       ? fixtureCases.filter(c => c.excerpt === null) : fixtureCases;
-    const data = { packageVersion: '1.0.0', annotationHandbookVersion: '1.0.0', runId: 'fixture', seed: 'fixture', perStratum: 2, cases };
+    const data = { packageVersion: '1.0.0', annotationHandbookVersion: '1.0.0', runId: 'fixture', seed: 'fixture', perStratum: 2, cases, reviewDocuments: Object.fromEntries(cases.filter(c => c.excerpt).map(c => [c.artifactHash, {title: 'Preserved policy', text: 'Full preserved content for site ' + c.resourceId + '. The data controller is Synthetic Example Ltd. Contact privacy@example.test.'}])) };
     // A changed packet under the same path must not recover obsolete progress.
+    if (url.searchParams.has('context')) {
+      data.cases = [{...fixtureCases[1], evidenceType: 'controller_identity', excerpt: null, sourceUrl: 'https://external.test/policy'}];
+      data.reviewDocuments = {[fixtureCases[1].artifactHash]: {title: 'Controller information', text: 'A controlador de dados is a generic legal term. The responsible controller is Synthetic Example Ltd. <script>window.contextExecuted = true</script>'}};
+    }
     if (url.searchParams.has('changed')) data.seed = 'changed';
     const json = JSON.stringify(data).replaceAll('<', '\\u003C');
     const config = { testMode: url.searchParams.has('test'), packageHash: createHash('sha256').update(json).digest('hex') };
@@ -60,7 +64,7 @@ async function answer(page, state = 'present', rationale = 'Arbitrary form test 
   if (['unavailable', 'invalid', 'excluded', 'not_applicable'].includes(state)) {
     if (!await page.locator('#secondaryStates').isVisible()) await page.locator('#moreStates').click();
   }
-  await page.locator('.states button').filter({ hasText: new RegExp('^\\d\\. ' + state.replace('_', ' ') + '$', 'i') }).click();
+  await page.locator('.states button[data-state="' + state + '"]').click();
   await page.locator('#rationale').fill(rationale);
   await page.locator('#next').click();
 }
@@ -223,4 +227,25 @@ test('generated HTML works directly from a local file without an HTTP server', a
     await context.close();
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+
+test('review presents sampled site, full document, concrete question and date even without detector excerpt', async () => {
+  const {context, page, errors} = await session('?context');
+  try {
+    assert.match(await page.locator('#sampleSite').innerText(), /Synthetic site 1/);
+    assert.match(await page.locator('#sampleUrl').innerText(), /sample.test/);
+    assert.match(await page.locator('#type').innerText(), /quem é o controlador/);
+    assert.equal(await page.locator('#sourceUrl').innerText(), 'https://external.test/policy');
+    assert.match(await page.locator('#pageContext').innerText(), /2026-10-05/);
+    assert.match(await page.locator('#excerpt').innerText(), /Synthetic Example Ltd/);
+    assert.equal(await page.evaluate(() => window.contextExecuted), undefined);
+    assert.equal(await page.locator('#decisionCard').isVisible(), true);
+    await screenshot(page, 'full-page-context');
+    await answer(page, 'present', 'Synthetic Example Ltd is explicitly identified in the preserved page.');
+    const result = await download(page);
+    assert.equal(result.data.cases[0].excerpt, null);
+    assert.equal(result.data.cases[0].sourceUrl, 'https://external.test/policy');
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
 });
