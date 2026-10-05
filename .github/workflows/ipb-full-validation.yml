@@ -64,6 +64,7 @@ jobs:
           printf '%s\n' "$RUN_ID" | tee "$OUT/run-id.txt"
           printf 'Run ID: %s\n' "$RUN_ID" | tee -a "$OUT/full-run.log"
 
+          # Intentionally use scheduler defaults persisted in the run manifest.
           echo '== 6. Process HTTP crawl with bounded worker pool ==' | tee -a "$OUT/full-run.log"
           php bin/privacy-evidence workers "$RUN_ID" fetch \
             --max-jobs=100 \
