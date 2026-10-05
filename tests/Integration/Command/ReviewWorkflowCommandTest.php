@@ -217,4 +217,3 @@ final class ReviewWorkflowCommandTest extends TestCase
         rmdir($directory);
     }
 }
-

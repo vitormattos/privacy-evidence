@@ -100,4 +100,3 @@ final class ReviewHtmlCommand extends Command
         return Command::SUCCESS;
     }
 }
-

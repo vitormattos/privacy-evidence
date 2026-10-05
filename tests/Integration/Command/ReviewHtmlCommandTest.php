@@ -123,4 +123,3 @@ final class ReviewHtmlCommandTest extends TestCase
         rmdir($directory);
     }
 }
-

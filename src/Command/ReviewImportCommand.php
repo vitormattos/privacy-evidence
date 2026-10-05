@@ -85,7 +85,8 @@ final class ReviewImportCommand extends Command
 
             $sourceEvidence = is_string($evidenceId) ? ($evidenceById[$evidenceId] ?? null) : null;
             if (
-                $sourceEvidence !== null
+                is_string($evidenceId)
+                && $sourceEvidence !== null
                 && $sourceEvidence->type->value === $typeRaw
                 && ($sourceEvidence->excerpt === null || trim($sourceEvidence->excerpt) === '')
                 && $stateRaw === null
@@ -142,4 +143,3 @@ final class ReviewImportCommand extends Command
         return Command::SUCCESS;
     }
 }
-
