@@ -77,6 +77,45 @@ That full population is part of the result.
 
 The research pipeline had to determine what each source record actually represented before any privacy analysis could begin. Some entries pointed to independent institutional websites, while others pointed to social networks, third-party hosted pages, video platforms, link aggregators, malformed addresses or no usable website source at all.
 
+### Connection to the original 2025 monograph
+
+This experiment revisits an analysis first carried out for my 2025 Theology monograph, *A comunhão dos santos frente aos dilemas da ética digital: uma abordagem bíblica sobre a gestão de dados sensíveis na igreja*.
+
+The original discussion appears in **section 3.2.6, “Panorama da conformidade digital na IPB,” on printed page 42** of the monograph (**PDF page 56**). The detailed table is in **Appendix E, “Adequação à LGPD em sites de igrejas da IPB,” on printed page 67** (**PDF page 81**).
+
+{% cta https://vitormattos.github.io/monografia-teologia/monografia.pdf %}
+Read the original monograph (PDF)
+{% endcta %}
+
+The 2025 study reported:
+
+| 2025 monograph indicator | Result |
+| --- | ---: |
+| IPB churches considered | **2,935** |
+| Churches with a website address in the directory | **640** |
+| Addresses that were not social networks | **532** |
+| Valid and active websites | **219** |
+| Sites with any LGPD mention | **22** |
+| Sites with a cookie notice | **16** |
+| Sites with a published privacy policy | **15** |
+| Sites with a generic DPO/privacy contact | **12** |
+| Sites with a specific data-subject-rights form | **5** |
+| Sites with an identified DPO | **2** |
+
+The monograph records that the original processing was completed on **June 20, 2025**. The current Privacy Evidence run was performed in **October 2026**, more than a year later.
+
+{% card %}
+### This is not a like-for-like percentage comparison
+
+The web is a moving research object. Between June 2025 and October 2026, church websites may have appeared, disappeared, changed domain, changed content or changed privacy disclosures. The IPB source directory itself may also have changed.
+
+In addition, the current Privacy Evidence pipeline has a more explicit population-accounting protocol than the original manual study. It distinguishes source classification, website eligibility, deduplication, acquisition outcome and evidence observability as separate stages.
+
+For that reason, differences between the 2025 and 2026 numbers should not automatically be interpreted as improvement or deterioration in LGPD practices. They reflect a combination of **time**, **changes in the source population**, **changes on the websites themselves**, and **a more rigorous measurement protocol**.
+{% endcard %}
+
+The historical value of the comparison is therefore methodological as much as substantive: the 2025 monograph provides the baseline that motivated the project, while the 2026 run demonstrates how the same research problem can be revisited with a reproducible and auditable pipeline.
+
 ### From the full IPB population to measurable websites
 
 The complete accounting of the **2,993 source records** was:
