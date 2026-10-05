@@ -25,6 +25,99 @@ use PrivacyEvidence\Storage\SqliteObservationStore;
 
 final class RunExporterTest extends TestCase
 {
+    public function testPopulationResultsKeepNonEligiblePopulationMembers(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            self::markTestSkipped('pdo_sqlite not available');
+        }
+
+        $pdo = new PDO('sqlite::memory:');
+        $runs = new SqliteRunStore($pdo);
+        $observations = new SqliteObservationStore($pdo);
+        $reviews = new SqliteReviewQueue($pdo);
+        $jobs = new SqliteJobQueue($pdo);
+
+        $run = new ResearchRun(
+            id: 'population-export',
+            startedAt: '2026-10-05T00:00:00Z',
+            gitCommit: 'fixture',
+            datasetHash: str_repeat('b', 64),
+            protocolVersion: '1.0.0',
+            versions: ['schema' => '1.0.0'],
+            configuration: [],
+        );
+        $runs->create($run);
+        $runs->setStatus($run->id, RunStatus::Completed);
+
+        $site = new ImportedResource(
+            'site-1',
+            'Website',
+            'https://example.test/',
+            'https://example.test/',
+            ResourceType::InstitutionalWebsite,
+        );
+        $social = new ImportedResource(
+            'social-1',
+            'Social',
+            'https://instagram.com/example',
+            'https://instagram.com/example',
+            ResourceType::SocialNetwork,
+            classificationRule: 'known_social_host',
+            classificationConfidence: 1.0,
+        );
+        $observations->recordResource($run->id, $site);
+        $observations->recordResource($run->id, $social);
+        $runs->recordEvent(
+            $run->id,
+            'resource_terminal',
+            $social->id,
+            ['status' => 'not_eligible', 'category' => 'social_network'],
+        );
+
+        (new RegulatoryAnalysisService(
+            $observations,
+            DefaultProfileRegistry::create(),
+        ))->analyze($run->id);
+
+        $directory = sys_get_temp_dir() . '/privacy-evidence-population-export-' . bin2hex(random_bytes(4));
+        $runtime = new RuntimeContext(
+            runs: $runs,
+            jobs: $jobs,
+            observations: $observations,
+            reviews: $reviews,
+            artifactDirectory: $directory . '/artifacts',
+        );
+
+        try {
+            (new RunExporter($runtime))->export($run->id, $directory);
+
+            /** @var mixed $population */
+            $population = json_decode(
+                (string) file_get_contents($directory . '/population-results.json'),
+                true,
+                flags: JSON_THROW_ON_ERROR,
+            );
+            self::assertIsArray($population);
+            self::assertCount(2, $population);
+
+            $byId = [];
+            /** @psalm-suppress MixedAssignment */
+            foreach ($population as $row) {
+                if (is_array($row) && is_string($row['resourceId'] ?? null)) {
+                    $byId[$row['resourceId']] = $row;
+                }
+            }
+
+            self::assertSame('not_eligible', $byId['social-1']['measurementStatus'] ?? null);
+            self::assertSame('social_network', $byId['social-1']['primaryReason'] ?? null);
+            self::assertNull($byId['social-1']['lgpdPublicEvidenceState'] ?? null);
+            self::assertArrayHasKey('site-1', $byId);
+            self::assertArrayHasKey('lgpdPublicEvidenceState', $byId['site-1']);
+        } finally {
+            $this->removeDirectory($directory);
+        }
+    }
+
     public function testExportsDeterministicJsonCsvAndReportFromPersistedState(): void
     {
         if (!extension_loaded('pdo_sqlite')) {
@@ -201,5 +294,32 @@ final class RunExporterTest extends TestCase
         self::assertArrayHasKey('publicEvidenceCoverageRate', $lgpdSummary);
         self::assertArrayHasKey('fullObservedSupportRate', $lgpdSummary);
         self::assertArrayHasKey('anyObservedSupportRate', $lgpdSummary);
+    }
+
+    private function removeDirectory(string $directory): void
+    {
+        if (!is_dir($directory)) {
+            return;
+        }
+
+        $items = scandir($directory);
+        if ($items === false) {
+            return;
+        }
+
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+
+            $path = $directory . '/' . $item;
+            if (is_dir($path)) {
+                $this->removeDirectory($path);
+            } else {
+                unlink($path);
+            }
+        }
+
+        rmdir($directory);
     }
 }
