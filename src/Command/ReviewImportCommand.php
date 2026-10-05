@@ -47,6 +47,12 @@ final class ReviewImportCommand extends Command
             return Command::INVALID;
         }
 
+        if (($decoded['testMode'] ?? false) !== false) {
+            $output->writeln('<error>Form test packages cannot be imported as human annotations.</error>');
+
+            return Command::INVALID;
+        }
+
         $runId = $decoded['runId'] ?? null;
         $cases = $decoded['cases'] ?? null;
         if (!is_string($runId) || $runId === '' || !is_array($cases)) {
@@ -66,6 +72,7 @@ final class ReviewImportCommand extends Command
         }
 
         $imported = 0;
+        $deferred = [];
         foreach ($cases as $case) {
             if (!is_array($case)) {
                 return Command::INVALID;
@@ -75,6 +82,21 @@ final class ReviewImportCommand extends Command
             $typeRaw = $case['evidenceType'] ?? null;
             $stateRaw = $case['humanState'] ?? null;
             $rationale = $case['rationale'] ?? null;
+
+            $sourceEvidence = is_string($evidenceId) ? ($evidenceById[$evidenceId] ?? null) : null;
+            if (
+                is_string($evidenceId)
+                && $sourceEvidence !== null
+                && $sourceEvidence->type->value === $typeRaw
+                && ($sourceEvidence->excerpt === null || trim($sourceEvidence->excerpt) === '')
+                && $stateRaw === null
+                && $rationale === null
+                && ($case['reviewedAt'] ?? null) === null
+            ) {
+                $deferred[] = $evidenceId;
+
+                continue;
+            }
 
             if (
                 !is_string($evidenceId)
@@ -114,6 +136,8 @@ final class ReviewImportCommand extends Command
             'runId' => $runId,
             'reviewerId' => $reviewerId,
             'imported' => $imported,
+            'deferred' => count($deferred),
+            'deferredEvidenceIds' => $deferred,
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 
         return Command::SUCCESS;
