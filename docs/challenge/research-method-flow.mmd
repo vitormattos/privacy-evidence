@@ -1,0 +1,14 @@
+flowchart TD
+    A[IPB source population] --> B[Preserve source records]
+    B --> C[Normalize and classify resources]
+    C --> D[Eligibility and deduplication]
+    D --> E[Bounded HTTP / browser acquisition]
+    E --> F[Immutable acquired documents]
+    F --> G[Deterministic evidence detectors]
+    F --> H[PHP-native ML second opinion]
+    G --> I[Auditable human review]
+    H --> I
+    I --> J[Versioned regulatory mapping]
+    J --> K[Derived metrics and research interpretation]
+    C --> L[Non-eligible sources retained with reason]
+    E --> M[Acquisition failures retained as observations]

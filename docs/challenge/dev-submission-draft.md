@@ -10,6 +10,7 @@ tags: devchallenge, weekendchallenge, hf26challenge
 
 - [What I Built](#what-i-built)
 - [Demo](#demo)
+- [Research Methodology](#research-methodology)
 - [Results from the IPB Analysis](#results-from-the-ipb-analysis)
 - [Code](#code)
 - [How I Built It](#how-i-built-it)
@@ -68,6 +69,108 @@ Inspect the successful public Hacktoberfest demo
 {% endcta %}
 
 This GitHub Actions run executes the real PHP-native Rubix model build and inference path in public. The successful output shows `aiAtCore: true`, `modelRequired: true`, a `controller_identity` ML candidate with probability `1`, rule/ML disagreement, one pending review case and an auditable `ai_suggestion`.
+
+## Research Methodology
+
+This project is not only a crawler or a classifier. I designed it as a **reproducible empirical software-engineering study**.
+
+The research protocol uses the **Goal–Question–Metric (GQM)** paradigm to connect the research goal, research questions and observable measurements. The reporting and study-design choices also use the **ACM SIGSOFT Empirical Standards** as a methodological reference.
+
+The object of study is deliberately narrow:
+
+> **publicly observable privacy evidence exposed by digital resources**
+
+It is **not** a measurement of organization-wide legal compliance.
+
+### Research design
+
+The study follows seven measurement layers. Each layer preserves the previous observation instead of silently replacing it:
+
+1. **Source observation** — preserve the original value from the source population.
+2. **Normalization and classification** — determine whether the source represents an institutional website, social network, third-party page, malformed address or another resource type.
+3. **Technical acquisition** — attempt HTTP acquisition and, when justified, browser-based acquisition under bounded crawl rules.
+4. **Automated evidence classification** — apply deterministic detectors to immutable acquired documents.
+5. **Human review and adjudication** — keep uncertain, conflicting or review-dependent evidence separate from automated output.
+6. **Regulatory mapping** — map generic reviewed evidence to versioned regulatory profiles such as LGPD.
+7. **Derived metrics and interpretation** — aggregate only after the earlier states and denominators are preserved.
+
+### Population and units of analysis
+
+The starting population is the complete set of source records obtained from the IPB directory, rather than only the websites that could eventually be crawled.
+
+The protocol distinguishes several units:
+
+- **source record** — the original value obtained from the source population;
+- **normalized resource** — a protocol-derived HTTP/HTTPS representation when possible;
+- **unique website measurement unit** — the canonical website after duplicate references are resolved;
+- **fetched document** — an immutable acquisition artifact;
+- **evidence item** — a detector or reviewer observation tied to an exact artifact;
+- **ResearchRun** — the versioned execution context binding dataset, code, protocol, profiles and configuration.
+
+This distinction prevents sample construction from becoming an undocumented preprocessing step.
+
+### Acquisition protocol
+
+Website acquisition is bounded and reproducible. The run records the crawl configuration, HTTP/browser behavior, retries, acquisition failures and stop conditions.
+
+Failures such as DNS errors, TLS failures, HTTP errors, rate limiting, anti-bot challenges, timeouts and crawl-budget exhaustion are treated as **research observations**, not as reasons to silently remove a website from the denominator.
+
+Missing-data states are also explicit. `unknown`, `unavailable`, `invalid`, `excluded` and `not-applicable` are not automatically treated as `absent`.
+
+### Evidence classification and ML
+
+Deterministic rules remain the transparent baseline for observable privacy signals.
+
+The experimental PHP-native ML path is used as a **second opinion**, not as ground truth. A model prediction preserves its probability, threshold, artifact hash, dataset provenance and feature-pipeline version. When ML disagrees with a deterministic rule, the case is routed to the auditable review workflow rather than silently overriding the rule.
+
+### Reproducibility and validity
+
+Each ResearchRun records the exact protocol version, schema version, detector versions, regulatory-profile versions, acquisition configuration and runtime components used for the measurement.
+
+This is especially important for the comparison with the 2025 monograph: a website is a changing research object. The current run should therefore be interpreted as a new observation under a newer and more explicit protocol, not as a direct remeasurement under identical conditions.
+
+The full protocol is versioned in the repository:
+
+https://github.com/vitormattos/privacy-evidence/blob/main/docs/research/protocol.md
+
+### Methodological flow
+
+The source for the diagram below is kept as Mermaid in the repository so the research flow remains version-controlled even though DEV does not render Mermaid natively.
+
+```text
+source population
+      |
+      v
+source preservation
+      |
+      v
+normalization + resource classification
+      |
+      v
+eligibility + deduplication
+      |
+      v
+bounded HTTP/browser acquisition
+      |
+      v
+immutable documents
+      |
+      +----------------------+
+      |                      |
+      v                      v
+deterministic evidence    PHP-native ML
+      |                      |
+      +----------+-----------+
+                 |
+                 v
+          human review
+                 |
+                 v
+       regulatory mapping
+                 |
+                 v
+     metrics + interpretation
+```
 
 ## Results from the IPB Analysis
 
@@ -260,33 +363,7 @@ https://github.com/vitormattos/privacy-evidence/tree/c80503f3adcbe2422ca583d9de5
 
 Privacy Evidence is written in PHP 8.4.
 
-The deterministic research pipeline and the ML experiment are intentionally separate:
-
-```text
-source population
-      |
-      v
-deterministic acquisition
-      |
-      v
-immutable observable evidence
-      |
-      +-------------------+
-      |                   |
-      v                   v
-transparent rules    PHP-native ML
-      |                   |
-      +--------+----------+
-               |
-               v
-        auditable review
-               |
-               v
-     regulatory profiles
-               |
-               v
- reproducible analysis
-```
+The deterministic research pipeline and the ML experiment are intentionally separate, as described in the methodology above.
 
 For the open-source ML path I used [Rubix ML](https://github.com/RubixML/ML), running locally in PHP.
 
