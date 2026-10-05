@@ -92,6 +92,31 @@ final class LinkDiscovererTest extends TestCase
         self::assertSame(100, $links[0]->priority);
     }
 
+    public function testKeepsHighestPriorityWhenSameUrlAppearsWithDifferentAnchors(): void
+    {
+        $links = (new LinkDiscoverer())->discover(
+            $this->document(
+                '<a href="/privacy">Política de Privacidade</a>'
+                . '<a href="/privacy">Saiba mais</a>',
+            ),
+        );
+
+        self::assertCount(1, $links);
+        self::assertSame(100, $links[0]->priority);
+        self::assertSame('privacy', $links[0]->reason);
+        self::assertSame('Política de Privacidade', $links[0]->anchorText);
+    }
+
+    public function testMatchesAccentedUppercaseLgpdTerms(): void
+    {
+        $links = (new LinkDiscoverer())->discover(
+            $this->document('<a href="/dados">PROTEÇÃO DE DADOS PESSOAIS</a>'),
+        );
+
+        self::assertCount(1, $links);
+        self::assertSame(100, $links[0]->priority);
+    }
+
     public function testPrivacyTermCanMatchUrlWhenAnchorDoesNot(): void
     {
         $links = (new LinkDiscoverer())->discover(

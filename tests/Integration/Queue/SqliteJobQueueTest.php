@@ -28,8 +28,8 @@ final class SqliteJobQueueTest extends TestCase
             host: 'example.test',
         );
 
-        $queue->enqueue($job);
-        $queue->enqueue(
+        self::assertTrue($queue->enqueue($job));
+        self::assertFalse($queue->enqueue(
             new Job(
                 'j2',
                 'r1',
@@ -38,7 +38,7 @@ final class SqliteJobQueueTest extends TestCase
                 ['url' => 'https://example.test'],
                 host: 'example.test',
             ),
-        );
+        ));
 
         self::assertSame(['pending' => 1], $queue->counts('r1'));
 

@@ -576,6 +576,7 @@ final readonly class ResearchPipeline
 
         $candidates = $this->linkDiscoverer->discover($document);
         $relevantCandidates = 0;
+        $scheduledPages = $this->jobs->scheduledCount($runId, 'fetch', $resourceId . '|');
         foreach ($candidates as $candidate) {
             if ($candidate->priority < $budget->minLinkPriority) {
                 $this->runs->increment($runId, 'crawl_candidates_skipped_irrelevant');
@@ -584,7 +585,7 @@ final readonly class ResearchPipeline
 
             $relevantCandidates++;
 
-            if ($this->jobs->scheduledCount($runId, 'fetch', $resourceId . '|') >= $budget->maxPages) {
+            if ($scheduledPages >= $budget->maxPages) {
                 $this->recordBudgetStop(
                     $runId,
                     $resourceId,
@@ -594,7 +595,7 @@ final readonly class ResearchPipeline
                 break;
             }
 
-            $this->jobs->enqueue(
+            $inserted = $this->jobs->enqueue(
                 new Job(
                     id: Uuid::v7()->toRfc4122(),
                     runId: $runId,
@@ -610,6 +611,9 @@ final readonly class ResearchPipeline
                     host: $this->hostForUrl($candidate->url),
                 ),
             );
+            if ($inserted) {
+                $scheduledPages++;
+            }
         }
 
         $this->runs->recordEvent(

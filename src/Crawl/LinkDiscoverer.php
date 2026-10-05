@@ -11,7 +11,7 @@ use Symfony\Component\DomCrawler\Crawler;
 
 final class LinkDiscoverer
 {
-    public const VERSION = '1.1.0';
+    public const VERSION = '1.2.0';
 
     /** @var list<string> */
     private array $privacyTerms;
@@ -35,13 +35,18 @@ final class LinkDiscoverer
         private readonly UrlNormalizer $urlNormalizer = new UrlNormalizer(),
     ) {
         $this->privacyTerms = $privacyTerms ?? [
-            'privacy', 'privacidade', 'proteção de dados', 'protecao-de-dados', 'lgpd', 'gdpr',
+            'privacy', 'privacidade', 'política de privacidade', 'politica de privacidade',
+            'proteção de dados', 'protecao de dados', 'proteção de dados pessoais',
+            'protecao de dados pessoais', 'dados pessoais', 'lgpd', 'gdpr',
+            'data protection', 'privacy notice',
         ];
         $this->controlTerms = $controlTerms ?? [
-            'cookie', 'dpo', 'encarregado', 'direitos', 'rights',
+            'cookie', 'cookies', 'dpo', 'encarregado', 'direitos', 'rights',
+            'titular', 'consentimento', 'consent',
         ];
         $this->supportingTerms = $supportingTerms ?? [
-            'contact', 'contato', 'about', 'sobre', 'terms', 'termos', 'legal',
+            'contact', 'contato', 'fale conosco', 'about', 'sobre', 'quem somos',
+            'terms', 'termos', 'legal', 'institucional',
         ];
     }
 
@@ -92,8 +97,8 @@ final class LinkDiscoverer
             }
 
             $text = trim($node->textContent);
-            [$priority, $reason] = $this->priority($absolute, strtolower($text));
-            $candidates[$absolute] = new CandidateUrl(
+            [$priority, $reason] = $this->priority($absolute, $text);
+            $candidate = new CandidateUrl(
                 url: $absolute,
                 priority: $priority,
                 reason: $reason,
@@ -101,6 +106,10 @@ final class LinkDiscoverer
                 anchorText: $text,
                 ruleVersion: $this->version,
             );
+            $existing = $candidates[$absolute] ?? null;
+            if ($existing === null || $candidate->priority > $existing->priority) {
+                $candidates[$absolute] = $candidate;
+            }
         }
 
         $result = array_values($candidates);
@@ -135,7 +144,10 @@ final class LinkDiscoverer
      */
     private function priority(string $url, string $text): array
     {
-        $haystack = strtolower($url . ' ' . $text);
+        $haystack = mb_strtolower(
+            html_entity_decode(rawurldecode($url) . ' ' . $text, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+            'UTF-8',
+        );
 
         foreach ($this->privacyTerms as $needle) {
             if ($needle !== '' && str_contains($haystack, $needle)) {

@@ -6,7 +6,7 @@ namespace PrivacyEvidence\Queue;
 
 interface JobQueue
 {
-    public function enqueue(Job $job): void;
+    public function enqueue(Job $job): bool;
 
     public function reserve(
         string $runId,

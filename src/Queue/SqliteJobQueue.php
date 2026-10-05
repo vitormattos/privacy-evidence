@@ -23,7 +23,7 @@ final class SqliteJobQueue implements JobQueue
         $this->migrate();
     }
 
-    public function enqueue(Job $job): void
+    public function enqueue(Job $job): bool
     {
         $existing = $this->pdo->prepare(
             'SELECT 1 FROM jobs
@@ -38,7 +38,7 @@ final class SqliteJobQueue implements JobQueue
             'deduplication_key' => $job->deduplicationKey,
         ]);
         if ($existing->fetchColumn() !== false) {
-            return;
+            return false;
         }
 
         $countStatement = $this->pdo->query(
@@ -74,6 +74,8 @@ final class SqliteJobQueue implements JobQueue
             'enqueued_at_ms' => $enqueuedAtMs,
             'available_at_ms' => $enqueuedAtMs,
         ]);
+
+        return $stmt->rowCount() === 1;
     }
 
     public function reserve(
@@ -466,6 +468,10 @@ final class SqliteJobQueue implements JobQueue
         $this->pdo->exec(
             'CREATE INDEX IF NOT EXISTS idx_jobs_host_status
              ON jobs(run_id, stage, host, status)',
+        );
+        $this->pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_jobs_available
+             ON jobs(run_id, stage, status, available_at_ms, priority DESC, enqueued_at_ms)',
         );
         $this->pdo->exec(
             'CREATE TABLE IF NOT EXISTS host_limiter (
