@@ -11,7 +11,7 @@ use Symfony\Component\DomCrawler\Crawler;
 
 final class LinkDiscoverer
 {
-    public const VERSION = '1.2.0';
+    public const VERSION = '1.3.0';
 
     /** @var list<string> */
     private array $privacyTerms;
@@ -82,7 +82,9 @@ final class LinkDiscoverer
             }
 
             $absolute = $this->urlNormalizer->normalize(
-                $this->withoutFragment($absolute),
+                $this->withoutTrackingParameters(
+                    $this->withoutFragment($absolute),
+                ),
             );
             $current = $this->urlNormalizer->normalize(
                 $this->withoutFragment($document->finalUrl),
@@ -133,10 +135,53 @@ final class LinkDiscoverer
     {
         $baseHost = parse_url($base, PHP_URL_HOST);
         $candidateHost = parse_url($candidate, PHP_URL_HOST);
+        if (!is_string($baseHost) || !is_string($candidateHost)) {
+            return false;
+        }
 
-        return is_string($baseHost)
-            && is_string($candidateHost)
-            && strtolower($baseHost) === strtolower($candidateHost);
+        return $this->canonicalHost($baseHost) === $this->canonicalHost($candidateHost);
+    }
+
+    private function canonicalHost(string $host): string
+    {
+        $host = strtolower($host);
+
+        return str_starts_with($host, 'www.') ? substr($host, 4) : $host;
+    }
+
+    private function withoutTrackingParameters(string $url): string
+    {
+        $question = strpos($url, '?');
+        if ($question === false) {
+            return $url;
+        }
+
+        $base = substr($url, 0, $question);
+        $query = substr($url, $question + 1);
+        $kept = [];
+
+        foreach (explode('&', $query) as $parameter) {
+            if ($parameter === '') {
+                continue;
+            }
+
+            $key = rawurldecode(explode('=', $parameter, 2)[0]);
+            $normalizedKey = strtolower($key);
+            if (
+                str_starts_with($normalizedKey, 'utm_')
+                || in_array(
+                    $normalizedKey,
+                    ['fbclid', 'gclid', 'dclid', 'msclkid', 'mc_cid', 'mc_eid', '_ga'],
+                    true,
+                )
+            ) {
+                continue;
+            }
+
+            $kept[] = $parameter;
+        }
+
+        return $kept === [] ? $base : $base . '?' . implode('&', $kept);
     }
 
     /**
