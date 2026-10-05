@@ -52,27 +52,59 @@ This GitHub Actions run executes the real PHP-native Rubix model build and infer
 
 ## Results from the IPB Analysis
 
-The project was also validated against the complete source population extracted from the public IPB directory.
+The full-population run made it possible to move beyond a proof of concept and observe how the research protocol behaves on a real, heterogeneous population.
 
-The run accounted for **2,993 source records**. Of those, **589 were eligible for website measurement**, representing **566 unique website measurement units** after duplicate references were resolved.
+The source contained **2,993 records** from the public IPB directory. After classification and normalization, **589 records were considered eligible for website measurement**, corresponding to **566 unique website measurement units** after duplicate references were resolved.
 
-The final measurement outcomes across those 566 unique websites were:
+This distinction matters methodologically. The original source is not equivalent to a clean list of independent websites: it contains duplicated references, social-network pages, malformed entries, third-party pages and addresses that no longer resolve. Treating those cases explicitly prevents the analysis from silently shrinking the population and makes the selection process reproducible.
 
-- **193 fully measured**;
-- **12 partially measured**;
-- **361 not measurable**.
+### Measurement outcomes
 
-That means the pipeline produced a complete, auditable outcome for every source record rather than silently dropping websites that could not be analyzed.
+Among the **566 unique websites**:
 
-The main reasons for non-measurement included DNS failures, anti-bot challenges, HTTP 429 responses, unavailable or redirected sites, TLS failures, timeouts and crawl-budget limits. These are preserved as research observations because failure to measure a site is itself relevant to reproducibility.
+- **193 (34.1%)** were fully measured;
+- **12 (2.1%)** were partially measured;
+- **361 (63.8%)** could not be measured under the defined protocol.
 
-For the LGPD-oriented public-evidence profile, the average coverage across the unique website population was approximately **27.2%**. Full observed support across the evaluated requirements averaged approximately **5.3%**, while any observed support averaged approximately **6.6%**.
+The high proportion of non-measurable websites is itself an important empirical result. It shows that large-scale public-web research is constrained not only by the analytical method, but also by the condition of the web population being studied.
 
-These numbers must not be read as legal-compliance rates. Privacy Evidence only reports what could or could not be observed on the public website under a documented protocol. A website can expose little public evidence and still have other privacy processes outside the site, and the opposite is also possible.
+The most frequent obstacles included DNS failures, anti-bot mechanisms, HTTP 429 rate limiting, unavailable or redirected websites, TLS failures, timeouts and crawl-budget limits. Instead of excluding these cases after collection begins, Privacy Evidence records them as explicit terminal outcomes.
 
-Some requirement-level observations were especially sparse. For example, controller-related evidence, purpose, sharing, data-subject rights information and retention/duration disclosures were often not observable in the public website evidence. The DPO/encarregado requirement had a very small measurable sample, so its percentage is not suitable for generalization.
+That decision changes the interpretation of the study: the result is not simply a set of websites for which evidence was found, but a complete accounting of what happened to every source record and why some observations could not be produced.
 
-The full-population validation therefore gave me two useful results at once: a reproducible dataset of observable evidence and a precise account of why many websites could not be fully measured.
+### Observable LGPD-related evidence
+
+For the websites that could be evaluated, the average LGPD-oriented evidence coverage across the unique website population was approximately **27.2%**.
+
+The average rate of **full observed support** across the evaluated requirements was approximately **5.3%**, while **any observed support** was approximately **6.6%**.
+
+These low values suggest that the privacy-related information evaluated by the protocol is often not clearly observable on public-facing church websites. In particular, evidence related to controller identification, processing purpose, data-sharing information, data-subject rights and retention/duration was frequently absent or indeterminate in the collected public content.
+
+This finding should be interpreted carefully. Privacy Evidence does not evaluate an organization's complete privacy governance program and does not establish legal compliance or non-compliance. It only reports whether predefined evidence could be observed on the public website under the documented acquisition and classification protocol.
+
+The distinction is important because absence of observable website evidence can mean several different things: the information may genuinely be missing, it may exist outside the crawled pages, it may be provided through another channel, or the site may not have been measurable enough to support a conclusion.
+
+### What the results say about the research method
+
+The most relevant outcome for me was not a single percentage. It was the ability to reproduce the entire path from the original directory to the final analytical state.
+
+For every source record, the system can explain whether it represented an independent website, whether it was eligible for measurement, whether acquisition succeeded, what evidence was observed, which detector or model produced the classification, and why a case remained unavailable, indeterminate or pending human review.
+
+That provenance is what the original manual study was missing.
+
+The results also expose an important methodological limitation for future work: website observability and legal or organizational privacy maturity are different constructs. A future academic study should therefore treat these results as measurements of **public privacy evidence availability**, not as a compliance score.
+
+### Implications for future research
+
+The full-population run provides a baseline for several follow-up studies:
+
+- longitudinal analysis of how privacy evidence changes over time;
+- comparison between denominations, organizations or sectors;
+- validation of deterministic and ML-based classifiers against independently human-reviewed samples;
+- investigation of whether specific website characteristics are associated with greater privacy-information visibility;
+- replication of the protocol against other regulatory profiles without repeating the entire acquisition step.
+
+In that sense, the main contribution of the run is not only the descriptive result for the IPB population. It is the creation of a reproducible research instrument that can support new empirical questions while preserving the limits of what the collected evidence can actually demonstrate.
 
 
 ## Code
