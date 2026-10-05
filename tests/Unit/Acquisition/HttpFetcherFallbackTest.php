@@ -64,7 +64,10 @@ final class HttpFetcherFallbackTest extends TestCase
         $document = $fetcher->fetch('site-1', 'http://example.test/');
 
         self::assertSame('https://example.test/', $document->finalUrl);
-        self::assertSame('https_transport_fallback', $document->metadata['transportFallback']['reason'] ?? null);
+        /** @var mixed $transportFallback */
+        $transportFallback = $document->metadata['transportFallback'] ?? null;
+        self::assertIsArray($transportFallback);
+        self::assertSame('https_transport_fallback', $transportFallback['reason'] ?? null);
     }
 
     public function testPreservesRetryAfterAsBoundedMilliseconds(): void

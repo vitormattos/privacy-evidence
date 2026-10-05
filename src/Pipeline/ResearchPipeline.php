@@ -7,6 +7,7 @@ namespace PrivacyEvidence\Pipeline;
 use PrivacyEvidence\Acquisition\AcquisitionException;
 use PrivacyEvidence\Acquisition\DocumentStore;
 use PrivacyEvidence\Acquisition\FetchedDocument;
+use PDOException;
 use PrivacyEvidence\Acquisition\HttpFetcher;
 use PrivacyEvidence\Browser\BrowserEscalationPolicy;
 use PrivacyEvidence\Browser\BrowserProvider;
@@ -22,6 +23,7 @@ use PrivacyEvidence\Source\ResourceClassifier;
 use PrivacyEvidence\Source\ResourceType;
 use PrivacyEvidence\Source\SourceAdapter;
 use PrivacyEvidence\Storage\ObservationStore;
+use PrivacyEvidence\Storage\SqliteRetry;
 use Symfony\Component\Uid\Uuid;
 
 final readonly class ResearchPipeline
@@ -216,10 +218,20 @@ final readonly class ResearchPipeline
                 $this->runs->increment($runId, 'jobs_completed');
                 $this->runs->increment($runId, 'jobs_completed.' . $stage);
             } catch (\Throwable $e) {
+                $retryDelayMs = null;
+                $maxAttempts = 1;
                 if ($e instanceof AcquisitionException) {
                     $category = $e->category;
                     $retryable = $e->retryable;
                     $terminalStatus = JobStatus::Failed;
+                    $retryDelayMs = $e->retryDelayMs;
+                    $maxAttempts = $retryable ? 3 : 1;
+                } elseif ($e instanceof PDOException && SqliteRetry::isBusy($e)) {
+                    $category = 'sqlite_contention';
+                    $retryable = true;
+                    $terminalStatus = JobStatus::Dead;
+                    $retryDelayMs = min(5_000, 250 * (1 << min($job->attempts, 4)));
+                    $maxAttempts = 6;
                 } else {
                     $category = 'unexpected_exception';
                     $retryable = false;
@@ -228,9 +240,9 @@ final readonly class ResearchPipeline
                 $status = $this->jobs->fail(
                     $job->id,
                     $e->getMessage(),
-                    maxAttempts: $retryable ? 3 : 1,
+                    maxAttempts: $maxAttempts,
                     terminalStatus: $terminalStatus,
-                    retryDelayMs: $e instanceof AcquisitionException ? $e->retryDelayMs : null,
+                    retryDelayMs: $retryDelayMs,
                 );
 
                 $this->runs->increment($runId, 'job_attempt_failures');
@@ -273,7 +285,7 @@ final readonly class ResearchPipeline
                         'url' => $this->payloadString($job, 'url'),
                         'category' => $category,
                         'retryable' => $retryable,
-                        'retry_delay_ms' => $e instanceof AcquisitionException ? $e->retryDelayMs : null,
+                        'retry_delay_ms' => $retryDelayMs,
                         'error' => mb_substr($e->getMessage(), 0, 500),
                     ],
                 );
@@ -331,6 +343,7 @@ final readonly class ResearchPipeline
             in_array($document->statusCode, [429, 502, 503, 504], true)
             && $job->attempts < 3
         ) {
+            /** @psalm-suppress MixedAssignment */
             $retryAfterValue = $document->metadata['retryAfterMs'] ?? null;
             $retryAfterMs = is_int($retryAfterValue)
                 ? max(1_000, $retryAfterValue)

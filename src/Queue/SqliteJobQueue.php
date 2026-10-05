@@ -514,29 +514,22 @@ final class SqliteJobQueue implements JobQueue
     private function beginImmediateWithRetry(): void
     {
         $attempt = 0;
+        $deadline = microtime(true) + 30.0;
 
         while (true) {
             try {
                 $this->pdo->exec('BEGIN IMMEDIATE');
                 return;
             } catch (PDOException $exception) {
-                if (!$this->isBusy($exception) || $attempt >= 7) {
+                if (!SqliteRetry::isBusy($exception) || microtime(true) >= $deadline) {
                     throw $exception;
                 }
 
-                $delayUs = min(250_000, 10_000 * (1 << $attempt));
+                $delayUs = min(250_000, 10_000 * (1 << min($attempt, 5)));
                 usleep($delayUs);
                 $attempt++;
             }
         }
-    }
-
-    private function isBusy(PDOException $exception): bool
-    {
-        $message = strtolower($exception->getMessage());
-
-        return str_contains($message, 'database is locked')
-            || str_contains($message, 'database is busy');
     }
 
     private static function nowMs(): int
