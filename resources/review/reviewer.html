@@ -19,7 +19,7 @@ h1 { margin-bottom: 8px; }
 .progress-bar { height: 100%; width: 0; background: AccentColor; }
 .meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: .92rem; margin-top: 8px; }
 .card { border: 1px solid ButtonBorder; border-radius: 12px; padding: 18px; margin: 18px 0; }
-.label { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; opacity: .72; }
+.label { font-size: .78rem; letter-spacing: .04em; opacity: .72; }
 .excerpt { white-space: pre-wrap; padding: 14px; border-left: 4px solid AccentColor; background: color-mix(in srgb, CanvasText 5%, Canvas); margin: 12px 0; }
 .guidance { font-size: .95rem; }
 .states { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 8px; margin: 12px 0; }
@@ -32,8 +32,8 @@ textarea { width: 100%; min-height: 95px; box-sizing: border-box; padding: 10px;
 .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
 .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 kbd { border: 1px solid ButtonBorder; border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; }
-a { color: LinkText; }
-.small { font-size: .88rem; opacity: .82; }
+a { color: LinkText; overflow-wrap: anywhere; }
+.small { font-size: .88rem; opacity: .82; overflow-wrap: anywhere; }
 [hidden] { display: none !important; }
 @media (max-width: 600px) {
   main { padding: 14px; }
@@ -49,6 +49,9 @@ a { color: LinkText; }
 <button id="languageToggle" type="button">English</button>
 </div>
 <p id="intro"></p>
+<div id="testNotice" class="notice warning" hidden></div>
+<div id="queueNotice" class="notice"></div>
+<div class="controls"><button id="queueToggle" type="button"></button></div>
 <div class="notice"><strong id="privacyTitle"></strong> <span id="privacyText"></span></div>
 <div class="progress-shell"><div id="progressBar" class="progress-bar"></div></div>
 <div class="meta">
@@ -58,17 +61,19 @@ a { color: LinkText; }
 </div>
 </header>
 
-<section class="card">
+<section class="card" id="evidenceCard">
+<div class="notice"><strong id="sourceContextLabel"></strong> <a id="sourceUrl" target="_blank" rel="noopener noreferrer"></a><p class="small" id="sourceContextHelp"></p></div>
 <div class="label" id="evidenceTypeLabel"></div>
 <h2 id="type"></h2>
 <div id="guidance" class="guidance notice"></div>
 <div class="label" id="excerptLabel"></div>
 <div id="excerpt" class="excerpt"></div>
+<p class="small" id="artifactContext"></p>
 <div id="missingEvidence" class="notice warning" hidden></div>
-<div class="small"><span id="sourceContextLabel"></span> <a id="sourceUrl" target="_blank" rel="noreferrer"></a>. <span id="sourceContextHelp"></span></div>
+
 </section>
 
-<section class="card">
+<section class="card" id="decisionCard">
 <div class="label" id="humanStateLabel"></div>
 <div id="primaryStates" class="states"></div>
 <div class="controls">
@@ -99,6 +104,12 @@ a { color: LinkText; }
 
 <script>
 const packageData = __PACKAGE_JSON__;
+const reviewConfig = __REVIEW_CONFIG_JSON__;
+const testMode = reviewConfig.testMode === true;
+if (testMode) {
+  packageData.testMode = true;
+  packageData.cases.forEach(c => { c.humanState = null; c.rationale = null; c.reviewedAt = null; });
+}
 const primaryStates = ['present', 'absent', 'unknown'];
 const secondaryStates = ['unavailable', 'invalid', 'excluded', 'not_applicable'];
 const states = [...primaryStates, ...secondaryStates];
@@ -113,8 +124,17 @@ const i18n = {
     privacyText: 'esta página não envia suas anotações. O progresso fica salvo somente neste navegador. Ao terminar, exporte o JSON e devolva o arquivo ao pesquisador.',
     evidenceType: 'Tipo de evidência',
     excerpt: 'Evidência preservada',
-    noExcerpt: 'Este caso não contém evidência preservada suficiente no pacote para sustentar uma decisão Present ou Absent. Use Unknown quando a informação for insuficiente ou ambígua. Use Unavailable somente quando a evidência necessária não pôde ser observada.',
-    sourceContext: 'Contexto da fonte:',
+    noExcerpt: 'Este pacote não contém texto preservado para avaliar o caso. Ele fica pendente de investigação ou nova coleta, sem exigir uma resposta humana. Consulte a URL e o artefato original para recuperar contexto. Uma visita ao site agora é uma nova observação e não comprova o estado na coleta original.',
+    sourceContext: 'Site / página de origem:',
+    testNotice: 'Modo teste do formulário. Respostas arbitrárias são permitidas em todos os casos. O progresso é separado da revisão real e o JSON de teste não pode ser importado como avaliação humana.',
+    queue: 'Casos no pacote:',
+    reviewable: 'com texto preservado para revisão',
+    deferred: 'para investigação / nova coleta',
+    showDeferred: 'Ver casos para investigação',
+    showReview: 'Voltar à revisão',
+    empty: 'Não há casos nesta fila.',
+    storageError: 'Não foi possível salvar no navegador. Mantenha esta página aberta e exporte ao terminar.',
+    finished: 'Revisão concluída. Exporte o JSON; os casos para investigação continuam no pacote sem rótulo humano.',
     sourceHelp: 'A página ao vivo pode ter mudado. Use-a apenas como contexto e baseie a classificação na evidência preservada acima.',
     humanState: 'Classificação humana',
     more: 'Mais opções',
@@ -158,8 +178,17 @@ const i18n = {
     privacyText: 'this page does not send annotations anywhere. Progress is stored only in this browser. When finished, export the JSON file and return it to the researcher.',
     evidenceType: 'Evidence type',
     excerpt: 'Preserved evidence',
-    noExcerpt: 'This case does not contain enough preserved evidence in the review packet to support Present or Absent. Use Unknown when the information is insufficient or ambiguous. Use Unavailable only when the required evidence could not be observed.',
-    sourceContext: 'Source context:',
+    noExcerpt: 'This packet contains no preserved text for assessing the case. It remains pending investigation or recollection without requiring a human answer. Use the source URL and original artifact to recover context. A live visit is a new observation and does not establish the state at the original collection.',
+    sourceContext: 'Source website / page:',
+    testNotice: 'Form test mode. Arbitrary answers are allowed for all cases. Progress is separate from real review and test JSON cannot be imported as human annotations.',
+    queue: 'Cases in packet:',
+    reviewable: 'with preserved text for review',
+    deferred: 'requiring investigation / recollection',
+    showDeferred: 'View cases for investigation',
+    showReview: 'Return to review',
+    empty: 'There are no cases in this queue.',
+    storageError: 'Browser storage is unavailable. Keep this page open and export when finished.',
+    finished: 'Review complete. Export JSON; cases requiring investigation remain in the packet without human labels.',
     sourceHelp: 'The live page may have changed. Use it only as context and base the classification on the preserved evidence above.',
     humanState: 'Human classification',
     more: 'More options',
@@ -272,43 +301,57 @@ const rationaleTemplates = {
 };
 
 const cases = packageData.cases;
-const order = cases.map((_, i) => i).sort((a, b) => {
+const sortedOrder = cases.map((_, i) => i).sort((a, b) => {
   const type = String(cases[a].evidenceType).localeCompare(String(cases[b].evidenceType));
   return type !== 0 ? type : String(cases[a].evidenceId).localeCompare(String(cases[b].evidenceId));
 });
-const storageKey = 'privacy-evidence-review:' + packageData.runId + ':' + packageData.seed + ':' + location.pathname;
+function hasPreservedExcerpt(c) { return typeof c.excerpt === 'string' && c.excerpt.trim() !== ''; }
+const reviewOrder = sortedOrder.filter(i => testMode || hasPreservedExcerpt(cases[i]));
+const deferredOrder = sortedOrder.filter(i => !hasPreservedExcerpt(cases[i]));
+let order = reviewOrder;
+let showingDeferred = false;
+const storageKey = 'privacy-evidence-review:' + reviewConfig.packageHash + ':' + (testMode ? 'test' : 'research') + ':' + location.pathname;
 let position = 0;
-let locale = localStorage.getItem(storageKey + ':locale') || 'pt';
+let locale = 'pt';
 let secondaryVisible = false;
+let storageAvailable = true;
 let timing = { durations: [], caseStarted: Date.now() };
 
 function t() { return i18n[locale]; }
 function currentCase() { return cases[order[position]]; }
-function hasPreservedExcerpt(c) { return typeof c.excerpt === 'string' && c.excerpt.trim() !== ''; }
-function isComplete(c) { return Boolean(c.humanState && c.rationale && c.rationale.trim()); }
-function completedCount() { return cases.filter(isComplete).length; }
+function isComplete(c) { return Boolean(states.includes(c.humanState) && typeof c.rationale === 'string' && c.rationale.trim() && c.reviewedAt); }
+function completedCount() { return reviewOrder.filter(i => isComplete(cases[i])).length; }
 
 function loadProgress() {
   try {
+    const savedLocale = localStorage.getItem(storageKey + ':locale');
+    if (savedLocale === 'pt' || savedLocale === 'en') locale = savedLocale;
     const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
     if (!saved || !Array.isArray(saved.cases)) return;
     const byId = new Map(saved.cases.map(c => [c.evidenceId, c]));
-    cases.forEach(c => {
+    reviewOrder.forEach(i => {
+      const c = cases[i];
       const s = byId.get(c.evidenceId);
       if (!s) return;
-      c.humanState = s.humanState || null;
-      c.rationale = s.rationale || null;
-      c.reviewedAt = s.reviewedAt || null;
+      c.humanState = states.includes(s.humanState) ? s.humanState : null;
+      c.rationale = typeof s.rationale === 'string' ? s.rationale : null;
+      c.reviewedAt = typeof s.reviewedAt === 'string' ? s.reviewedAt : null;
     });
     if (saved.timing && Array.isArray(saved.timing.durations)) {
-      timing.durations = saved.timing.durations;
+      timing.durations = saved.timing.durations.filter(v => Number.isFinite(v));
     }
-  } catch (_) {}
+    position = reviewOrder.findIndex(i => !isComplete(cases[i]));
+    if (position < 0) position = 0;
+  } catch (_) { storageAvailable = false; }
 }
 
 function persist() {
-  localStorage.setItem(storageKey, JSON.stringify({ cases, timing }));
-  document.getElementById('saveStatus').textContent = t().saved;
+  try {
+    localStorage.setItem(storageKey, JSON.stringify({ cases, timing }));
+    localStorage.setItem(storageKey + ':locale', locale);
+    storageAvailable = true;
+  } catch (_) { storageAvailable = false; }
+  document.getElementById('saveStatus').textContent = storageAvailable ? t().saved : t().storageError;
 }
 
 function median(values) {
@@ -330,8 +373,7 @@ function stateButton(state, index) {
   const button = document.createElement('button');
   button.type = 'button';
   button.textContent = (index + 1) + '. ' + t().states[state];
-  const insufficient = !hasPreservedExcerpt(c);
-  if (insufficient && (state === 'present' || state === 'absent')) {
+  if (showingDeferred) {
     button.disabled = true;
     button.title = t().noExcerpt;
   }
@@ -374,12 +416,28 @@ function renderStaticText() {
   document.getElementById('nextUnanswered').textContent = text.nextUnanswered;
   document.getElementById('export').textContent = text.export;
   document.getElementById('biasNotice').textContent = text.bias;
+  document.getElementById('testNotice').hidden = !testMode;
+  document.getElementById('testNotice').textContent = text.testNotice;
+  document.getElementById('queueNotice').textContent = text.queue + ' ' + cases.length + ' — ' + sortedOrder.filter(i => hasPreservedExcerpt(cases[i])).length + ' ' + text.reviewable + '; ' + deferredOrder.length + ' ' + text.deferred + '.';
+  document.getElementById('queueToggle').hidden = testMode || deferredOrder.length === 0;
+  document.getElementById('queueToggle').textContent = showingDeferred ? text.showReview : text.showDeferred;
 }
 
 function render() {
   renderStaticText();
   const c = currentCase();
   const text = t();
+  document.getElementById('evidenceCard').hidden = !c;
+  document.getElementById('decisionCard').hidden = !c || showingDeferred;
+  document.getElementById('next').disabled = !c;
+  document.getElementById('previous').disabled = !c || position === 0;
+  document.getElementById('nextUnanswered').disabled = !c || showingDeferred || completedCount() === reviewOrder.length;
+  document.getElementById('export').disabled = completedCount() !== reviewOrder.length;
+  document.getElementById('progressText').textContent = completedCount() + ' / ' + reviewOrder.length + ' ' + text.completed;
+  document.getElementById('categoryText').textContent = c ? text.case + ' ' + (position + 1) + ' / ' + order.length : text.empty;
+  document.getElementById('timeText').textContent = completedCount() === reviewOrder.length ? text.finished : '';
+  if (!storageAvailable) document.getElementById('saveStatus').textContent = text.storageError;
+  if (!c) return;
   const readableType = String(c.evidenceType).replaceAll('_', ' ');
   document.getElementById('type').textContent = readableType;
   document.getElementById('guidance').textContent = guidanceFor(c.evidenceType);
@@ -392,40 +450,48 @@ function render() {
   missing.textContent = text.noExcerpt;
 
   const link = document.getElementById('sourceUrl');
-  link.href = c.sourceUrl || '#';
+  link.removeAttribute('href');
+  try {
+    const url = new URL(c.sourceUrl);
+    if (url.protocol === 'https:' || url.protocol === 'http:') link.href = url.href;
+  } catch (_) {}
   link.textContent = c.sourceUrl || (locale === 'pt' ? 'Sem URL de origem' : 'No source URL');
+  document.getElementById('artifactContext').textContent = 'Artifact SHA-256: ' + (c.artifactHash || '—') + ' · Evidence ID: ' + c.evidenceId;
   document.getElementById('rationale').value = c.rationale || '';
   document.getElementById('validation').textContent = '';
 
   renderStateButtons();
 
   const done = completedCount();
-  const pct = cases.length ? (done / cases.length) * 100 : 0;
+  const pct = reviewOrder.length ? (done / reviewOrder.length) * 100 : 100;
   document.getElementById('progressBar').style.width = pct.toFixed(1) + '%';
-  document.getElementById('progressText').textContent = done + ' / ' + cases.length + ' ' + text.completed;
-  document.getElementById('categoryText').textContent = text.case + ' ' + (position + 1) + ' / ' + cases.length;
+  document.getElementById('progressText').textContent = done + ' / ' + reviewOrder.length + ' ' + text.completed;
+  document.getElementById('categoryText').textContent = text.case + ' ' + (position + 1) + ' / ' + order.length;
 
   const validDurations = (timing.durations || []).filter(v => v >= 5 && v <= 600);
-  if (done < minimumForEstimate || validDurations.length < minimumForEstimate) {
+  if (done === reviewOrder.length) {
+    document.getElementById('timeText').textContent = text.finished;
+  } else if (done < minimumForEstimate || validDurations.length < minimumForEstimate) {
     document.getElementById('timeText').textContent = done === 0
-      ? text.estimatedWorkload + ' ' + cases.length + ' ' + text.cases
+      ? text.estimatedWorkload + ' ' + reviewOrder.length + ' ' + text.cases
       : text.estimatePending;
   } else {
     const secondsPerCase = median(validDurations);
-    const minutes = Math.max(1, Math.round(((cases.length - done) * secondsPerCase) / 60));
+    const minutes = Math.max(1, Math.round(((reviewOrder.length - done) * secondsPerCase) / 60));
     document.getElementById('timeText').textContent = text.estimateRemaining + ' ' + minutes + ' ' + text.minutes;
   }
 
   document.getElementById('previous').disabled = position === 0;
-  document.getElementById('next').textContent = position === cases.length - 1 ? text.save : text.next;
-  document.getElementById('export').disabled = done !== cases.length;
-  timing.caseStarted = Date.now();
+  document.getElementById('next').textContent = position === order.length - 1 ? text.save : text.next;
+  document.getElementById('export').disabled = done !== reviewOrder.length;
 }
 
 function chooseState(state) {
   const c = currentCase();
-  if (!hasPreservedExcerpt(c) && (state === 'present' || state === 'absent')) return;
+  if (!c || showingDeferred || !states.includes(state)) return;
+  saveDraftRationale();
   c.humanState = state;
+  c.reviewedAt = null;
   persist();
   render();
   document.getElementById('rationale').focus();
@@ -433,6 +499,12 @@ function chooseState(state) {
 
 function saveCurrent(advance) {
   const c = currentCase();
+  if (!c) return false;
+  if (showingDeferred) {
+    if (advance && position < order.length - 1) position++;
+    render();
+    return true;
+  }
   c.rationale = document.getElementById('rationale').value.trim();
   if (!c.humanState || !c.rationale) {
     document.getElementById('validation').textContent = t().validation;
@@ -447,17 +519,20 @@ function saveCurrent(advance) {
   }
 
   persist();
-  if (advance && position < cases.length - 1) position++;
+  if (advance && position < order.length - 1) position++;
+  timing.caseStarted = Date.now();
   render();
   return true;
 }
 
 function jumpToNextUnanswered() {
+  if (showingDeferred) return;
   saveDraftRationale();
   for (let step = 1; step <= order.length; step++) {
     const candidate = (position + step) % order.length;
     if (!isComplete(cases[order[candidate]])) {
       position = candidate;
+      timing.caseStarted = Date.now();
       render();
       return;
     }
@@ -465,25 +540,30 @@ function jumpToNextUnanswered() {
 }
 
 function saveDraftRationale() {
-  currentCase().rationale = document.getElementById('rationale').value;
+  const c = currentCase();
+  if (!c || showingDeferred) return;
+  const value = document.getElementById('rationale').value;
+  if (c.rationale !== value) c.reviewedAt = null;
+  c.rationale = value;
   persist();
 }
 
 function exportPackage() {
-  if (completedCount() !== cases.length) return;
   saveDraftRationale();
+  if (completedCount() !== reviewOrder.length) return;
   const blob = new Blob([JSON.stringify(packageData, null, 2) + '\n'], {type: 'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'privacy-evidence-review-completed.json';
+  a.download = testMode ? 'privacy-evidence-review-TEST.json' : 'privacy-evidence-review-completed.json';
   a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 document.getElementById('languageToggle').addEventListener('click', () => {
+  saveDraftRationale();
   locale = locale === 'pt' ? 'en' : 'pt';
-  localStorage.setItem(storageKey + ':locale', locale);
+  persist();
   render();
 });
 document.getElementById('moreStates').addEventListener('click', () => {
@@ -493,9 +573,11 @@ document.getElementById('moreStates').addEventListener('click', () => {
 document.getElementById('rationale').addEventListener('input', () => {
   document.getElementById('validation').textContent = '';
   saveDraftRationale();
+  document.getElementById('export').disabled = completedCount() !== reviewOrder.length;
 });
 document.getElementById('rationaleHelper').addEventListener('click', () => {
   const c = currentCase();
+  if (!c || showingDeferred) return;
   if (!c.humanState) {
     document.getElementById('validation').textContent = t().chooseStateFirst;
     return;
@@ -511,13 +593,22 @@ document.getElementById('rationaleHelper').addEventListener('click', () => {
 document.getElementById('previous').addEventListener('click', () => {
   saveDraftRationale();
   if (position > 0) position--;
+  timing.caseStarted = Date.now();
+  render();
+});
+document.getElementById('queueToggle').addEventListener('click', () => {
+  saveDraftRationale();
+  showingDeferred = !showingDeferred;
+  order = showingDeferred ? deferredOrder : reviewOrder;
+  position = 0;
+  timing.caseStarted = Date.now();
   render();
 });
 document.getElementById('next').addEventListener('click', () => saveCurrent(true));
 document.getElementById('nextUnanswered').addEventListener('click', jumpToNextUnanswered);
 document.getElementById('export').addEventListener('click', exportPackage);
 document.addEventListener('keydown', event => {
-  if (event.target && event.target.tagName === 'TEXTAREA') {
+  if (event.target && ['TEXTAREA', 'INPUT', 'SELECT'].includes(event.target.tagName)) {
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
       event.preventDefault();
       saveCurrent(true);
@@ -533,3 +624,4 @@ render();
 </script>
 </body>
 </html>
+

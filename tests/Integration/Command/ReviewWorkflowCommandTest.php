@@ -67,6 +67,18 @@ final class ReviewWorkflowCommandTest extends TestCase
             ));
         }
 
+        $missing = new PrivacyEvidence(
+            EvidenceType::CookieAcceptControl,
+            ObservationState::Unknown,
+            'resource-missing',
+            str_repeat('b', 64),
+            'https://missing.test/',
+            'fixture',
+            '1.0.0',
+            'test',
+        );
+        $runtime->observations->recordEvidence($run->id, $missing);
+
         $package = $this->projectRoot . '/annotation.json';
         $sample = new CommandTester(new ReviewSampleCommand($this->projectRoot));
         self::assertSame(Command::SUCCESS, $sample->execute([
@@ -82,9 +94,12 @@ final class ReviewWorkflowCommandTest extends TestCase
         $cases = $decoded['cases'] ?? null;
         self::assertIsArray($cases);
         /** @var list<array<string,mixed>> $cases */
-        self::assertCount(2, $cases);
+        self::assertCount(3, $cases);
 
         foreach ($cases as &$case) {
+            if (($case['excerpt'] ?? null) === null) {
+                continue;
+            }
             $automatedState = $case['automatedState'] ?? null;
             self::assertIsString($automatedState);
             $case['humanState'] = $automatedState;
@@ -101,8 +116,20 @@ final class ReviewWorkflowCommandTest extends TestCase
             'reviewer-id' => 'reviewer-a',
         ]));
 
-        foreach ($cases as $index => &$case) {
-            if ($index === 0) {
+        /** @var mixed $importResult */
+        $importResult = json_decode($importA->getDisplay(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($importResult);
+        self::assertSame(2, $importResult['imported'] ?? null);
+        self::assertSame(1, $importResult['deferred'] ?? null);
+        self::assertSame([$missing->id()], $importResult['deferredEvidenceIds'] ?? null);
+
+        $firstAnnotated = true;
+        foreach ($cases as &$case) {
+            if (($case['excerpt'] ?? null) === null) {
+                continue;
+            }
+            if ($firstAnnotated) {
+                $firstAnnotated = false;
                 $case['humanState'] = $case['humanState'] === 'present' ? 'absent' : 'present';
             }
             $case['rationale'] = 'Independent review B.';
@@ -149,6 +176,20 @@ final class ReviewWorkflowCommandTest extends TestCase
         self::assertArrayHasKey('privacy_notice', $signals);
     }
 
+    public function testRejectsTestPackageBeforeOpeningResearchStorage(): void
+    {
+        $path = $this->projectRoot . '/form-test.json';
+        file_put_contents($path, '{"testMode":true,"runId":"test","cases":[]}');
+        $tester = new CommandTester(new ReviewImportCommand($this->projectRoot));
+
+        self::assertSame(Command::INVALID, $tester->execute([
+            'package' => $path,
+            'reviewer-id' => 'human-reviewer',
+        ]));
+        self::assertStringContainsString('test packages cannot be imported', $tester->getDisplay());
+        self::assertFileDoesNotExist($this->projectRoot . '/data/derived/privacy-evidence.sqlite');
+    }
+
     private function removeDirectory(string $directory): void
     {
         if (!is_dir($directory)) {
@@ -176,3 +217,4 @@ final class ReviewWorkflowCommandTest extends TestCase
         rmdir($directory);
     }
 }
+

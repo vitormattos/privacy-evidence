@@ -112,3 +112,25 @@ jobs:
         run: docker compose run --rm app doctor
       - name: Run representative source-import fixture
         run: docker compose run --rm app source:import tests/Fixtures/sources/sites.csv
+
+  reviewer-form:
+    name: Offline reviewer browser tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: browser/package-lock.json
+      - run: npm ci --prefix browser
+      - run: npx --prefix browser playwright install --with-deps chromium
+      - run: node --test tests/Browser/reviewer.test.mjs
+        env:
+          REVIEW_SCREENSHOT_DIR: /tmp/reviewer-screenshots
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: reviewer-form-screenshots
+          path: /tmp/reviewer-screenshots
+          if-no-files-found: warn

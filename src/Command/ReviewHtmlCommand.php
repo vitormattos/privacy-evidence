@@ -7,6 +7,7 @@ namespace PrivacyEvidence\Command;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 final class ReviewHtmlCommand extends Command
@@ -21,7 +22,8 @@ final class ReviewHtmlCommand extends Command
         $this
             ->setDescription('Generate a self-contained offline HTML reviewer from an annotation package.')
             ->addArgument('package', InputArgument::REQUIRED)
-            ->addArgument('output', InputArgument::REQUIRED);
+            ->addArgument('output', InputArgument::REQUIRED)
+            ->addOption('test-mode', null, InputOption::VALUE_NONE, 'Test all form cases without producing human annotations.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -51,6 +53,8 @@ final class ReviewHtmlCommand extends Command
             return Command::INVALID;
         }
 
+        $testMode = $input->getOption('test-mode') === true;
+
         $templatePath = $this->projectRoot . '/resources/review/reviewer.html';
         if (!is_file($templatePath)) {
             $output->writeln('<error>Reviewer HTML template not found.</error>');
@@ -68,9 +72,14 @@ final class ReviewHtmlCommand extends Command
             | JSON_THROW_ON_ERROR,
         );
 
+        $configJson = json_encode([
+            'testMode' => $testMode,
+            'packageHash' => hash('sha256', $packageJson),
+        ], JSON_THROW_ON_ERROR);
+
         $html = str_replace(
-            '__PACKAGE_JSON__',
-            $packageJson,
+            ['__PACKAGE_JSON__', '__REVIEW_CONFIG_JSON__'],
+            [$packageJson, $configJson],
             (string) file_get_contents($templatePath),
         );
 
@@ -85,8 +94,10 @@ final class ReviewHtmlCommand extends Command
             'path' => $outputPath,
             'cases' => count($decoded['cases']),
             'offline' => true,
+            'testMode' => $testMode,
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 
         return Command::SUCCESS;
     }
 }
+

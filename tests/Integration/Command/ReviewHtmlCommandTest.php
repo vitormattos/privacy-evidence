@@ -78,6 +78,24 @@ final class ReviewHtmlCommandTest extends TestCase
         self::assertStringContainsString('localStorage', $html);
     }
 
+    public function testTestModeIsExplicitAndDoesNotMarkTheInputPackage(): void
+    {
+        $packagePath = $this->projectRoot . '/test.json';
+        $outputPath = $this->projectRoot . '/test.html';
+        $original = '{"runId":"test-run","cases":[]}';
+        file_put_contents($packagePath, $original);
+        $tester = new CommandTester(new ReviewHtmlCommand($this->projectRoot));
+
+        self::assertSame(Command::SUCCESS, $tester->execute([
+            'package' => $packagePath,
+            'output' => $outputPath,
+            '--test-mode' => true,
+        ]));
+        self::assertStringContainsString('"testMode":true', (string) file_get_contents($outputPath));
+        self::assertStringNotContainsString('__REVIEW_CONFIG_JSON__', (string) file_get_contents($outputPath));
+        self::assertSame($original, file_get_contents($packagePath));
+    }
+
     private function removeDirectory(string $directory): void
     {
         if (!is_dir($directory)) {
@@ -105,3 +123,4 @@ final class ReviewHtmlCommandTest extends TestCase
         rmdir($directory);
     }
 }
+

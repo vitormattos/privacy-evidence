@@ -1,6 +1,8 @@
 # Gold dataset and reliability workflow
 
-Protocol version: **1.0.0**
+Review workflow version: **1.1.0**
+
+Collection protocol and annotation handbook remain **1.0.0**. Version 1.1.0 separates packet-sufficiency triage from actual human labels; compare reviewer agreement only for genuinely annotated pairs.
 
 This document defines the machine-preparable portion of the gold-dataset workflow. Actual labels designated as human ground truth must be produced by actual human reviewers.
 
@@ -96,9 +98,37 @@ The generated page:
 - estimates remaining time from the reviewer's observed pace;
 - exports the original JSON package with only human review fields filled.
 
-The canonical package and import semantics remain unchanged.
+Research exports retain all original cases and provenance. Blank cases without preserved text are deferred, not assigned a human label. Human import reports their count and evidence IDs without creating decisions for them. Test exports add `testMode: true` and are rejected by human import. Existing completed annotation packages remain supported.
 
 
 ### Annotation-packet sufficiency
 
-A human label is valid only when the reviewer can inspect enough preserved evidence to support the decision. The reviewer UI must not encourage a binary `present`/`absent` decision when the annotation packet contains no preserved excerpt or equivalent reviewable evidence. Such cases remain explicit as `unknown`/`unavailable` or another justified non-binary state until richer preserved context is available.
+A human label is valid only when the reviewer can inspect enough preserved evidence to support the decision. The reviewer UI must not encourage a binary `present`/`absent` decision when the annotation packet contains no preserved excerpt or equivalent reviewable evidence. The HTML puts these cases in an explicit investigation/recollection queue, showing source URLs, evidence IDs and artifact hashes. They do not require repetitive human answers merely confirming a packet limitation. They remain in the exported package with blank human fields and remain accounted for in the source population. A preserved excerpt is an entry criterion, not proof that it is sufficient: reviewers still use `unknown` or another justified state when the text does not support a conclusion. Recovering an original artifact or collecting a new observation is researcher work before issuing a revised, frozen packet to both reviewers. A live visit must never be used to label the historical observation. This HTML version supports text excerpts only; screenshots/HTML/browser traces require a separately prepared reviewable packet.
+
+
+
+### Testing every form page before recruiting reviewers
+
+Generate a separate test HTML from the same package (no recollection or sampling is needed):
+
+```bash
+docker compose run --rm app review:html \
+  data/poc-review/exports/RUN_ID/review/reviewer-a.json \
+  data/poc-review/reviewer-test.html --test-mode
+```
+
+Test mode includes all cases, permits arbitrary labels even without text, and isolates browser progress from research mode. Fill any short rationale, save each page, exercise both languages and export the test JSON to check the complete flow. The generated page displays a persistent test warning and downloads `privacy-evidence-review-TEST.json`; `review:import` rejects it. Generating test HTML does not edit the input package. Use a different output filename so the test page cannot overwrite a reviewer deliverable.
+
+For actual reviewers, regenerate HTML without `--test-mode`. Test answers will not be restored into that page. Packet content hashes also isolate progress after a packet changes, even if the filename is reused. The deliberate new storage namespace does not migrate answers from older HTML versions: export any existing real work before replacing an old page.
+
+A browser storage failure is shown explicitly. Keep the tab open and export the JSON at the end if local storage is unavailable.
+
+Run the synthetic offline browser regression suite with:
+
+```bash
+npm ci --prefix browser
+cd browser && npx playwright install chromium && cd ..
+node --test tests/Browser/reviewer.test.mjs
+```
+
+The suite never visits public source URLs or produces research labels. CI runs this suite and captures synthetic form screenshots as a review artifact.

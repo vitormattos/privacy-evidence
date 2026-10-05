@@ -6,6 +6,7 @@
   "additionalProperties": false,
   "required": ["packageVersion", "annotationHandbookVersion", "runId", "seed", "perStratum", "cases"],
   "properties": {
+    "testMode": {"type": "boolean", "description": "True marks form QA answers, which human import rejects."},
     "packageVersion": {"const": "1.0.0"},
     "annotationHandbookVersion": {"const": "1.0.0"},
     "runId": {"type": "string", "minLength": 1},
@@ -51,3 +52,4 @@
     }
   }
 }
+
