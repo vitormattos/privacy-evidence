@@ -607,9 +607,13 @@ final readonly class RunExporter
             $terminal = $data['terminal'] ?? [];
             $terminalStatusValue = $terminal['status'] ?? null;
             $categoryValue = $terminal['category'] ?? null;
+            $classificationRuleValue = $terminal['classification_rule'] ?? null;
             $httpStatusValue = $terminal['http_status'] ?? null;
             $terminalStatus = is_string($terminalStatusValue) ? $terminalStatusValue : null;
             $category = is_string($categoryValue) ? $categoryValue : null;
+            $classificationRule = is_string($classificationRuleValue)
+                ? $classificationRuleValue
+                : null;
             $httpStatus = is_int($httpStatusValue) ? $httpStatusValue : null;
             $successCount = $successfulDocuments[$id] ?? 0;
             $noRelevantLinks = $data['noRelevantLinks'] ?? false;
@@ -618,7 +622,7 @@ final readonly class RunExporter
 
             if ($terminalStatus === 'not_eligible') {
                 $measurementStatus = 'not_eligible';
-                $primaryReason = $category ?? 'not_eligible';
+                $primaryReason = $classificationRule ?? $category ?? 'not_eligible';
             } elseif ($terminalStatus === 'invalid_url') {
                 $measurementStatus = 'not_measurable';
                 $primaryReason = 'invalid_url';
