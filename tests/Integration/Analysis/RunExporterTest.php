@@ -71,7 +71,11 @@ final class RunExporterTest extends TestCase
             $run->id,
             'resource_terminal',
             $social->id,
-            ['status' => 'not_eligible', 'category' => 'social_network'],
+            [
+                'status' => 'not_eligible',
+                'category' => 'social_network',
+                'classification_rule' => 'known_social_host',
+            ],
         );
 
         (new RegulatoryAnalysisService(
