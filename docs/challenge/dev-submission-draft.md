@@ -1,7 +1,7 @@
 ---
 title: Privacy Evidence: A Reproducible Web Measurement Pipeline for Empirical Privacy Research
 published: true
-tags: devchallenge, weekendchallenge, hf26challenge
+tags: devchallenge, weekendchallenge, hf26challenge, opensource
 ---
 
 *This article is a submission for the [Hacktoberfest Weekend Challenge: Build for a Friend](https://dev.to/challenges/hacktoberfest-weekend-2026-10-01). The project was built during the challenge window for a real academic beneficiary, my master's advisor, while the article reports the work as an empirical software-engineering research artifact.*
