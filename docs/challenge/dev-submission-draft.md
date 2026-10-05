@@ -190,9 +190,9 @@ The original discussion appears in **section 3.2.6, “Panorama da conformidade 
 Read the original monograph (PDF)
 {% endcta %}
 
-### 2025 vs 2026: from a manual baseline to a reproducible run
+### 2025 vs 2026: from a partially automated baseline to a reproducible run
 
-The original monograph gives this project something unusually useful: a **historical baseline collected before Privacy Evidence existed**.
+The original monograph gives this project something unusually useful: a **historical baseline collected before Privacy Evidence existed**. The 2025 workflow was not fully manual. It already used scripts to extract and structure data, persist records in SQLite, validate URLs and support parts of the analysis.
 
 The first dataset was processed on **June 20, 2025**. The new full-population validation run was executed on **October 5, 2026**. The table below puts both observations side by side.
 
@@ -214,7 +214,7 @@ The first dataset was processed on **June 20, 2025**. The new full-population va
 
 A direct 2025-to-2026 compliance trend would be methodologically invalid. The source population changed, websites changed, and the measurement protocol changed.
 
-What can be compared more confidently is **research capability**. The 2025 study produced useful counts, but several filtering and inspection steps were manual. The 2026 pipeline records how every source moves through classification, eligibility, deduplication, acquisition, evidence detection, review and regulatory mapping.
+What can be compared more confidently is **research capability**. The 2025 study already combined automation with manual inspection, but some important intermediate artifacts and decisions were not preserved as a complete reproducible research trail. The 2026 pipeline records how every source moves through classification, eligibility, deduplication, acquisition, evidence detection, review and regulatory mapping.
 {% endcard %}
 
 ### What the new tool adds to the original study
@@ -223,16 +223,24 @@ The clearest evidence of the tool's effectiveness is therefore not that a partic
 
 | Research capability | 2025 monograph workflow | 2026 Privacy Evidence run |
 | --- | --- | --- |
-| Population accounting | Manual filtering during analysis | **All 2,993 source records receive an explicit final state** |
-| Resource classification | Primarily manual cleaning | **Versioned structured classifications** |
+| Population accounting | Script-assisted extraction followed by manual cleaning and inspection | **All 2,993 source records receive an explicit final state** |
+| Resource classification | Script-assisted cleaning plus manual validation | **Versioned structured classifications** |
 | Duplicate handling | Not reported as a separate measurement stage | **23 duplicate references, 9 groups, 566 unique website units** |
-| Acquisition failures | Mainly reflected in the reduced usable set | **DNS, TLS, HTTP, rate-limit, anti-bot, timeout and budget outcomes are preserved** |
+| Acquisition failures | URL validation was automated, but intermediate failure states were not preserved as a versioned research dataset | **DNS, TLS, HTTP, rate-limit, anti-bot, timeout and budget outcomes are preserved** |
 | Missing data | Not modeled as a dedicated state system | **Unknown, unavailable, invalid, excluded and not-applicable remain distinct** |
-| Evidence provenance | Manual/semi-automated inspection | **Evidence tied to immutable acquired artifacts and detector versions** |
-| Reproducibility | Source code was published, but part of the workflow remained manual | **ResearchRun records protocol, schema, detectors, profiles and acquisition configuration** |
+| Evidence provenance | Semi-automated analysis with manual page-by-page inspection and manual enrichment | **Evidence tied to immutable acquired artifacts and detector versions** |
+| Reproducibility | Source code was published, but temporary source snapshots, the SQLite database and some intermediate manual decisions were not preserved | **ResearchRun records protocol, schema, detectors, profiles and acquisition configuration** |
 | Automated classification | Rule-oriented/manual analysis | **Deterministic rules plus experimental ML second opinion and auditable human review** |
 
 This is the main methodological gain. Privacy Evidence does not prove that the 2026 websites are "better" or "worse" than they were in 2025. It makes the observation process **repeatable, inspectable and suitable for future longitudinal comparison**.
+
+The 2025 analysis code is still public in the original repository:
+
+https://github.com/vitormattos/webscraping-anuario-igrejas-ipb
+
+That repository shows that the original study already used automation for extraction, SQLite persistence, URL checking and parts of the classification workflow. What appears to have been lost are temporary research artifacts such as the captured source HTML and the resulting `igrejas.db`, which limits entity-level longitudinal reconstruction today.
+
+This missing historical state is itself an important methodological lesson. Preserving only source code is not enough for reproducible empirical research. The input snapshot, intermediate datasets, protocol version and transformation history also need to be preserved.
 
 The 2026 full-population validation is publicly auditable here:
 
