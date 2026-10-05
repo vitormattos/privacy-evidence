@@ -77,11 +77,10 @@ final class ReviewHtmlCommand extends Command
             'packageHash' => hash('sha256', $packageJson),
         ], JSON_THROW_ON_ERROR);
 
-        $html = str_replace(
-            ['__PACKAGE_JSON__', '__REVIEW_CONFIG_JSON__'],
-            [$packageJson, $configJson],
-            (string) file_get_contents($templatePath),
-        );
+        $html = strtr((string) file_get_contents($templatePath), [
+            '__PACKAGE_JSON__' => $packageJson,
+            '__REVIEW_CONFIG_JSON__' => $configJson,
+        ]);
 
         $directory = dirname($outputPath);
         if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {

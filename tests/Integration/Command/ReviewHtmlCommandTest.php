@@ -45,7 +45,7 @@ final class ReviewHtmlCommandTest extends TestCase
                 'automatedState' => 'present',
                 'sourceUrl' => 'https://example.test/privacy',
                 'artifactHash' => str_repeat('a', 64),
-                'excerpt' => '</script><strong>Privacy notice</strong>',
+                'excerpt' => '</script><strong>Privacy notice</strong> __REVIEW_CONFIG_JSON__',
                 'detector' => 'fixture',
                 'detectorVersion' => '1.0.0',
                 'confidence' => 0.9,
@@ -76,6 +76,7 @@ final class ReviewHtmlCommandTest extends TestCase
         self::assertStringContainsString('controller_identity:', $html);
         self::assertStringContainsString('missingEvidence', $html);
         self::assertStringContainsString('localStorage', $html);
+        self::assertStringContainsString('Privacy notice\\u003C/strong\\u003E __REVIEW_CONFIG_JSON__', $html);
     }
 
     public function testTestModeIsExplicitAndDoesNotMarkTheInputPackage(): void
