@@ -28,7 +28,14 @@ final class WorkerPoolCommand extends Command
             ->addOption('workers', null, InputOption::VALUE_REQUIRED, 'Global process concurrency')
             ->addOption('max-jobs', null, InputOption::VALUE_REQUIRED, 'Jobs before worker recycle', '100')
             ->addOption('per-host-concurrency', null, InputOption::VALUE_REQUIRED, 'Per-host concurrency')
-            ->addOption('min-host-delay-ms', null, InputOption::VALUE_REQUIRED, 'Per-host delay');
+            ->addOption('min-host-delay-ms', null, InputOption::VALUE_REQUIRED, 'Per-host delay')
+            ->addOption(
+                'max-worker-failures',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Maximum consecutive failed worker waves before aborting',
+                '3',
+            );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -70,6 +77,10 @@ final class WorkerPoolCommand extends Command
         $delay = $input->getOption('min-host-delay-ms') === null
             ? $this->schedulerInt($scheduler, 'minHostDelayMs', 250, allowZero: true)
             : $this->nonNegativeInt($input->getOption('min-host-delay-ms'), 'min-host-delay-ms');
+        $maxWorkerFailures = $this->positiveInt(
+            $input->getOption('max-worker-failures'),
+            'max-worker-failures',
+        );
 
         $runtime->runs->recordEvent(
             $runId,
@@ -81,11 +92,13 @@ final class WorkerPoolCommand extends Command
                 'max_jobs' => $maxJobs,
                 'per_host_concurrency' => $perHost,
                 'min_host_delay_ms' => $delay,
+                'max_worker_failures' => $maxWorkerFailures,
             ],
         );
 
         $bin = $this->projectRoot . '/bin/privacy-evidence';
         $waves = 0;
+        $consecutiveFailedWaves = 0;
 
         while (true) {
             $counts = $runtime->jobs->stageCounts($runId, $stage);
@@ -114,19 +127,53 @@ final class WorkerPoolCommand extends Command
                 $processes[] = $process;
             }
 
-            $failed = false;
+            $failedProcesses = 0;
             foreach ($processes as $process) {
                 $process->wait();
                 if (!$process->isSuccessful()) {
-                    $failed = true;
-                    $output->writeln('<error>' . trim($process->getErrorOutput()) . '</error>');
+                    $failedProcesses++;
+                    $message = trim($process->getErrorOutput());
+                    if ($message === '') {
+                        $message = trim($process->getOutput());
+                    }
+                    $output->writeln('<error>' . $message . '</error>');
                 }
             }
 
             $waves++;
-            if ($failed) {
-                return Command::FAILURE;
+            if ($failedProcesses > 0) {
+                $consecutiveFailedWaves++;
+                $requeued = $runtime->jobs->requeueRunning($runId);
+                $runtime->runs->increment($runId, 'worker_process_failures', $failedProcesses);
+                $runtime->runs->increment(
+                    $runId,
+                    'worker_process_failures.' . $stage,
+                    $failedProcesses,
+                );
+                if ($requeued > 0) {
+                    $runtime->runs->increment($runId, 'jobs_recovered', $requeued);
+                }
+                $runtime->runs->recordEvent(
+                    $runId,
+                    'worker_pool_recovery',
+                    null,
+                    [
+                        'stage' => $stage,
+                        'failed_processes' => $failedProcesses,
+                        'requeued_running_jobs' => $requeued,
+                        'consecutive_failed_waves' => $consecutiveFailedWaves,
+                    ],
+                );
+
+                if ($consecutiveFailedWaves >= $maxWorkerFailures) {
+                    return Command::FAILURE;
+                }
+
+                usleep(max($delay, 100) * 1000);
+                continue;
             }
+
+            $consecutiveFailedWaves = 0;
 
             if ($waves > 10000) {
                 throw new \RuntimeException('Worker pool exceeded safety wave limit.');
