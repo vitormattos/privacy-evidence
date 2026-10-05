@@ -18,6 +18,7 @@ use PrivacyEvidence\Review\ReviewQueue;
 use PrivacyEvidence\Run\ResearchRun;
 use PrivacyEvidence\Run\RunStatus;
 use PrivacyEvidence\Run\RunStore;
+use PrivacyEvidence\Source\ResourceType;
 use PrivacyEvidence\Source\SourceAdapter;
 use PrivacyEvidence\Storage\ObservationStore;
 use Symfony\Component\Uid\Uuid;
@@ -46,6 +47,23 @@ final readonly class ResearchPipeline
         foreach ($source->resources() as $resource) {
             $this->observations->recordResource($run->id, $resource);
             $this->runs->increment($run->id, 'resources_imported');
+
+            if ($resource->type !== ResourceType::InstitutionalWebsite) {
+                $this->runs->increment($run->id, 'resources_not_eligible');
+                $this->runs->increment($run->id, 'resources_not_eligible.' . $resource->type->value);
+                $this->runs->increment($run->id, 'jobs_skipped');
+                $this->runs->recordEvent(
+                    $run->id,
+                    'resource_terminal',
+                    $resource->id,
+                    [
+                        'status' => 'not_eligible',
+                        'category' => $resource->type->value,
+                        'classification_rule' => $resource->classificationRule,
+                    ],
+                );
+                continue;
+            }
 
             if ($resource->normalizedUrl === null) {
                 $this->runs->increment($run->id, 'resources_invalid');

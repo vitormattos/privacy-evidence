@@ -50,8 +50,8 @@ jobs:
           printf 'population_rows=%s\n' "$(( $(wc -l < "$OUT/ipb-population.csv") - 1 ))" | tee -a "$OUT/full-run.log"
           printf 'selected_rows=%s\n' "$(( $(wc -l < "$OUT/ipb-sites.csv") - 1 ))" | tee -a "$OUT/full-run.log"
 
-          echo '== 5. Enqueue full acquisition population ==' | tee -a "$OUT/full-run.log"
-          RUN_ID=$(php bin/privacy-evidence run "$OUT/ipb-sites.csv" --enqueue-only)
+          echo '== 5. Enqueue complete source population; only eligible institutional websites are crawled ==' | tee -a "$OUT/full-run.log"
+          RUN_ID=$(php bin/privacy-evidence run "$OUT/ipb-population.csv" --enqueue-only)
           printf '%s\n' "$RUN_ID" | tee "$OUT/run-id.txt"
           printf 'Run ID: %s\n' "$RUN_ID" | tee -a "$OUT/full-run.log"
 
@@ -74,7 +74,7 @@ jobs:
           echo '== 9. Durable status ==' | tee -a "$OUT/full-run.log"
           php bin/privacy-evidence status "$RUN_ID" | tee "$OUT/status.json" | tee -a "$OUT/full-run.log"
 
-          echo '== 10. Report/export ==' | tee -a "$OUT/full-run.log"
+          echo '== 10. Report/export for 100% of source population ==' | tee -a "$OUT/full-run.log"
           EXPORT_DIR=$(php bin/privacy-evidence report "$RUN_ID")
           printf '%s\n' "$EXPORT_DIR" | tee "$OUT/export-dir.txt"
           printf 'Export directory: %s\n' "$EXPORT_DIR" | tee -a "$OUT/full-run.log"

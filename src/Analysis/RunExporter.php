@@ -526,11 +526,16 @@ final readonly class RunExporter
      */
     private function resourceOutcomes(array $resources, array $documents, array $events): array
     {
+        /** @var array<string,int> $successfulDocuments */
         $successfulDocuments = [];
         foreach ($documents as $document) {
-            $resourceId = $document['resourceId'] ?? null;
-            $statusCode = $document['statusCode'] ?? null;
-            if (is_string($resourceId) && is_int($statusCode) && $statusCode >= 200 && $statusCode < 300) {
+            /** @psalm-suppress MixedAssignment */
+            $resourceIdValue = $document['resourceId'] ?? null;
+            /** @psalm-suppress MixedAssignment */
+            $statusCodeValue = $document['statusCode'] ?? null;
+            $resourceId = is_string($resourceIdValue) ? $resourceIdValue : null;
+            $statusCode = is_int($statusCodeValue) ? $statusCodeValue : null;
+            if ($resourceId !== null && $statusCode !== null && $statusCode >= 200 && $statusCode < 300) {
                 $successfulDocuments[$resourceId] = ($successfulDocuments[$resourceId] ?? 0) + 1;
             }
         }
@@ -576,16 +581,23 @@ final readonly class RunExporter
             }
 
             $data = $eventData[$id] ?? [];
-            $terminal = is_array($data['terminal'] ?? null) ? $data['terminal'] : [];
+            /** @var array<string,scalar|null> $terminal */
+            $terminal = [];
+            if (isset($data['terminal']) && is_array($data['terminal'])) {
+                $terminal = $data['terminal'];
+            }
             $terminalStatus = is_string($terminal['status'] ?? null) ? $terminal['status'] : null;
             $category = is_string($terminal['category'] ?? null) ? $terminal['category'] : null;
             $httpStatus = is_int($terminal['http_status'] ?? null) ? $terminal['http_status'] : null;
             $successCount = $successfulDocuments[$id] ?? 0;
-            $noRelevantLinks = (bool) ($data['noRelevantLinks'] ?? false);
-            $budgetLimited = (bool) ($data['budgetLimited'] ?? false);
-            $antiBotChallenge = (bool) ($data['antiBotChallenge'] ?? false);
+            $noRelevantLinks = $data['noRelevantLinks'] ?? false;
+            $budgetLimited = $data['budgetLimited'] ?? false;
+            $antiBotChallenge = $data['antiBotChallenge'] ?? false;
 
-            if ($terminalStatus === 'invalid_url') {
+            if ($terminalStatus === 'not_eligible') {
+                $measurementStatus = 'not_eligible';
+                $primaryReason = $category ?? 'not_eligible';
+            } elseif ($terminalStatus === 'invalid_url') {
                 $measurementStatus = 'not_measurable';
                 $primaryReason = 'invalid_url';
             } elseif ($terminalStatus === 'unreachable') {
@@ -593,7 +605,7 @@ final readonly class RunExporter
                 $primaryReason = $category ?? 'unreachable';
             } elseif ($terminalStatus === 'http_error') {
                 $measurementStatus = 'not_measurable';
-                $primaryReason = $httpStatus === null ? 'http_error' : 'http_' . $httpStatus;
+                $primaryReason = $httpStatus === null ? 'http_error' : sprintf('http_%d', $httpStatus);
             } elseif ($antiBotChallenge && $successCount === 0) {
                 $measurementStatus = 'not_measurable';
                 $primaryReason = 'anti_bot_challenge';

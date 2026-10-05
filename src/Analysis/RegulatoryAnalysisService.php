@@ -19,7 +19,20 @@ final readonly class RegulatoryAnalysisService
 
     public function analyze(string $runId): void
     {
+        $eligible = [];
+        foreach ($this->store->resourceRecords($runId) as $resource) {
+            $resourceId = $resource['id'] ?? null;
+            $type = $resource['type'] ?? null;
+            if (is_string($resourceId) && $type === 'institutional_website') {
+                $eligible[$resourceId] = true;
+            }
+        }
+
         foreach ($this->store->resourceIds($runId) as $resourceId) {
+            if (!isset($eligible[$resourceId])) {
+                continue;
+            }
+
             $evidence = $this->store->evidence($runId, $resourceId);
 
             foreach ($this->profiles->profiles as $profile) {
