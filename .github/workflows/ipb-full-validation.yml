@@ -2,6 +2,11 @@ name: IPB full validation
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - agent/ipb-live-demo
+    paths:
+      - .github/workflows/ipb-full-validation.yml
 
 permissions:
   contents: read
@@ -57,12 +62,12 @@ jobs:
 
           echo '== 6. Process HTTP crawl with bounded worker pool ==' | tee -a "$OUT/full-run.log"
           php bin/privacy-evidence workers "$RUN_ID" fetch \
-            --workers=8 --max-jobs=100 --per-host-concurrency=2 --min-host-delay-ms=250 \
+            --workers=4 --max-jobs=100 --per-host-concurrency=2 --min-host-delay-ms=250 \
             2>&1 | tee -a "$OUT/full-run.log"
 
           echo '== 7. Process browser escalation with bounded worker pool ==' | tee -a "$OUT/full-run.log"
           php bin/privacy-evidence workers "$RUN_ID" browser \
-            --workers=2 --max-jobs=50 --per-host-concurrency=1 --min-host-delay-ms=250 \
+            --workers=1 --max-jobs=50 --per-host-concurrency=1 --min-host-delay-ms=250 \
             2>&1 | tee -a "$OUT/full-run.log"
 
           echo '== 8. Finalize run and regulatory analysis ==' | tee -a "$OUT/full-run.log"
