@@ -46,6 +46,7 @@ final readonly class RunExporter
         $telemetry = $this->runtime->runs->telemetry($runId);
         $events = $this->runtime->runs->events($runId);
         $counts = $this->runtime->observations->counts($runId);
+        $resourceOutcomes = $this->resourceOutcomes($resources, $documents, $events);
 
         $analysis = $this->analysis(
             runId: $runId,
@@ -73,11 +74,28 @@ final readonly class RunExporter
         $this->json($directory . '/events.json', $events);
         $this->json($directory . '/counts.json', $counts);
         $this->json($directory . '/analysis.json', $analysis);
+        $this->json($directory . '/resource-outcomes.json', $resourceOutcomes);
 
         $this->csv(
             $directory . '/resources.csv',
             ['id', 'name', 'sourceValue', 'normalizedUrl', 'type'],
             $this->resourceRows($resources),
+        );
+        $this->csv(
+            $directory . '/resource-outcomes.csv',
+            [
+                'resourceId',
+                'name',
+                'normalizedUrl',
+                'measurementStatus',
+                'primaryReason',
+                'successfulDocuments',
+                'httpErrors',
+                'noRelevantLinks',
+                'budgetLimited',
+                'antiBotChallenge',
+            ],
+            $this->resourceOutcomeRows($resourceOutcomes),
         );
         $this->csv(
             $directory . '/documents.csv',
@@ -498,6 +516,141 @@ final readonly class RunExporter
         );
 
         return $summary;
+    }
+
+    /**
+     * @param list<array<string,mixed>> $resources
+     * @param list<array<string,mixed>> $documents
+     * @param list<array{type:string,subjectId:string|null,occurredAt:string,detail:array<string,scalar|null>}> $events
+     * @return list<array<string,mixed>>
+     */
+    private function resourceOutcomes(array $resources, array $documents, array $events): array
+    {
+        $successfulDocuments = [];
+        foreach ($documents as $document) {
+            $resourceId = $document['resourceId'] ?? null;
+            $statusCode = $document['statusCode'] ?? null;
+            if (is_string($resourceId) && is_int($statusCode) && $statusCode >= 200 && $statusCode < 300) {
+                $successfulDocuments[$resourceId] = ($successfulDocuments[$resourceId] ?? 0) + 1;
+            }
+        }
+
+        $eventData = [];
+        foreach ($events as $event) {
+            $resourceId = $event['subjectId'];
+            if ($resourceId === null) {
+                continue;
+            }
+
+            $eventData[$resourceId] ??= [
+                'terminal' => null,
+                'httpErrors' => 0,
+                'noRelevantLinks' => false,
+                'budgetLimited' => false,
+                'antiBotChallenge' => false,
+            ];
+
+            if ($event['type'] === 'resource_terminal') {
+                $eventData[$resourceId]['terminal'] = $event['detail'];
+            } elseif ($event['type'] === 'crawl_discovery') {
+                $depth = $event['detail']['depth'] ?? null;
+                $relevant = $event['detail']['relevant_candidates'] ?? null;
+                if ((int) $depth === 0 && (int) $relevant === 0) {
+                    $eventData[$resourceId]['noRelevantLinks'] = true;
+                }
+            } elseif ($event['type'] === 'crawl_budget_stop') {
+                $eventData[$resourceId]['budgetLimited'] = true;
+            } elseif ($event['type'] === 'job_failure') {
+                $category = $event['detail']['category'] ?? null;
+                if ($category === 'anti_bot_challenge') {
+                    $eventData[$resourceId]['antiBotChallenge'] = true;
+                }
+            }
+        }
+
+        $outcomes = [];
+        foreach ($resources as $resource) {
+            $id = $resource['id'] ?? null;
+            if (!is_string($id)) {
+                continue;
+            }
+
+            $data = $eventData[$id] ?? [];
+            $terminal = is_array($data['terminal'] ?? null) ? $data['terminal'] : [];
+            $terminalStatus = is_string($terminal['status'] ?? null) ? $terminal['status'] : null;
+            $category = is_string($terminal['category'] ?? null) ? $terminal['category'] : null;
+            $httpStatus = is_int($terminal['http_status'] ?? null) ? $terminal['http_status'] : null;
+            $successCount = $successfulDocuments[$id] ?? 0;
+            $noRelevantLinks = (bool) ($data['noRelevantLinks'] ?? false);
+            $budgetLimited = (bool) ($data['budgetLimited'] ?? false);
+            $antiBotChallenge = (bool) ($data['antiBotChallenge'] ?? false);
+
+            if ($terminalStatus === 'invalid_url') {
+                $measurementStatus = 'not_measurable';
+                $primaryReason = 'invalid_url';
+            } elseif ($terminalStatus === 'unreachable') {
+                $measurementStatus = 'not_measurable';
+                $primaryReason = $category ?? 'unreachable';
+            } elseif ($terminalStatus === 'http_error') {
+                $measurementStatus = 'not_measurable';
+                $primaryReason = $httpStatus === null ? 'http_error' : 'http_' . $httpStatus;
+            } elseif ($antiBotChallenge && $successCount === 0) {
+                $measurementStatus = 'not_measurable';
+                $primaryReason = 'anti_bot_challenge';
+            } elseif ($budgetLimited) {
+                $measurementStatus = 'partially_measured';
+                $primaryReason = 'crawl_budget_exhausted';
+            } elseif ($successCount > 0 && $noRelevantLinks) {
+                $measurementStatus = 'measured';
+                $primaryReason = 'homepage_only_no_relevant_links';
+            } elseif ($successCount > 0) {
+                $measurementStatus = 'measured';
+                $primaryReason = 'measured';
+            } else {
+                $measurementStatus = 'not_measurable';
+                $primaryReason = 'no_successful_document';
+            }
+
+            $outcomes[] = [
+                'resourceId' => $id,
+                'name' => is_string($resource['name'] ?? null) ? $resource['name'] : $id,
+                'normalizedUrl' => is_string($resource['normalizedUrl'] ?? null) ? $resource['normalizedUrl'] : null,
+                'measurementStatus' => $measurementStatus,
+                'primaryReason' => $primaryReason,
+                'successfulDocuments' => $successCount,
+                'httpErrors' => $terminalStatus === 'http_error' ? 1 : 0,
+                'noRelevantLinks' => $noRelevantLinks,
+                'budgetLimited' => $budgetLimited,
+                'antiBotChallenge' => $antiBotChallenge,
+            ];
+        }
+
+        return $outcomes;
+    }
+
+    /**
+     * @param list<array<string,mixed>> $outcomes
+     * @return list<list<scalar|null>>
+     */
+    private function resourceOutcomeRows(array $outcomes): array
+    {
+        $rows = [];
+        foreach ($outcomes as $outcome) {
+            $rows[] = [
+                Value::string($outcome['resourceId'] ?? null, 'outcome.resourceId'),
+                Value::string($outcome['name'] ?? null, 'outcome.name'),
+                Value::nullableString($outcome['normalizedUrl'] ?? null, 'outcome.normalizedUrl'),
+                Value::string($outcome['measurementStatus'] ?? null, 'outcome.measurementStatus'),
+                Value::string($outcome['primaryReason'] ?? null, 'outcome.primaryReason'),
+                $this->intValue($outcome['successfulDocuments'] ?? 0),
+                $this->intValue($outcome['httpErrors'] ?? 0),
+                !empty($outcome['noRelevantLinks']) ? '1' : '0',
+                !empty($outcome['budgetLimited']) ? '1' : '0',
+                !empty($outcome['antiBotChallenge']) ? '1' : '0',
+            ];
+        }
+
+        return $rows;
     }
 
     private function intValue(mixed $value): int

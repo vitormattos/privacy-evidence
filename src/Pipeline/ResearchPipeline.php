@@ -342,7 +342,25 @@ final readonly class ResearchPipeline
 
         $resourceId = $this->requiredPayloadString($job, 'resource_id');
         $url = $this->requiredPayloadString($job, 'url');
-        $observation = $this->browser->observe($url);
+        try {
+            $observation = $this->browser->observe($url);
+        } catch (\Throwable $exception) {
+            $reason = $this->payloadString($job, 'escalation_reason');
+            $category = $reason === 'anti_bot_challenge_candidate'
+                ? 'anti_bot_challenge'
+                : 'browser_failure';
+
+            throw new AcquisitionException(
+                url: $url,
+                category: $category,
+                retryable: false,
+                message: sprintf(
+                    'Browser acquisition failed for %s: %s',
+                    $url,
+                    mb_substr($exception->getMessage(), 0, 300),
+                ),
+            );
+        }
 
         $rendered = new FetchedDocument(
             resourceId: $resourceId,
@@ -398,11 +416,15 @@ final readonly class ResearchPipeline
             return;
         }
 
-        foreach ($this->linkDiscoverer->discover($document) as $candidate) {
+        $candidates = $this->linkDiscoverer->discover($document);
+        $relevantCandidates = 0;
+        foreach ($candidates as $candidate) {
             if ($candidate->priority < $budget->minLinkPriority) {
                 $this->runs->increment($runId, 'crawl_candidates_skipped_irrelevant');
                 continue;
             }
+
+            $relevantCandidates++;
 
             if ($this->jobs->scheduledCount($runId, 'fetch', $resourceId . '|') >= $budget->maxPages) {
                 $this->recordBudgetStop(
@@ -430,6 +452,22 @@ final readonly class ResearchPipeline
                     host: $this->hostForUrl($candidate->url),
                 ),
             );
+        }
+
+        $this->runs->recordEvent(
+            $runId,
+            'crawl_discovery',
+            $resourceId,
+            [
+                'url' => $document->finalUrl,
+                'depth' => $depth,
+                'candidates' => count($candidates),
+                'relevant_candidates' => $relevantCandidates,
+            ],
+        );
+
+        if ($depth === 0 && $relevantCandidates === 0) {
+            $this->runs->increment($runId, 'resources_no_relevant_links');
         }
     }
 

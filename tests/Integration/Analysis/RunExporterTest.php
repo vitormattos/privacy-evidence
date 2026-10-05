@@ -98,6 +98,8 @@ final class RunExporterTest extends TestCase
         (new RunExporter($runtime))->export($run->id, $directory);
 
         self::assertFileExists($directory . '/analysis.json');
+        self::assertFileExists($directory . '/resource-outcomes.json');
+        self::assertFileExists($directory . '/resource-outcomes.csv');
         self::assertFileExists($directory . '/resources.csv');
         self::assertFileExists($directory . '/documents.csv');
         self::assertFileExists($directory . '/evidence.csv');
@@ -142,6 +144,19 @@ final class RunExporterTest extends TestCase
         self::assertStringContainsString('anyObservedSupportRate', $summaryCsv);
         self::assertStringContainsString('site-1', $summaryCsv);
         self::assertStringContainsString('lgpd', $summaryCsv);
+
+        /** @var mixed $outcomes */
+        $outcomes = json_decode(
+            (string) file_get_contents($directory . '/resource-outcomes.json'),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+        self::assertIsArray($outcomes);
+        self::assertCount(1, $outcomes);
+        $firstOutcome = $outcomes[0] ?? null;
+        self::assertIsArray($firstOutcome);
+        self::assertSame('site-1', $firstOutcome['resourceId'] ?? null);
+        self::assertSame('measured', $firstOutcome['measurementStatus'] ?? null);
 
         /** @var mixed $summaryDecoded */
         $summaryDecoded = json_decode(
