@@ -115,7 +115,7 @@ final class RunExporterTest extends TestCase
             }
 
             self::assertSame('not_eligible', $byId['social-1']['measurementStatus'] ?? null);
-            self::assertSame('social_network', $byId['social-1']['primaryReason'] ?? null);
+            self::assertSame('known_social_host', $byId['social-1']['primaryReason'] ?? null);
             self::assertNull($byId['social-1']['lgpdPublicEvidenceState'] ?? null);
             self::assertArrayHasKey('site-1', $byId);
             self::assertArrayHasKey('lgpdPublicEvidenceState', $byId['site-1']);
