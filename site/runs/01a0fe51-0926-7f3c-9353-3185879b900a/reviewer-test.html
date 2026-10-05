@@ -1,0 +1,729 @@
+<!-- SPDX-FileCopyrightText: 2026 Vitor Mattos -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy Evidence - Independent Human Review</title>
+<style>
+:root { font-family: system-ui, sans-serif; color-scheme: light dark; }
+body { margin: 0; background: Canvas; color: CanvasText; }
+main { max-width: 920px; margin: 0 auto; padding: 24px; }
+header { margin-bottom: 20px; }
+h1 { margin-bottom: 8px; }
+.notice { border: 1px solid ButtonBorder; border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
+.warning { border-color: #b87800; background: color-mix(in srgb, #b87800 10%, Canvas); }
+.error { color: #c0392b; font-weight: 600; min-height: 1.25em; }
+.progress-shell { height: 10px; background: color-mix(in srgb, CanvasText 12%, Canvas); border-radius: 6px; overflow: hidden; }
+.progress-bar { height: 100%; width: 0; background: AccentColor; }
+.meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: .92rem; margin-top: 8px; }
+.card { border: 1px solid ButtonBorder; border-radius: 12px; padding: 18px; margin: 18px 0; }
+.label { font-size: .78rem; letter-spacing: .04em; opacity: .72; }
+.excerpt { max-height: 55vh; overflow: auto; overflow-wrap: anywhere; white-space: pre-wrap; padding: 14px; border-left: 4px solid AccentColor; background: color-mix(in srgb, CanvasText 5%, Canvas); margin: 12px 0; }
+.guidance { font-size: .95rem; }
+.states { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 8px; margin: 12px 0; }
+.secondary-states { margin-top: 8px; }
+button { padding: 10px 12px; border: 1px solid ButtonBorder; border-radius: 8px; cursor: pointer; font: inherit; }
+button.selected { outline: 3px solid AccentColor; }
+button.primary { background: AccentColor; color: AccentColorText; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+textarea { width: 100%; min-height: 95px; box-sizing: border-box; padding: 10px; font: inherit; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+kbd { border: 1px solid ButtonBorder; border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; }
+a { color: LinkText; overflow-wrap: anywhere; }
+.small { font-size: .88rem; opacity: .82; overflow-wrap: anywhere; }
+[hidden] { display: none !important; }
+@media (max-width: 600px) {
+  main { padding: 14px; }
+  .states { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="toolbar">
+<h1 id="title">Revisão humana independente</h1>
+<button id="languageToggle" type="button">English</button>
+</div>
+<details><summary id="instructionsLabel">Instruções</summary><p id="intro"></p>
+<div class="notice"><strong id="privacyTitle"></strong> <span id="privacyText"></span></div></details>
+<div id="testNotice" class="notice warning" hidden></div>
+<div id="queueNotice" class="notice"></div>
+<div class="controls"><button id="queueToggle" type="button"></button></div>
+<div class="progress-shell"><div id="progressBar" class="progress-bar"></div></div>
+<div class="meta">
+<span id="progressText"></span>
+<span id="timeText"></span>
+<span id="categoryText"></span>
+</div>
+</header>
+
+<section class="card" id="evidenceCard">
+<h2 id="sampleSite"></h2><p id="sampleUrl" class="small"></p>
+<div class="notice"><strong id="sourceContextLabel"></strong> <a id="sourceUrl" target="_blank" rel="noopener noreferrer"></a><p class="small" id="sourceContextHelp"></p></div>
+<div class="label" id="evidenceTypeLabel"></div>
+<h2 id="type"></h2>
+<details><summary id="criteriaLabel">Critério de avaliação</summary><div id="guidance" class="guidance notice"></div></details>
+<p id="pageContext" class="small"></p><div id="contextWarning" class="notice warning" hidden></div>
+<div class="label" id="excerptLabel"></div>
+<div id="excerpt" class="excerpt"></div>
+<details><summary id="provenanceLabel">Proveniência</summary><p class="small" id="artifactContext"></p></details>
+<div id="missingEvidence" class="notice warning" hidden></div>
+
+</section>
+
+<section class="card" id="decisionCard">
+<div class="label" id="humanStateLabel"></div>
+<div id="primaryStates" class="states"></div>
+<div class="controls">
+<button id="moreStates" type="button"></button>
+</div>
+<div id="secondaryStates" class="states secondary-states" hidden></div>
+<p class="small" id="shortcutHelp"></p>
+
+<label for="rationale"><strong id="rationaleLabel"></strong></label>
+<textarea id="rationale"></textarea>
+<div class="controls" hidden>
+<button id="rationaleHelper" type="button"></button>
+<span class="small" id="rationaleHelp"></span>
+</div>
+<div id="validation" class="error" role="alert"></div>
+</section>
+
+<div class="controls">
+<button id="previous" type="button"></button>
+<button id="nextUnanswered" type="button"></button>
+<button id="next" class="primary" type="button"></button>
+<button id="export" type="button" disabled></button>
+<span id="saveStatus" class="small"></span>
+</div>
+
+<details><summary id="methodLabel">Sobre esta revisão</summary><div class="notice small" id="biasNotice"></div></details>
+</main>
+
+<script>
+const packageData = {"packageVersion":"1.1.0","annotationHandbookVersion":"1.0.0","runId":"01a0fe51-0926-7f3c-9353-3185879b900a","seed":"privacy-evidence-poc-v1","perStratum":2,"cases":[{"evidenceId":"00b6483d8c675b5bc7334bc64e3b470d7790c6f6bad29464214caab93fd7b32d","resourceId":"poc-08","evidenceType":"third_party_requests_before_consent","automatedState":"unknown","sourceUrl":"https://wordpress.org/education/","artifactHash":"2b7b456838e432ac9bb4d1304672f05b622a747329811d7a2796aa3b48fc3682","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"WordPress","resourceUrl":"https://wordpress.org/","fetchedAt":"2026-10-02T20:34:25+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"07d9d6e73d3602cadfa474895bc3108c82b20a4f9e8fb6a000bbb430e2dd51eb","resourceId":"poc-07","evidenceType":"legal_basis_disclosure","automatedState":"absent","sourceUrl":"https://symfony.com/20years","artifactHash":"d802241e725abd40597c2c2b80a900eb07e560df2ca92bee22797c037e673295","excerpt":null,"detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Symfony","resourceUrl":"https://symfony.com/","fetchedAt":"2026-10-02T20:33:28+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"0882830719cd123d221c4f73316522f043f7d04493c3852d26d13e41ad1479dc","resourceId":"poc-11","evidenceType":"privacy_notice","automatedState":"present","sourceUrl":"https://duckduckgo.com/duckduckgo-help-pages/duckai/ai-chat-privacy","artifactHash":"10fef85f48aa19886e1126629d27b97baed38f810b82f7e7998139040e6e5c59","excerpt":"privacy policy","detector":"privacy_notice","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"DuckDuckGo","resourceUrl":"https://duckduckgo.com/","fetchedAt":"2026-10-02T20:32:12+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"092fcb1cd97b5d79929ce7077239bcf19b0b490ee67b7f502445fce3783bef7f","resourceId":"poc-05","evidenceType":"cookie_accept_control","automatedState":"absent","sourceUrl":"https://github.com/customer-stories?type=enterprise","artifactHash":"db820fb0a255b8f3590afdf319e0ccbff88b8cf1a083ed1baa84b2bdf63e5cfc","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.65,"needsReview":true,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"GitHub","resourceUrl":"https://github.com/","fetchedAt":"2026-10-02T20:33:19+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"0fb0d95c30fd82c3f39d9cabb39e0c1a2ec901c3995dcad1a30664633b6d7151","resourceId":"poc-05","evidenceType":"supervisory_authority_disclosure","automatedState":"absent","sourceUrl":"https://github.com/customer-stories/figma","artifactHash":"8d9987b47c19dcaa0b6e829a9f75e8fec0e1cd2de4313006c35ce4ce5db1c0f9","excerpt":null,"detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"GitHub","resourceUrl":"https://github.com/","fetchedAt":"2026-10-02T20:33:17+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"103f3c4609cd7a16deab67cbd0d91f66001b67e7a33d9157c12d28da739fd525","resourceId":"poc-09","evidenceType":"rights_disclosure","automatedState":"present","sourceUrl":"https://www.gov.br/anpd/pt-br/acesso-a-informacao/comissao-de-etica-da-anpd","artifactHash":"48166c59c519508699d28e587404c3ef1e08035eeafdc13913636ccde42a073b","excerpt":"direitos dos titular","detector":"data_subject_rights","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"ANPD","resourceUrl":"https://www.gov.br/anpd/","fetchedAt":"2026-10-02T20:36:25+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"160818211e9879e1f0a0f8282ac34c65c6809aeb22ac76b1d483a10b44d73c40","resourceId":"poc-06","evidenceType":"cookie_notice","automatedState":"absent","sourceUrl":"https://nextcloud.com/c/uploads/2025/04/Flows-2.png","artifactHash":"c1491efc2c3860c8d4bb5fb256f8564f3d4691f52cc2eef531622ae58c2de172","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.65,"needsReview":true,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Nextcloud","resourceUrl":"https://nextcloud.com/","fetchedAt":"2026-10-02T20:33:27+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"18ecec948ab9178e2dde2716c2d3fa6fed83ce7a81641206e1192940e74cf8b2","resourceId":"poc-01","evidenceType":"nonessential_storage_before_consent","automatedState":"unknown","sourceUrl":"https://example.com/","artifactHash":"25ddf2c883e0d1958ea971d279a7e4f0fd446724ee3db7db19dadabd4a62e484","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Example Domain","resourceUrl":"https://example.com/","fetchedAt":"2026-10-02T20:31:58+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"1933e558419c14b5c3e11dbde2aa569b74d914c8a8f3b9d8d0aa04951e9971ef","resourceId":"poc-09","evidenceType":"international_transfer_disclosure","automatedState":"absent","sourceUrl":"https://www.gov.br/anpd/pt-br/acesso-a-informacao/aviso-de-privacidade","artifactHash":"7890a1a9650190f928d7e9aefd06b302a9ff7ca990505b71b287188e9d541968","excerpt":null,"detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"ANPD","resourceUrl":"https://www.gov.br/anpd/","fetchedAt":"2026-10-02T20:38:25.660Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"1cdd51008e7cbb0e065859181fb317b43611463a88c3e59735cf9a5d9234417d","resourceId":"poc-04","evidenceType":"rights_channel","automatedState":"present","sourceUrl":"https://www.mozilla.org/en-US/privacy/websites/","artifactHash":"2577951846293ce872efae59633b81e18c1603ec740eb0a02b2cd39b8b6f664d","excerpt":"requests regarding your personal data, please contact us through our data subject","detector":"data_subject_rights","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Mozilla","resourceUrl":"https://www.mozilla.org/","fetchedAt":"2026-10-02T20:32:05+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"1ce8c6f99ed0df2936f09f5478932bc50fd33496ef9a3f7ca28eacde0a9015c5","resourceId":"poc-02","evidenceType":"cookie_reject_control","automatedState":"absent","sourceUrl":"https://www.w3.org/mission/privacy/","artifactHash":"bd5e8dcd134be7b2d41812c06a28bb233e04dcdab3a4dcb0ebb460b0c3ac28b4","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.65,"needsReview":true,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"W3C","resourceUrl":"https://www.w3.org/","fetchedAt":"2026-10-02T20:32:05+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"1d4e20230ab2ff880ba354bec82af268ca300b4c7f6032285546e9afc7852735","resourceId":"poc-10","evidenceType":"rights_channel","automatedState":"absent","sourceUrl":"https://commission.europa.eu/index_lv","artifactHash":"64717dbbc05d6594e36abbd3dba2641b76f822c96f3b087ad8a2f703a01820e5","excerpt":null,"detector":"data_subject_rights","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"European Commission","resourceUrl":"https://commission.europa.eu/","fetchedAt":"2026-10-02T20:36:40+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"1dfb09fbc62f2c43b0b06d7a469bec2ae87b447c69ce0da2f5aa96d8e815b7f8","resourceId":"poc-09","evidenceType":"purpose_disclosure","automatedState":"present","sourceUrl":"https://www.gov.br/anpd/pt-br/canais_atendimento/cidadao-titular-de-dados/denuncia-peticao-de-titular-referente-lgpd","artifactHash":"fc53206188eb362b8c5d0e0b43b3add9bfc3eafab052da4e8fe50df5b46f2a84","excerpt":"finalidade s\u00e3o utilizados e que tipo de dados","detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"ANPD","resourceUrl":"https://www.gov.br/anpd/","fetchedAt":"2026-10-02T20:37:59.853Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"1e4b7a69a31e32f5d737eae1ce9feb31dedcb18ac7069c11b4829258273b3c74","resourceId":"poc-08","evidenceType":"nonessential_storage_before_consent","automatedState":"unknown","sourceUrl":"https://wordpress.org/enterprise/","artifactHash":"321b849c7e775ab8ed3c4baf3239fdde6a9071e2e955f896f95fdeb2bfb47148","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"WordPress","resourceUrl":"https://wordpress.org/","fetchedAt":"2026-10-02T20:34:25+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"1f556dd06db162f4827826c8a9f7e63c434e845a7cea8732cbbb0c785d6a196a","resourceId":"poc-02","evidenceType":"supervisory_authority_disclosure","automatedState":"absent","sourceUrl":"https://www.w3.org/International/i18n-drafts/nav/about","artifactHash":"1dbc2030ecd02fbdd43f1865e7df0356b876ef383ed48cebc9274ea6ecfb115d","excerpt":null,"detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"W3C","resourceUrl":"https://www.w3.org/","fetchedAt":"2026-10-02T20:32:13+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"1facf54ef52da81f35b66ff481e4d6ea6cb838cc93480b0c2e39b375dbfb4fd7","resourceId":"poc-09","evidenceType":"dpo_role","automatedState":"present","sourceUrl":"https://www.gov.br/anpd/pt-br/acesso-a-informacao/aviso-de-privacidade","artifactHash":"ab1654fde0a6717a984c5cc0b01e7497dcb1427045f74fc0d59cccd95bad6114","excerpt":"encarregado pelo tratamento de dados","detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"ANPD","resourceUrl":"https://www.gov.br/anpd/","fetchedAt":"2026-10-02T20:32:07+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"20eeb743e5f294057670b6db73ed4e78c7956d7a6b0ce8375d9409e2bce1d531","resourceId":"poc-04","evidenceType":"rights_channel","automatedState":"present","sourceUrl":"https://www.mozilla.org/en-US/privacy/websites/","artifactHash":"3ab965946e6427fb0c15ec6907459b2adf14d062418a9c560155858723fd18a2","excerpt":"requests regarding your personal data, please contact us through our data subject","detector":"data_subject_rights","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Mozilla","resourceUrl":"https://www.mozilla.org/","fetchedAt":"2026-10-02T20:37:02.945Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"212548f74341b743fa9d1f1a2e6e27bb5a2094e121ee3232b89fcdc3a0a45ea9","resourceId":"poc-10","evidenceType":"privacy_notice","automatedState":"absent","sourceUrl":"https://commission.europa.eu/index_lt","artifactHash":"6dbf022bde5edd1043892b81e87568ae3af31a7e1fcfba21d4f33f1a0e4eba24","excerpt":null,"detector":"privacy_notice","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"European Commission","resourceUrl":"https://commission.europa.eu/","fetchedAt":"2026-10-02T20:36:40+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"2a681a9d938636c9043c503abd6189d915162e83f6689b1e0fd147bae2054541","resourceId":"poc-02","evidenceType":"cookie_preferences_control","automatedState":"absent","sourceUrl":"https://www.w3.org/","artifactHash":"28659c0e1f4fec5af31d622ef383eb8c9e12df08bb8e6473cf0917a9ea4338b5","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.65,"needsReview":true,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"W3C","resourceUrl":"https://www.w3.org/","fetchedAt":"2026-10-02T20:31:59+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"30887d0fdf200c61e0bb230605fb6170ce5fe1dcb902aacd0df63ca4596731d4","resourceId":"poc-06","evidenceType":"rights_disclosure","automatedState":"absent","sourceUrl":"https://nextcloud.com/blog/german-federal-administration-relies-on-nextcloud-as-a-secure-file-exchange-solution/","artifactHash":"3b2edc3cdc0ed4f55352ff62049800ca6bc75bb96dfeb7ef780cd4db218080ef","excerpt":null,"detector":"data_subject_rights","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Nextcloud","resourceUrl":"https://nextcloud.com/","fetchedAt":"2026-10-02T20:33:23+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"3196435774f4ea62e8abedeae3c384594554b83b51efe7ad9493dda97afb3aa3","resourceId":"poc-08","evidenceType":"cookie_notice","automatedState":"absent","sourceUrl":"https://wordpress.org/news/category/general/","artifactHash":"b2854a476fbb9b6a8b5fa47cd4f613f0aaa0b4f1afb0f893b0cee61f82fa98ed","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.65,"needsReview":true,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"WordPress","resourceUrl":"https://wordpress.org/","fetchedAt":"2026-10-02T20:35:46+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"3430cb23eeffb44a2f5dda80e8c5816cbc472f7c6a3b7aae72833356a29bd396","resourceId":"poc-04","evidenceType":"third_party_requests_before_consent","automatedState":"present","sourceUrl":"https://www.mozilla.org/en-US/privacy/websites/cookie-settings/","artifactHash":"d0e6adf5a0d556679294e2e501fca9b03b024e584a67b88b3d06b6c867717a95","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.9,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Mozilla","resourceUrl":"https://www.mozilla.org/","fetchedAt":"2026-10-02T20:37:39.255Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"34681c0dea91c8067c2d74f95f167fbc4122544c57d05f745b4327e5ac66df1d","resourceId":"poc-10","evidenceType":"privacy_contact","automatedState":"absent","sourceUrl":"https://commission.europa.eu/index_cs","artifactHash":"098725aa4290325245a2a6f6cbd9eabc1a5794e5367dc504b3a73c2b78ef96e0","excerpt":null,"detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"European Commission","resourceUrl":"https://commission.europa.eu/","fetchedAt":"2026-10-02T20:36:34+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"375f5b2c66712f093dfa97d1349f48e3c860bc727388809bf923d59afe0c70e1","resourceId":"poc-08","evidenceType":"privacy_contact","automatedState":"present","sourceUrl":"https://wordpress.org/about/privacy/","artifactHash":"b8e9c51e208db3da47abd5b6cd10b9ccde288369df9c25a27210f8a681eb574f","excerpt":"privacy policy or information we hold about you by emailing dpo@wordpress.org","detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"WordPress","resourceUrl":"https://wordpress.org/","fetchedAt":"2026-10-02T20:32:06+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"3c703b4cf2a8beb8345d40c4a7156a22919a3a17e28c9b0b2f6a4a71b5956ba7","resourceId":"poc-05","evidenceType":"privacy_law_reference","automatedState":"absent","sourceUrl":"https://github.com/education","artifactHash":"1e1ce10057b1c17505f703f3373ab05ee7c75a7efa123b68131143bae9e5013c","excerpt":null,"detector":"privacy_law_reference","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"GitHub","resourceUrl":"https://github.com/","fetchedAt":"2026-10-02T20:33:20+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"405c2a126d921ebb7cae8885597a51b06e84096b5d052767f167ec19351f53df","resourceId":"poc-05","evidenceType":"nonessential_storage_before_consent","automatedState":"unknown","sourceUrl":"https://github.com/collections","artifactHash":"db17272a3867cb3b6fde9eaafe95ec736424c1b4f62a45933c9c739b4060f5ac","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.5,"needsReview":true,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"GitHub","resourceUrl":"https://github.com/","fetchedAt":"2026-10-02T20:38:29.109Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"40ab389e686a0af77cb02e842ad9e303e7a413455efb9050aaf870a0f61b562f","resourceId":"poc-09","evidenceType":"cookie_accept_control","automatedState":"present","sourceUrl":"https://www.gov.br/anpd/pt-br/canais_atendimento/cidadao-titular-de-dados/denuncia-peticao-de-titular-referente-lgpd","artifactHash":"fc53206188eb362b8c5d0e0b43b3add9bfc3eafab052da4e8fe50df5b46f2a84","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.8,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"ANPD","resourceUrl":"https://www.gov.br/anpd/","fetchedAt":"2026-10-02T20:37:59.853Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"4427c38c975b8dc4f70dd5ddc579bec5760b7b655874861372d5c1302c3a5ac6","resourceId":"poc-07","evidenceType":"privacy_notice","automatedState":"absent","sourceUrl":"https://symfony.com/backers","artifactHash":"4f9afc0245de319b6beaaa0c86af179bd329c626706329037fe4a956f2c5e9d8","excerpt":null,"detector":"privacy_notice","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Symfony","resourceUrl":"https://symfony.com/","fetchedAt":"2026-10-02T20:33:29+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"49fa9930fb6a1a747c8f63b5985f3e05cd3830ca8f8bf071fd3f2c378ed04430","resourceId":"poc-09","evidenceType":"privacy_law_reference","automatedState":"present","sourceUrl":"https://www.gov.br/anpd/pt-br/acesso-a-informacao/participacao-social","artifactHash":"7ab3350a44a8f986adbdba3a1c8c5cbeb1ffc2d0620dc4104ab0e38bcfe7755b","excerpt":"lgpd","detector":"privacy_law_reference","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"ANPD","resourceUrl":"https://www.gov.br/anpd/","fetchedAt":"2026-10-02T20:36:33+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"4a8706eaeda2d43c27b34e251146c1aa400d424f8d1e18163c81d574e506b3c7","resourceId":"poc-06","evidenceType":"recipient_disclosure","automatedState":"present","sourceUrl":"https://nextcloud.com/contact/","artifactHash":"5ac4bb9e05f9eeefa326db5e533f4304e20db8820d283e55f7dc4321c3eeef7d","excerpt":"shared with","detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Nextcloud","resourceUrl":"https://nextcloud.com/","fetchedAt":"2026-10-02T20:32:17+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"4b7c61f19e85de555db59a8a0431d498ea865badb617cb4aec87045ebd77a4cb","resourceId":"poc-04","evidenceType":"third_party_requests_before_consent","automatedState":"present","sourceUrl":"https://www.mozilla.org/","artifactHash":"81ddec03fb2deca686639fb1a372a74f5e7b14752ff9e6989c998b1a6772682d","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.9,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Mozilla","resourceUrl":"https://www.mozilla.org/","fetchedAt":"2026-10-02T20:36:43.584Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"4ebbd5fc3f76f7725243852cdd2e3e00bfa57d3ea4ee7cf20bbdec8df0661941","resourceId":"poc-09","evidenceType":"controller_identity","automatedState":"present","sourceUrl":"https://www.gov.br/anpd/pt-br/canais_atendimento/cidadao-titular-de-dados/denuncia-peticao-de-titular-referente-lgpd","artifactHash":"77af5487a7a76c1404d66db3541f83115e53a6c7a990bdfd23a0c9b83a6c809d","excerpt":"controlador de dados","detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"ANPD","resourceUrl":"https://www.gov.br/anpd/","fetchedAt":"2026-10-02T20:32:08+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"535b6af0a00e55caa61f03a3182e04488b81c38958114c23b86930152b8a4bc5","resourceId":"poc-06","evidenceType":"retention_disclosure","automatedState":"present","sourceUrl":"https://nextcloud.com/compliance/","artifactHash":"cbb4fcc6fd85814f01128167f01fd4e0ddee939ef1b6a2cf805da9e4830fbef5","excerpt":"retention","detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Nextcloud","resourceUrl":"https://nextcloud.com/","fetchedAt":"2026-10-02T20:32:16+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"5a7d8ea114b4b9e18ae60f1b245d9d0c251adbc023ea9fcabaf1494be639e6ca","resourceId":"poc-04","evidenceType":"dpo_role","automatedState":"absent","sourceUrl":"https://www.mozilla.org/ar/","artifactHash":"061b6f26aafaf561f5a99aba1e6478deb30978be5d24ca69a113d9e079170eae","excerpt":null,"detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Mozilla","resourceUrl":"https://www.mozilla.org/","fetchedAt":"2026-10-02T20:33:16+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"5d0c05b77527086a38f301030d03ddc98d951f9a0cf8ffb6ae37dd88b965b5bd","resourceId":"poc-08","evidenceType":"dpo_contact","automatedState":"present","sourceUrl":"https://wordpress.org/about/privacy/","artifactHash":"4448b0728917c01e5d0e9de18625034868a9acd7fe2571ade883503ecc80c3c9","excerpt":"dpo@wordpress.org","detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"WordPress","resourceUrl":"https://wordpress.org/","fetchedAt":"2026-10-02T20:37:40.352Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"615a0d3abdc31ddfcd54cf797cc1233f9b7206133aae0e5505f4082eaa8fcc2a","resourceId":"poc-07","evidenceType":"international_transfer_disclosure","automatedState":"absent","sourceUrl":"https://symfony.com/blog/category/releases","artifactHash":"cfcec94d9d785f5e5215e4ca080b3c75c43f9f5f0a8f3d422dabc69320f674cb","excerpt":null,"detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Symfony","resourceUrl":"https://symfony.com/","fetchedAt":"2026-10-02T20:33:33+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"75208c56d6546a464316629d1dbbefdb44608feb8b286e047174f30bff6c1079","resourceId":"poc-10","evidenceType":"cookie_preferences_control","automatedState":"absent","sourceUrl":"https://commission.europa.eu/index_fi","artifactHash":"25ce40ea48514488c222628902e7c3902c077fd39e7f314c4aaab6507552be01","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.65,"needsReview":true,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"European Commission","resourceUrl":"https://commission.europa.eu/","fetchedAt":"2026-10-02T20:36:37+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"755b93b7d44df9ede6804d8761c4fca445473a7169ad741a1580b7fa0b407b4f","resourceId":"poc-11","evidenceType":"third_party_requests_before_consent","automatedState":"absent","sourceUrl":"https://duckduckgo.com/duckduckgo-help-pages/desktop/adding-duckduckgo-to-your-browser","artifactHash":"9ea62d486ee6afd1fcbdae0614095437f795b9255b45b949ffc6cc8a881e02ad","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.9,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"DuckDuckGo","resourceUrl":"https://duckduckgo.com/","fetchedAt":"2026-10-02T20:38:31.345Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"76b8412e954e090325ace7ed607c70f052324a233c52e4de016f66e73ef63211","resourceId":"poc-04","evidenceType":"cookie_accept_control","automatedState":"present","sourceUrl":"https://www.mozilla.org/en-US/about/this-site/","artifactHash":"fc3cbb26515cecafb5420522cacf79559cd68b62d650d1c2cd7bad0407a29c0e","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.8,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Mozilla","resourceUrl":"https://www.mozilla.org/","fetchedAt":"2026-10-02T20:32:15+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"7744530f3e1cc4bc7412f9f6de69eaaac9a4344a85bc87a8b9b3cb74e1e45e6f","resourceId":"poc-06","evidenceType":"cookie_preferences_control","automatedState":"present","sourceUrl":"https://nextcloud.com/blog/use-case-sib-delivering-nextcloud-to-2500-teachers-and-33000-pupils-in-brittany-france/","artifactHash":"34316fffcdb7e9ac150886ea9baf57ad545c0f1f06da493e9968943fd28a96e5","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.8,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Nextcloud","resourceUrl":"https://nextcloud.com/","fetchedAt":"2026-10-02T20:33:26+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"78369f3ad41baa11bc24e6bdf3a1e068278f9b9938c3adee00a6b31f65dfe443","resourceId":"poc-06","evidenceType":"purpose_disclosure","automatedState":"present","sourceUrl":"https://nextcloud.com/privacy/","artifactHash":"f3defa545cf34ca1506ae23f81d164ccd1dfcb6ff6035269e41369af5a1a9289","excerpt":"purposes and means of the processing of personal data. where the purposes and means of such processing","detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Nextcloud","resourceUrl":"https://nextcloud.com/","fetchedAt":"2026-10-02T20:32:05+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"7a6fd5a478f9644edfb7d99f290f1d03399b9bc833b887c772007ad5fbb65fad","resourceId":"poc-04","evidenceType":"nonessential_storage_before_consent","automatedState":"absent","sourceUrl":"https://www.mozilla.org/","artifactHash":"81ddec03fb2deca686639fb1a372a74f5e7b14752ff9e6989c998b1a6772682d","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.95,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Mozilla","resourceUrl":"https://www.mozilla.org/","fetchedAt":"2026-10-02T20:36:43.584Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"7b3d5591b37a26854e5f74b4e0c8f931d0e71cfd8e86040cdf96c3e1174ac649","resourceId":"poc-05","evidenceType":"rights_disclosure","automatedState":"absent","sourceUrl":"https://github.com/security/advanced-security/secret-protection","artifactHash":"edd1638fe9263769b1e2fa0d1b495449157fc40a4d9e58bcbd1b5a0a7073e8b5","excerpt":null,"detector":"data_subject_rights","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"GitHub","resourceUrl":"https://github.com/","fetchedAt":"2026-10-02T20:32:15+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"7c79ae0b14fa1ad802dc7e9185e5e264c15601f7ab723cc16b99ff8ce2c81f9e","resourceId":"poc-04","evidenceType":"legal_basis_disclosure","automatedState":"absent","sourceUrl":"https://www.mozilla.org/","artifactHash":"81ddec03fb2deca686639fb1a372a74f5e7b14752ff9e6989c998b1a6772682d","excerpt":null,"detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Mozilla","resourceUrl":"https://www.mozilla.org/","fetchedAt":"2026-10-02T20:36:43.584Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"864d46153c1fcd233543d897f76b297ebb2674298bb606eac2fdd31456f4644e","resourceId":"poc-06","evidenceType":"dpo_contact","automatedState":"present","sourceUrl":"https://nextcloud.com/privacy/","artifactHash":"62187babe6e92c55518efa6bae90af33124bcb579eb9f9b801cff3897cdbe3a2","excerpt":"data protection officer the company data protection officer of nextcloud.com is: mr. semen kivanc dataco gmbh sandstr. 33, 80335 m\u00fcnchen email: privacy@dataguard.com","detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Nextcloud","resourceUrl":"https://nextcloud.com/","fetchedAt":"2026-10-02T20:37:21.069Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"87d0e272e8fa1216dfa8399c8a13d613d9f796dced5803688a6a008e860de396","resourceId":"poc-09","evidenceType":"privacy_law_reference","automatedState":"present","sourceUrl":"https://www.gov.br/anpd/pt-br/acesso-a-informacao/aviso-de-privacidade","artifactHash":"ab1654fde0a6717a984c5cc0b01e7497dcb1427045f74fc0d59cccd95bad6114","excerpt":"lgpd","detector":"privacy_law_reference","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"ANPD","resourceUrl":"https://www.gov.br/anpd/","fetchedAt":"2026-10-02T20:32:07+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"8a0bf5ca9367f72c8ec4e4e2e3a1093c0f74c20cf42e308a332292009a7c5ee9","resourceId":"poc-07","evidenceType":"dpo_identity","automatedState":"absent","sourceUrl":"https://symfony.com/bundles","artifactHash":"6eb1a210d51c27e34162db5de6ab218da20b2ec292aacbe05f4b990ce2a361f7","excerpt":null,"detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Symfony","resourceUrl":"https://symfony.com/","fetchedAt":"2026-10-02T20:33:35+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"8d49d149d259cbff714a43532f17f50d119e277cd579decd78214c54a3fb5bae","resourceId":"poc-06","evidenceType":"international_transfer_disclosure","automatedState":"present","sourceUrl":"https://nextcloud.com/privacy/","artifactHash":"62187babe6e92c55518efa6bae90af33124bcb579eb9f9b801cff3897cdbe3a2","excerpt":"third countries","detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Nextcloud","resourceUrl":"https://nextcloud.com/","fetchedAt":"2026-10-02T20:37:21.069Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"90cf23ce2fce38824647d9e3af0677429b56d40216cc557755063daea63c47cc","resourceId":"poc-09","evidenceType":"controller_identity","automatedState":"absent","sourceUrl":"https://www.gov.br/anpd/pt-br/acesso-a-informacao/dados-abertos","artifactHash":"2d88211e5d73bf2457dbf92d87ab2ab0ffec92a9e0b7dfaf5143504cb0427577","excerpt":null,"detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"ANPD","resourceUrl":"https://www.gov.br/anpd/","fetchedAt":"2026-10-02T20:36:27+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"920fe3a074d02e60723d1cdf5f21e4521b0e1d14c7e363e8f0d55e1f7bae40d7","resourceId":"poc-06","evidenceType":"legal_basis_disclosure","automatedState":"present","sourceUrl":"https://nextcloud.com/privacy/","artifactHash":"62187babe6e92c55518efa6bae90af33124bcb579eb9f9b801cff3897cdbe3a2","excerpt":"legal basis","detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Nextcloud","resourceUrl":"https://nextcloud.com/","fetchedAt":"2026-10-02T20:37:21.069Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"92214ff3b2ec28aabfd96f483e98744cd3eafb160393e30affad584fe28583f4","resourceId":"poc-06","evidenceType":"cookie_notice","automatedState":"present","sourceUrl":"https://nextcloud.com/brand/","artifactHash":"33c518d4e5a905109ea81d9523dc75530f8597fd267e73fc6b93fc42f57d7042","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.8,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Nextcloud","resourceUrl":"https://nextcloud.com/","fetchedAt":"2026-10-02T20:33:26+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"99541df15af2fb12fe3e33ea14e6322ac3886b7e77fc845d42e23a3deba5b646","resourceId":"poc-09","evidenceType":"dpo_identity","automatedState":"absent","sourceUrl":"https://www.gov.br/anpd/pt-br/canais_atendimento/cidadao-titular-de-dados/denuncia-peticao-de-titular-referente-lgpd","artifactHash":"77af5487a7a76c1404d66db3541f83115e53a6c7a990bdfd23a0c9b83a6c809d","excerpt":null,"detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"ANPD","resourceUrl":"https://www.gov.br/anpd/","fetchedAt":"2026-10-02T20:32:08+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"9960ca61039d6b1cc02d50ca2ecb7c3de55dd59597dda790d765552c75fbfe87","resourceId":"poc-04","evidenceType":"controller_identity","automatedState":"absent","sourceUrl":"https://www.mozilla.org/en-US/about/this-site/","artifactHash":"fc3cbb26515cecafb5420522cacf79559cd68b62d650d1c2cd7bad0407a29c0e","excerpt":null,"detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Mozilla","resourceUrl":"https://www.mozilla.org/","fetchedAt":"2026-10-02T20:32:15+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"99a75c0fc8ab6245af99cf11b539c1822b658abab52ef6be51e14c37f4ed643e","resourceId":"poc-08","evidenceType":"privacy_law_reference","automatedState":"absent","sourceUrl":"https://wordpress.org/news/category/general/","artifactHash":"b2854a476fbb9b6a8b5fa47cd4f613f0aaa0b4f1afb0f893b0cee61f82fa98ed","excerpt":null,"detector":"privacy_law_reference","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"WordPress","resourceUrl":"https://wordpress.org/","fetchedAt":"2026-10-02T20:35:46+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"9b10919b8b528e625902dd747c477d06c8cdab937eba16d98d30666a723d94e0","resourceId":"poc-09","evidenceType":"cookie_reject_control","automatedState":"present","sourceUrl":"https://www.gov.br/anpd/pt-br/canais_atendimento/cidadao-titular-de-dados/denuncia-peticao-de-titular-referente-lgpd","artifactHash":"77af5487a7a76c1404d66db3541f83115e53a6c7a990bdfd23a0c9b83a6c809d","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.8,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"ANPD","resourceUrl":"https://www.gov.br/anpd/","fetchedAt":"2026-10-02T20:32:08+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"9f1dc9d2bc7988560be66c751635115509199702d97324fef118a3c022d2aa17","resourceId":"poc-05","evidenceType":"rights_channel","automatedState":"absent","sourceUrl":"https://github.com/customer-stories/mercado-libre","artifactHash":"f326d66f65cd8184fa0d98f6745ad2f175f9ee569b11e19e42c36dec625f4da9","excerpt":null,"detector":"data_subject_rights","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"GitHub","resourceUrl":"https://github.com/","fetchedAt":"2026-10-02T20:33:18+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"a28822960470d8ca69de1c6d82137cdd108e97a14905297e413fdd3c345b3161","resourceId":"poc-11","evidenceType":"third_party_requests_before_consent","automatedState":"unknown","sourceUrl":"https://duckduckgo.com/email/","artifactHash":"f8bda2954454bccde69a5eee500e1d898de6740ebe8c8df0b4a161b03d015925","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"DuckDuckGo","resourceUrl":"https://duckduckgo.com/","fetchedAt":"2026-10-02T20:36:37+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"aafe83f5a18081b5ce0ea0448bdfac0689d9cc8b54d63d00b26d5d9259e0e30b","resourceId":"poc-04","evidenceType":"recipient_disclosure","automatedState":"present","sourceUrl":"https://www.mozilla.org/en-US/privacy/websites/","artifactHash":"2577951846293ce872efae59633b81e18c1603ec740eb0a02b2cd39b8b6f664d","excerpt":"third parties","detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Mozilla","resourceUrl":"https://www.mozilla.org/","fetchedAt":"2026-10-02T20:32:05+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"b03c5e72af7c04bde853973ebce4cda8ae03a9667011a3ae8cea9cb0ca500fec","resourceId":"poc-09","evidenceType":"supervisory_authority_disclosure","automatedState":"present","sourceUrl":"https://www.gov.br/anpd/pt-br/canais_atendimento/encarregado-de-dados-na-anpd","artifactHash":"00caa7b2b366aeef794ad36cf81e6c6880132e179212174838f23571dd905865","excerpt":"anpd","detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"ANPD","resourceUrl":"https://www.gov.br/anpd/","fetchedAt":"2026-10-02T20:32:13+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"b790b7db5a902303151b0d28f87e7ec05e8e8371c7f8056d5a064aefaca765bd","resourceId":"poc-06","evidenceType":"privacy_notice","automatedState":"present","sourceUrl":"https://nextcloud.com/blog/german-federal-administration-relies-on-nextcloud-as-a-secure-file-exchange-solution/","artifactHash":"3b2edc3cdc0ed4f55352ff62049800ca6bc75bb96dfeb7ef780cd4db218080ef","excerpt":"privacy policy","detector":"privacy_notice","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Nextcloud","resourceUrl":"https://nextcloud.com/","fetchedAt":"2026-10-02T20:33:23+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"b82ec5473a741647e1932162741578c3199ad51347ef503717c007f4ac8d953a","resourceId":"poc-08","evidenceType":"retention_disclosure","automatedState":"present","sourceUrl":"https://wordpress.org/about/privacy/","artifactHash":"4448b0728917c01e5d0e9de18625034868a9acd7fe2571ade883503ecc80c3c9","excerpt":"retention","detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"WordPress","resourceUrl":"https://wordpress.org/","fetchedAt":"2026-10-02T20:37:40.352Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"b9553b426e4727eb0b8309131081146baa386a33e4f2decf1762285cd9e998f3","resourceId":"poc-04","evidenceType":"privacy_contact","automatedState":"present","sourceUrl":"https://www.mozilla.org/en-US/privacy/websites/","artifactHash":"2577951846293ce872efae59633b81e18c1603ec740eb0a02b2cd39b8b6f664d","excerpt":"privacy practices, please contact us at compliance@mozilla.com","detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Mozilla","resourceUrl":"https://www.mozilla.org/","fetchedAt":"2026-10-02T20:32:05+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"bb2842289f114b0c633c20766b0db45969ce950fbcbbac1ee37742cbdf950f08","resourceId":"poc-02","evidenceType":"cookie_accept_control","automatedState":"absent","sourceUrl":"https://auth.w3.org/login","artifactHash":"5667a81a627f8b1c5afd2be34f0f6685940e381f1ff333e0d1dcd3ea86926918","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.65,"needsReview":true,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"W3C","resourceUrl":"https://www.w3.org/","fetchedAt":"2026-10-02T20:32:35+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"c41a91d3af799f921a2f7bf437976a3a38358ae6fd20cf05203daa70a0ac8a1f","resourceId":"poc-09","evidenceType":"supervisory_authority_disclosure","automatedState":"present","sourceUrl":"https://www.gov.br/anpd/pt-br/acesso-a-informacao/ferramentas-e-aspectos-tecnologicos","artifactHash":"ea357735c98ac0a42b4a2bdf983787f4be6b497f181a49aa769ca1ecbacf6fd5","excerpt":"anpd","detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"ANPD","resourceUrl":"https://www.gov.br/anpd/","fetchedAt":"2026-10-02T20:36:30+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"cd7638077482848c2cce45eb6661a7b4bd6cd8c29c68f1859269268d9ca0715e","resourceId":"poc-05","evidenceType":"cookie_notice","automatedState":"present","sourceUrl":"https://github.com/education","artifactHash":"1e1ce10057b1c17505f703f3373ab05ee7c75a7efa123b68131143bae9e5013c","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.8,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"GitHub","resourceUrl":"https://github.com/","fetchedAt":"2026-10-02T20:33:20+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"d9a5098b1a723b480c600c4c33c461d2cbfbab9ccd780c0e4c9b30705e7ee52b","resourceId":"poc-06","evidenceType":"international_transfer_disclosure","automatedState":"present","sourceUrl":"https://nextcloud.com/privacy/","artifactHash":"f3defa545cf34ca1506ae23f81d164ccd1dfcb6ff6035269e41369af5a1a9289","excerpt":"third countries","detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Nextcloud","resourceUrl":"https://nextcloud.com/","fetchedAt":"2026-10-02T20:32:05+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"ddd5ee8604f111cf5d22462b71d6372e59691f59107dc10fb905908f1b3c48bc","resourceId":"poc-09","evidenceType":"nonessential_storage_before_consent","automatedState":"unknown","sourceUrl":"https://www.gov.br/anpd/pt-br/canais_atendimento/cidadao-titular-de-dados/denuncia-peticao-de-titular-referente-lgpd","artifactHash":"fc53206188eb362b8c5d0e0b43b3add9bfc3eafab052da4e8fe50df5b46f2a84","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.5,"needsReview":true,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"ANPD","resourceUrl":"https://www.gov.br/anpd/","fetchedAt":"2026-10-02T20:37:59.853Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"e0507996344a3e8d1a3b7f369f7c03e33196b612215d6beeffd4bf5d39f6be6c","resourceId":"poc-07","evidenceType":"retention_disclosure","automatedState":"absent","sourceUrl":"https://symfony.com/blog/","artifactHash":"00ba9c00faf908d292642f0b7bfcce1beaac3d26168f5835eb64bb9d015b8a1d","excerpt":null,"detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Symfony","resourceUrl":"https://symfony.com/","fetchedAt":"2026-10-02T20:33:30+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"e55edbad5a7e4516843b51923da1037291adf3735b9d9b5b97775200c0e8dc6f","resourceId":"poc-10","evidenceType":"retention_disclosure","automatedState":"absent","sourceUrl":"https://commission.europa.eu/index_bg","artifactHash":"456aa676d6b1ed350eb222b2fa898a8c2de47a9ae4e3db4bab3626b13d391b9e","excerpt":null,"detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"European Commission","resourceUrl":"https://commission.europa.eu/","fetchedAt":"2026-10-02T20:36:34+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"e92a42047d6318eac05292df071b843a573f761fd94e5376149f65292dd72619","resourceId":"poc-08","evidenceType":"legal_basis_disclosure","automatedState":"present","sourceUrl":"https://wordpress.org/about/privacy/","artifactHash":"b8e9c51e208db3da47abd5b6cd10b9ccde288369df9c25a27210f8a681eb574f","excerpt":"consent","detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"WordPress","resourceUrl":"https://wordpress.org/","fetchedAt":"2026-10-02T20:32:06+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"eb70a15d00b4802b221b26e564ff73f07505b2b03a3610492b03c526c981ab37","resourceId":"poc-10","evidenceType":"privacy_contact","automatedState":"absent","sourceUrl":"https://commission.europa.eu/index_el","artifactHash":"5cbe6135545806444ef56d0e3195479002842e7d4dc913dd807913b8d196db38","excerpt":null,"detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"European Commission","resourceUrl":"https://commission.europa.eu/","fetchedAt":"2026-10-02T20:36:35+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"ec55befd19f93d59cd8e9f408e97eab7d5820236e283aafd88d603c3d12d2947","resourceId":"poc-11","evidenceType":"dpo_contact","automatedState":"absent","sourceUrl":"https://duckduckgo.com/press","artifactHash":"33ee7a14692e44396302332587da171ce1247fc41d32563bfcec23ee9c1e3121","excerpt":null,"detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"DuckDuckGo","resourceUrl":"https://duckduckgo.com/","fetchedAt":"2026-10-02T20:36:38+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"ecd436a447833992bc19df7015a95588e636547ac7dee12bdcde6ea7f751e476","resourceId":"poc-11","evidenceType":"nonessential_storage_before_consent","automatedState":"absent","sourceUrl":"https://duckduckgo.com/privacy","artifactHash":"dabffe2e7351b6a24e8de90a4c7a676c11d11a01a81f514424c10c963720fdae","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.95,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"DuckDuckGo","resourceUrl":"https://duckduckgo.com/","fetchedAt":"2026-10-02T20:38:27.063Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"ed4dcf305c627d17324672598c4166aecd7a09736646a62865aa463bc1e6351c","resourceId":"poc-04","evidenceType":"cookie_reject_control","automatedState":"present","sourceUrl":"https://www.mozilla.org/en-US/about/leadership/","artifactHash":"d3045ceaeaf25b34d31971463a9998fb747cae012b79e7584cb21b5335e9adb8","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.8,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Mozilla","resourceUrl":"https://www.mozilla.org/","fetchedAt":"2026-10-02T20:32:14+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"ee1c5b1c27e9266d56d6fc03afa575d9a36bb038bc81a0fc252e19bd56fcb227","resourceId":"poc-08","evidenceType":"dpo_role","automatedState":"present","sourceUrl":"https://wordpress.org/about/privacy/","artifactHash":"4448b0728917c01e5d0e9de18625034868a9acd7fe2571ade883503ecc80c3c9","excerpt":"dpo","detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"WordPress","resourceUrl":"https://wordpress.org/","fetchedAt":"2026-10-02T20:37:40.352Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"ee3b45e98d21f7227affdef5dfd7ed6d64f77f5d8875a507644fa2f7ccb80919","resourceId":"poc-04","evidenceType":"recipient_disclosure","automatedState":"absent","sourceUrl":"https://www.mozilla.org/en-US/about/","artifactHash":"3b65d0fb0ad8f668e880133536c90b6d2077bc741d479cdd28140172e9099e27","excerpt":null,"detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Mozilla","resourceUrl":"https://www.mozilla.org/","fetchedAt":"2026-10-02T20:32:13+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"ee4d43c7dd53f1226651e6b9f69def2cadd05d85376b7c86ab301b3d37db78a7","resourceId":"poc-10","evidenceType":"purpose_disclosure","automatedState":"absent","sourceUrl":"https://commission.europa.eu/index_lt","artifactHash":"6dbf022bde5edd1043892b81e87568ae3af31a7e1fcfba21d4f33f1a0e4eba24","excerpt":null,"detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"European Commission","resourceUrl":"https://commission.europa.eu/","fetchedAt":"2026-10-02T20:36:40+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"ef6628ac01f48947bb64135aa529a80d728abcd3b394448fd2568cc32aa90ebe","resourceId":"poc-11","evidenceType":"cookie_reject_control","automatedState":"absent","sourceUrl":"https://duckduckgo.com/privacy","artifactHash":"dabffe2e7351b6a24e8de90a4c7a676c11d11a01a81f514424c10c963720fdae","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.65,"needsReview":true,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"DuckDuckGo","resourceUrl":"https://duckduckgo.com/","fetchedAt":"2026-10-02T20:38:27.063Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"efc50bece5213d327f81b22c9eef3a3a137667d21adcc00c914bfebb04e0d8b3","resourceId":"poc-06","evidenceType":"cookie_preferences_control","automatedState":"present","sourceUrl":"https://nextcloud.com/","artifactHash":"33f7550d8cd0828ecbdbba317b6fa5d2da0bfe3447493660beedc5c4ed0ffcb7","excerpt":null,"detector":"cookie_interface","detectorVersion":"1.1.0","confidence":0.8,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Nextcloud","resourceUrl":"https://nextcloud.com/","fetchedAt":"2026-10-02T20:32:01+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"f0bcf8637bf51d9081da5f16f55f2a4d42f659a107c6b7d799c89715c1813c34","resourceId":"poc-05","evidenceType":"dpo_contact","automatedState":"absent","sourceUrl":"https://github.com/about","artifactHash":"6451223408938c6d92af995b899791b08cc603d8db30ea3a3222dbb2ddba3ba3","excerpt":null,"detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"GitHub","resourceUrl":"https://github.com/","fetchedAt":"2026-10-02T20:32:13+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"f6ed4696f96146381e3ba1f8d3fa2a8e17439be737c383c7e508ce3c553ee56c","resourceId":"poc-08","evidenceType":"recipient_disclosure","automatedState":"absent","sourceUrl":"https://wordpress.org/news/2026/09/wordpress-7-1-2-release/","artifactHash":"ac5427200429a7d66494924ab589ed4a39b1a0cc7afd6f654bab9eda9309e231","excerpt":null,"detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"WordPress","resourceUrl":"https://wordpress.org/","fetchedAt":"2026-10-02T20:35:30+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"f97549ad75e7bec05cca583e3edc8a10430272458c30ebad041824ccf5389a55","resourceId":"poc-09","evidenceType":"rights_disclosure","automatedState":"present","sourceUrl":"https://www.gov.br/anpd/pt-br/acesso-a-informacao/informacoes-classificadas","artifactHash":"9dfad0ae81479245817ee880a0e137d51c9cf2c8b6d75487e190f67767b1a07e","excerpt":"direitos dos titular","detector":"data_subject_rights","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"ANPD","resourceUrl":"https://www.gov.br/anpd/","fetchedAt":"2026-10-02T20:36:30+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"fc3609b9b3d14ec283188d2fe8892f723f635af22f2c7605771e9ac55766adf0","resourceId":"poc-09","evidenceType":"controller_identity","automatedState":"present","sourceUrl":"https://www.gov.br/anpd/pt-br/canais_atendimento/cidadao-titular-de-dados/denuncia-peticao-de-titular-referente-lgpd","artifactHash":"fc53206188eb362b8c5d0e0b43b3add9bfc3eafab052da4e8fe50df5b46f2a84","excerpt":"controlador de dados","detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.85,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"ANPD","resourceUrl":"https://www.gov.br/anpd/","fetchedAt":"2026-10-02T20:37:59.853Z","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"fcbbed058f0b190f0e9d910936341c8b49c5f1e43a4d86fb112bbc9c77307721","resourceId":"poc-02","evidenceType":"dpo_role","automatedState":"absent","sourceUrl":"https://www.w3.org/about/corporation/","artifactHash":"2aadfb0e3f60a91da975d987f1e7e8839c728dcca3bc2d45a634a06c142156d6","excerpt":null,"detector":"privacy_contact_dpo","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"W3C","resourceUrl":"https://www.w3.org/","fetchedAt":"2026-10-02T20:32:14+00:00","truncated":false,"reason":"missing_artifact"}},{"evidenceId":"fdc1dfef38b5ae5948ca57d12f69deb593ddb7db90d13e4251947578ca720e4a","resourceId":"poc-04","evidenceType":"purpose_disclosure","automatedState":"absent","sourceUrl":"https://www.mozilla.org/en-US/about/legal/","artifactHash":"95a332b4800dd00741813cca19389f6a248ff12d44d61a325b770abf0c18af18","excerpt":null,"detector":"transparency_disclosures","detectorVersion":"1.0.0","confidence":0.75,"needsReview":false,"humanState":null,"rationale":null,"reviewedAt":null,"reviewContext":{"resourceName":"Mozilla","resourceUrl":"https://www.mozilla.org/","fetchedAt":"2026-10-02T20:32:14+00:00","truncated":false,"reason":"missing_artifact"}}],"reviewDocuments":{}};
+const reviewConfig = {"testMode":true,"packageHash":"41fdabad38dcc91bdc63f72d48a184c22594737a48562c6a23754ba12c2dd7fe"};
+const testMode = reviewConfig.testMode === true;
+if (testMode) {
+  packageData.testMode = true;
+  packageData.cases.forEach(c => { c.humanState = null; c.rationale = null; c.reviewedAt = null; });
+}
+const primaryStates = ['present', 'absent', 'unknown'];
+const secondaryStates = ['unavailable', 'invalid', 'excluded', 'not_applicable'];
+const states = [...primaryStates, ...secondaryStates];
+const minimumForEstimate = 5;
+
+const i18n = {
+  pt: {
+    title: 'Revisão humana independente',
+    language: 'English',
+    intro: 'Classifique somente o que a evidência preservada permite concluir. Não use IA para escolher respostas e não compare suas respostas com outro revisor antes de ambas as revisões terminarem.',
+    privacyTitle: 'Privado e offline:',
+    privacyText: 'esta página não envia suas anotações. O progresso fica salvo somente neste navegador. Ao terminar, exporte o JSON e devolva o arquivo ao pesquisador.',
+    evidenceType: 'O que avaliar nesta página',
+    excerpt: 'Conteúdo da página preservada',
+    noExcerpt: 'Este pacote não contém texto preservado para avaliar o caso. Ele fica pendente de investigação ou nova coleta, sem exigir uma resposta humana. Consulte a URL e o artefato original para recuperar contexto. Uma visita ao site agora é uma nova observação e não comprova o estado na coleta original.',
+    sourceContext: 'Página coletada:',
+    testNotice: 'Modo teste do formulário. Respostas arbitrárias são permitidas em todos os casos. O progresso é separado da revisão real e o JSON de teste não pode ser importado como avaliação humana.',
+    queue: 'Casos no pacote:',
+    reviewable: 'com material e contexto para revisão',
+    deferred: 'para investigação / nova coleta',
+    showDeferred: 'Ver casos para investigação',
+    showReview: 'Voltar à revisão',
+    inspectNext: 'Próximo caso',
+    inspectLast: 'Último caso desta fila',
+    empty: 'Este pacote não contém casos para revisar.',
+    noReviewable: 'Nenhum caso disponível para revisão',
+    preparationRequired: 'O pacote ainda precisa ser preparado: recupere o material original ou faça uma nova coleta antes de enviá-lo aos revisores. Os sites e os motivos da pendência estão abaixo.',
+    pendingExport: 'Exportar pacote com pendências',
+    storageError: 'Não foi possível salvar no navegador. Mantenha esta página aberta e exporte ao terminar.',
+    finished: 'Revisão concluída. Exporte o JSON; os casos para investigação continuam no pacote sem rótulo humano.',
+    sourceHelp: 'A página ao vivo pode ter mudado. Use-a apenas como contexto e baseie a classificação na página preservada abaixo.',
+    humanState: 'Classificação humana',
+    more: 'Mais opções',
+    fewer: 'Menos opções',
+    rationale: 'Justificativa curta',
+    rationalePlaceholder: 'Descreva brevemente qual evidência sustenta a classificação.',
+    rationaleButton: 'Sugerir justificativa curta',
+    rationaleHelp: 'A sugestão não escolhe a classificação. Ajuste o texto quando necessário.',
+    previous: 'Anterior',
+    nextUnanswered: 'Próximo não respondido',
+    next: 'Salvar e avançar',
+    save: 'Salvar',
+    export: 'Exportar JSON concluído',
+    saved: 'Salvo localmente',
+    completed: 'concluídos',
+    case: 'Caso',
+    estimatedWorkload: 'Carga estimada:',
+    cases: 'casos',
+    estimatePending: 'Estimativa de tempo após 5 respostas concluídas',
+    estimateRemaining: 'Tempo restante estimado:',
+    minutes: 'min',
+    validation: 'Escolha uma classificação e escreva uma justificativa curta antes de avançar.',
+    chooseStateFirst: 'Escolha uma classificação antes de gerar uma sugestão de justificativa.',
+    shortcuts: 'Atalhos: 1 Presente, 2 Ausente, 3 Não é possível concluir. Mais opções: 4–7.',
+    bias: 'O estado produzido pelo detector, a confiança e o indicador de revisão ficam ocultos para reduzir viés de ancoragem. Esses dados permanecem inalterados no pacote de pesquisa exportado.',
+    states: {
+      present: 'Presente',
+      absent: 'Ausente',
+      unknown: 'Não é possível concluir',
+      unavailable: 'Indisponível',
+      invalid: 'Inválido',
+      excluded: 'Excluído',
+      not_applicable: 'Não se aplica'
+    }
+  },
+  en: {
+    title: 'Independent human review',
+    language: 'Português',
+    intro: 'Classify only what the preserved evidence supports. Do not use AI to choose labels and do not compare answers with another reviewer before both reviews are complete.',
+    privacyTitle: 'Private and offline:',
+    privacyText: 'this page does not send annotations anywhere. Progress is stored only in this browser. When finished, export the JSON file and return it to the researcher.',
+    evidenceType: 'What to assess on this page',
+    excerpt: 'Preserved page content',
+    noExcerpt: 'This packet contains no preserved text for assessing the case. It remains pending investigation or recollection without requiring a human answer. Use the source URL and original artifact to recover context. A live visit is a new observation and does not establish the state at the original collection.',
+    sourceContext: 'Collected page:',
+    testNotice: 'Form test mode. Arbitrary answers are allowed for all cases. Progress is separate from real review and test JSON cannot be imported as human annotations.',
+    queue: 'Cases in packet:',
+    reviewable: 'with source material and context for review',
+    deferred: 'requiring investigation / recollection',
+    showDeferred: 'View cases for investigation',
+    showReview: 'Return to review',
+    inspectNext: 'Next case',
+    inspectLast: 'Last case in this queue',
+    empty: 'This packet contains no cases to review.',
+    noReviewable: 'No cases available for review',
+    preparationRequired: 'The packet still needs preparation: recover the original material or perform a new collection before sending it to reviewers. Sites and reasons for deferral are shown below.',
+    pendingExport: 'Export pending packet',
+    storageError: 'Browser storage is unavailable. Keep this page open and export when finished.',
+    finished: 'Review complete. Export JSON; cases requiring investigation remain in the packet without human labels.',
+    sourceHelp: 'The live page may have changed. Use it only as context and base the classification on the preserved page below.',
+    humanState: 'Human classification',
+    more: 'More options',
+    fewer: 'Fewer options',
+    rationale: 'Short rationale',
+    rationalePlaceholder: 'Briefly state what preserved evidence supports the classification.',
+    rationaleButton: 'Suggest concise rationale',
+    rationaleHelp: 'The suggestion does not choose the label. Edit it when the specific evidence requires more detail.',
+    previous: 'Previous',
+    nextUnanswered: 'Next unanswered',
+    next: 'Save and next',
+    save: 'Save',
+    export: 'Export completed JSON',
+    saved: 'Saved locally',
+    completed: 'completed',
+    case: 'Case',
+    estimatedWorkload: 'Estimated workload:',
+    cases: 'cases',
+    estimatePending: 'Time estimate after 5 completed answers',
+    estimateRemaining: 'Estimated remaining:',
+    minutes: 'min',
+    validation: 'Choose a human state and add a short rationale before continuing.',
+    chooseStateFirst: 'Choose a human state before generating a rationale suggestion.',
+    shortcuts: 'Shortcuts: 1 Present, 2 Absent, 3 Unknown, 4 Unavailable, 5 Invalid, 6 Excluded, 7 Not applicable.',
+    bias: 'The automated detector state, detector confidence and review flag are hidden to reduce anchoring bias. They remain unchanged in the exported research package.',
+    states: {
+      present: 'Present',
+      absent: 'Absent',
+      unknown: 'Unknown',
+      unavailable: 'Unavailable',
+      invalid: 'Invalid',
+      excluded: 'Excluded',
+      not_applicable: 'Not applicable'
+    }
+  }
+};
+
+const guidance = {
+  pt: {
+    privacy_notice: 'Present somente quando a página ou documento tiver como finalidade principal explicar tratamento de dados pessoais ou privacidade. Termos de uso genéricos não são automaticamente uma política de privacidade.',
+    privacy_law_reference: 'Procure uma referência explícita a uma norma ou regime de privacidade, como LGPD ou GDPR. Uma referência legal não significa conformidade.',
+    controller_identity: 'Procure identificação explícita da organização ou pessoa apresentada como controladora ou responsável pelo tratamento. Não infira identidade apenas pelo domínio ou marca.',
+    purpose_disclosure: 'Procure uma explicação explícita das finalidades do tratamento de dados pessoais.',
+    legal_basis_disclosure: 'Procure uma base legal explicitamente associada ao tratamento. Não deduza a base legal a partir da finalidade.',
+    recipient_disclosure: 'Procure informação explícita sobre destinatários, compartilhamento ou categorias de terceiros que recebem dados.',
+    retention_disclosure: 'Procure prazo, critério ou política explícita de retenção ou eliminação de dados.',
+    international_transfer_disclosure: 'Procure informação explícita sobre transferência internacional de dados ou tratamento fora do país.',
+    supervisory_authority_disclosure: 'Procure referência explícita à autoridade supervisora ou reguladora de proteção de dados.',
+    privacy_contact: 'Diferencie um contato específico de privacidade de um contato genérico da organização.',
+    dpo_role: 'Exija menção explícita ao papel de DPO ou encarregado. Não infira o papel a partir de um nome ou e-mail genérico.',
+    dpo_identity: 'Exija uma pessoa nominalmente identificada como DPO ou encarregado.',
+    dpo_contact: 'Exija um canal de contato explicitamente associado ao DPO ou encarregado.',
+    rights_disclosure: 'Procure descrição explícita dos direitos do titular, não apenas uma declaração genérica sobre privacidade.',
+    rights_channel: 'Exija um canal que possa ser usado para exercer direitos do titular. Diferencie de um formulário de contato genérico.',
+    cookie_notice: 'Classifique apenas a presença observável de aviso ou banner de cookies, separadamente do comportamento técnico.',
+    cookie_categories_disclosure: 'Procure divulgação explícita de categorias ou tipos de cookies/armazenamento.',
+    cookie_third_parties_disclosure: 'Procure divulgação explícita de terceiros associados a cookies ou armazenamento.',
+    cookie_accept_control: 'Procure especificamente um controle observável para aceitar cookies.',
+    cookie_reject_control: 'Procure especificamente um controle observável para rejeitar ou recusar cookies.',
+    cookie_preferences_control: 'Procure especificamente um controle de preferências ou configurações granulares de cookies.',
+    nonessential_storage_before_consent: 'Esta é evidência comportamental. A decisão exige uma observação preservada de armazenamento antes do consentimento.',
+    third_party_requests_before_consent: 'Esta é evidência comportamental. A decisão exige uma observação preservada de requisições de terceiros antes do consentimento.'
+  },
+  en: {
+    privacy_notice: 'Present only when the page or document primarily explains personal-data or privacy processing. Generic terms of use are not automatically privacy notices.',
+    privacy_law_reference: 'Look for an explicit reference to a privacy or data-protection regime such as LGPD or GDPR. A legal reference does not imply compliance.',
+    controller_identity: 'Look for an organization or person explicitly identified as the controller or party responsible for processing. Do not infer identity from the domain or brand alone.',
+    purpose_disclosure: 'Look for an explicit explanation of the purposes of personal-data processing.',
+    legal_basis_disclosure: 'Look for a legal basis explicitly associated with processing. Do not infer a legal basis from the purpose alone.',
+    recipient_disclosure: 'Look for explicit information about recipients, sharing, or categories of third parties receiving data.',
+    retention_disclosure: 'Look for an explicit retention/deletion period, criterion, or policy.',
+    international_transfer_disclosure: 'Look for explicit information about international data transfers or processing outside the country.',
+    supervisory_authority_disclosure: 'Look for an explicit reference to a data-protection supervisory or regulatory authority.',
+    privacy_contact: 'Distinguish a privacy-specific contact from a generic organization contact.',
+    dpo_role: 'Require an explicit DPO or encarregado role. Do not infer the role from a person name or generic email.',
+    dpo_identity: 'Require a named person explicitly identified as DPO or encarregado.',
+    dpo_contact: 'Require a contact channel explicitly associated with the DPO or encarregado role.',
+    rights_disclosure: 'Look for an explicit description of data-subject rights, not merely a generic privacy statement.',
+    rights_channel: 'Require a channel that can actually be used to exercise data-subject rights; distinguish it from a generic contact form.',
+    cookie_notice: 'Classify the observable cookie notice or banner separately from its behavioral effects.',
+    cookie_categories_disclosure: 'Look for explicit disclosure of cookie or storage categories.',
+    cookie_third_parties_disclosure: 'Look for explicit disclosure of third parties associated with cookies or storage.',
+    cookie_accept_control: 'Look specifically for an observable accept control.',
+    cookie_reject_control: 'Look specifically for an observable reject control.',
+    cookie_preferences_control: 'Look specifically for a preferences or granular-settings control.',
+    nonessential_storage_before_consent: 'This is behavioral evidence. The decision requires a preserved observation of storage before consent.',
+    third_party_requests_before_consent: 'This is behavioral evidence. The decision requires a preserved observation of third-party requests before consent.'
+  }
+};
+
+const contextReasons = {
+  pt: { missing_provenance: 'Falta o vínculo entre o site da amostra e a página coletada.', missing_artifact: 'O conteúdo original da página não foi encontrado.', hash_mismatch: 'O arquivo encontrado não corresponde ao hash da coleta.', invalid_hash: 'O identificador do artefato é inválido.', unsupported_media: 'Este formato precisa de material de revisão específico.', empty_document: 'Não foi possível extrair texto da página preservada.', behavioral_material_required: 'Esta pergunta exige registros de armazenamento ou requisições antes do consentimento; o texto da página não basta.' },
+  en: { missing_provenance: 'The sampled website and collected page provenance is missing.', missing_artifact: 'The original page content was not found.', hash_mismatch: 'The file does not match the collection hash.', invalid_hash: 'The artifact identifier is invalid.', unsupported_media: 'This format requires specifically prepared review material.', empty_document: 'No text could be extracted from the preserved page.', behavioral_material_required: 'This question requires preserved storage or request observations before consent; page text is insufficient.' }
+};
+
+const questions = {
+  pt: {
+    privacy_notice: 'Esta página tem como finalidade explicar o tratamento de dados pessoais?',
+    privacy_law_reference: 'A página menciona uma lei de proteção de dados?',
+    controller_identity: 'A página identifica quem é o controlador dos dados?',
+    purpose_disclosure: 'A página explica para que os dados pessoais são usados?',
+    legal_basis_disclosure: 'A página informa a base legal do tratamento?',
+    recipient_disclosure: 'A página informa com quem os dados são compartilhados?',
+    retention_disclosure: 'A página informa por quanto tempo os dados são mantidos?',
+    international_transfer_disclosure: 'A página informa sobre transferência internacional de dados?',
+    supervisory_authority_disclosure: 'A página identifica a autoridade de proteção de dados?',
+    privacy_contact: 'Há um contato específico para assuntos de privacidade?',
+    dpo_role: 'Há menção explícita ao papel de encarregado ou DPO?',
+    dpo_identity: 'A página identifica nominalmente o encarregado ou DPO?',
+    dpo_contact: 'Há um contato explicitamente associado ao encarregado ou DPO?',
+    rights_disclosure: 'A página descreve os direitos do titular de dados?',
+    rights_channel: 'Há um canal específico para exercer os direitos do titular?',
+    cookie_notice: 'Há um aviso de cookies no material preservado?',
+    cookie_categories_disclosure: 'A página informa as categorias de cookies?',
+    cookie_third_parties_disclosure: 'A página identifica terceiros associados aos cookies?',
+    cookie_accept_control: 'Há um controle para aceitar cookies?',
+    cookie_reject_control: 'Há um controle para rejeitar cookies?',
+    cookie_preferences_control: 'Há um controle para configurar preferências de cookies?',
+    nonessential_storage_before_consent: 'Foi observado armazenamento não essencial antes do consentimento?',
+    third_party_requests_before_consent: 'Foram observadas requisições a terceiros antes do consentimento?'
+  },
+  en: {
+    privacy_notice: 'Does this page primarily explain personal-data processing?',
+    privacy_law_reference: 'Does the page mention a data-protection law?',
+    controller_identity: 'Does the page identify the data controller?',
+    purpose_disclosure: 'Does the page explain the purposes of processing?',
+    legal_basis_disclosure: 'Does the page disclose the legal basis for processing?',
+    recipient_disclosure: 'Does the page disclose recipients of personal data?',
+    retention_disclosure: 'Does the page disclose how long data is retained?',
+    international_transfer_disclosure: 'Does the page disclose international data transfers?',
+    supervisory_authority_disclosure: 'Does the page identify a data-protection authority?',
+    privacy_contact: 'Is there a privacy-specific contact?', dpo_role: 'Is the DPO role explicitly mentioned?',
+    dpo_identity: 'Is a named DPO identified?', dpo_contact: 'Is there a contact explicitly associated with the DPO?',
+    rights_disclosure: 'Does the page describe data-subject rights?', rights_channel: 'Is there a channel for exercising data-subject rights?',
+    cookie_notice: 'Is there a cookie notice in the preserved material?', cookie_categories_disclosure: 'Are cookie categories disclosed?',
+    cookie_third_parties_disclosure: 'Are third parties associated with cookies disclosed?', cookie_accept_control: 'Is there a control for accepting cookies?',
+    cookie_reject_control: 'Is there a control for rejecting cookies?', cookie_preferences_control: 'Is there a control for configuring cookie preferences?',
+    nonessential_storage_before_consent: 'Was nonessential storage observed before consent?', third_party_requests_before_consent: 'Were third-party requests observed before consent?'
+  }
+};
+
+const rationaleTemplates = {
+  pt: {
+    present: type => 'A evidência preservada sustenta explicitamente a presença de ' + type + '.',
+    absent: type => 'A evidência preservada foi analisada e não satisfaz os critérios do handbook para ' + type + '.',
+    unknown: type => 'A evidência preservada é insuficiente ou ambígua para classificar ' + type + ' com segurança.',
+    unavailable: type => 'A evidência necessária para avaliar ' + type + ' não pôde ser observada no material preservado.',
+    invalid: type => 'O material preservado não é evidência válida para avaliar ' + type + '.',
+    excluded: type => 'O caso deve ser excluído desta classificação conforme as regras do handbook para ' + type + '.',
+    not_applicable: type => 'A categoria ' + type + ' não se aplica a este caso preservado.'
+  },
+  en: {
+    present: type => 'The preserved evidence explicitly supports the presence of ' + type + '.',
+    absent: type => 'The preserved evidence was reviewed and does not satisfy the handbook criteria for ' + type + '.',
+    unknown: type => 'The preserved evidence is insufficient or ambiguous to classify ' + type + ' reliably.',
+    unavailable: type => 'The evidence required to assess ' + type + ' could not be observed in the preserved material.',
+    invalid: type => 'The preserved material is not valid evidence for assessing ' + type + '.',
+    excluded: type => 'This case should be excluded under the handbook rules for ' + type + '.',
+    not_applicable: type => 'The category ' + type + ' is not applicable to this preserved case.'
+  }
+};
+
+const cases = packageData.cases;
+const sortedOrder = cases.map((_, i) => i).sort((a, b) => {
+  const type = String(cases[a].evidenceType).localeCompare(String(cases[b].evidenceType));
+  return type !== 0 ? type : String(cases[a].evidenceId).localeCompare(String(cases[b].evidenceId));
+});
+function documentFor(c) { return (packageData.reviewDocuments || {})[c.artifactHash]; }
+function hasPreservedExcerpt(c) {
+  const doc = documentFor(c);
+  return Boolean(c.reviewContext && c.reviewContext.reason === null && doc && typeof doc.text === 'string' && doc.text.trim());
+}
+const reviewOrder = sortedOrder.filter(i => testMode || hasPreservedExcerpt(cases[i]));
+const deferredOrder = sortedOrder.filter(i => !hasPreservedExcerpt(cases[i]));
+let showingDeferred = !testMode && reviewOrder.length === 0 && deferredOrder.length > 0;
+let order = showingDeferred ? deferredOrder : reviewOrder;
+const storageKey = 'privacy-evidence-review:' + reviewConfig.packageHash + ':' + (testMode ? 'test' : 'research') + ':' + location.pathname;
+let position = 0;
+let locale = 'pt';
+let secondaryVisible = false;
+let storageAvailable = true;
+let timing = { durations: [], caseStarted: Date.now() };
+
+function t() { return i18n[locale]; }
+function currentCase() { return cases[order[position]]; }
+function isComplete(c) { return Boolean(states.includes(c.humanState) && typeof c.rationale === 'string' && c.rationale.trim() && c.reviewedAt); }
+function completedCount() { return reviewOrder.filter(i => isComplete(cases[i])).length; }
+
+function loadProgress() {
+  try {
+    const savedLocale = localStorage.getItem(storageKey + ':locale');
+    if (savedLocale === 'pt' || savedLocale === 'en') locale = savedLocale;
+    const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+    if (!saved || !Array.isArray(saved.cases)) return;
+    const byId = new Map(saved.cases.map(c => [c.evidenceId, c]));
+    reviewOrder.forEach(i => {
+      const c = cases[i];
+      const s = byId.get(c.evidenceId);
+      if (!s) return;
+      c.humanState = states.includes(s.humanState) ? s.humanState : null;
+      c.rationale = typeof s.rationale === 'string' ? s.rationale : null;
+      c.reviewedAt = typeof s.reviewedAt === 'string' ? s.reviewedAt : null;
+    });
+    if (saved.timing && Array.isArray(saved.timing.durations)) {
+      timing.durations = saved.timing.durations.filter(v => Number.isFinite(v));
+    }
+    position = reviewOrder.findIndex(i => !isComplete(cases[i]));
+    if (position < 0) position = 0;
+  } catch (_) { storageAvailable = false; }
+}
+
+function persist() {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify({ cases, timing }));
+    localStorage.setItem(storageKey + ':locale', locale);
+    storageAvailable = true;
+  } catch (_) { storageAvailable = false; }
+  document.getElementById('saveStatus').textContent = storageAvailable ? t().saved : t().storageError;
+}
+
+function median(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[middle - 1] + sorted[middle]) / 2
+    : sorted[middle];
+}
+
+function guidanceFor(type) {
+  return guidance[locale][type] || (locale === 'pt'
+    ? 'Classifique somente o sinal indicado pelo tipo de evidência e somente com base no material preservado.'
+    : 'Classify only the signal named by the evidence type and only from the preserved material.');
+}
+
+function stateButton(state, index) {
+  const c = currentCase();
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.dataset.state = state;
+  button.textContent = (index + 1) + '. ' + t().states[state];
+  if (showingDeferred) {
+    button.disabled = true;
+    button.title = t().noExcerpt;
+  }
+  if (c.humanState === state) button.classList.add('selected');
+  button.addEventListener('click', () => chooseState(state));
+  return button;
+}
+
+function renderStateButtons() {
+  const primary = document.getElementById('primaryStates');
+  const secondary = document.getElementById('secondaryStates');
+  primary.innerHTML = '';
+  secondary.innerHTML = '';
+  primaryStates.forEach((state, i) => primary.appendChild(stateButton(state, i)));
+  secondaryStates.forEach((state, i) => secondary.appendChild(stateButton(state, i + primaryStates.length)));
+  const selectedSecondary = secondaryStates.includes(currentCase().humanState);
+  secondary.hidden = !(secondaryVisible || selectedSecondary);
+  document.getElementById('moreStates').textContent = secondary.hidden ? t().more : t().fewer;
+}
+
+function renderStaticText() {
+  const text = t();
+  document.documentElement.lang = locale === 'pt' ? 'pt-BR' : 'en';
+  document.getElementById('title').textContent = text.title;
+  document.getElementById('languageToggle').textContent = text.language;
+  document.getElementById('intro').textContent = text.intro;
+  document.getElementById('privacyTitle').textContent = text.privacyTitle;
+  document.getElementById('privacyText').textContent = text.privacyText;
+  document.getElementById('evidenceTypeLabel').textContent = text.evidenceType;
+  document.getElementById('excerptLabel').textContent = text.excerpt;
+  document.getElementById('sourceContextLabel').textContent = text.sourceContext;
+  document.getElementById('sourceContextHelp').textContent = text.sourceHelp;
+  document.getElementById('humanStateLabel').textContent = text.humanState;
+  document.getElementById('shortcutHelp').textContent = text.shortcuts;
+  document.getElementById('rationaleLabel').textContent = text.rationale;
+  document.getElementById('rationale').placeholder = text.rationalePlaceholder;
+  document.getElementById('rationaleHelper').textContent = text.rationaleButton;
+  document.getElementById('rationaleHelp').textContent = text.rationaleHelp;
+  document.getElementById('previous').textContent = text.previous;
+  document.getElementById('nextUnanswered').textContent = text.nextUnanswered;
+  document.getElementById('export').textContent = !testMode && reviewOrder.length === 0 ? text.pendingExport : text.export;
+  document.getElementById('biasNotice').textContent = text.bias;
+  document.getElementById('testNotice').hidden = !testMode;
+  document.getElementById('testNotice').textContent = text.testNotice;
+  document.getElementById('queueNotice').textContent = text.queue + ' ' + cases.length + ' — ' + sortedOrder.filter(i => hasPreservedExcerpt(cases[i])).length + ' ' + text.reviewable + '; ' + deferredOrder.length + ' ' + text.deferred + '.';
+  document.getElementById('queueToggle').hidden = testMode || deferredOrder.length === 0 || reviewOrder.length === 0;
+  document.getElementById('queueToggle').textContent = showingDeferred ? text.showReview : text.showDeferred;
+}
+
+function render() {
+  renderStaticText();
+  const c = currentCase();
+  const text = t();
+  document.getElementById('evidenceCard').hidden = !c;
+  document.getElementById('decisionCard').hidden = !c || showingDeferred;
+  document.getElementById('next').disabled = !c;
+  document.getElementById('next').hidden = !c;
+  document.getElementById('previous').hidden = !c;
+  document.getElementById('nextUnanswered').hidden = !c || showingDeferred;
+  document.getElementById('previous').disabled = !c || position === 0;
+  document.getElementById('nextUnanswered').disabled = !c || showingDeferred || completedCount() === reviewOrder.length;
+  document.getElementById('export').disabled = cases.length === 0 || completedCount() !== reviewOrder.length;
+  document.getElementById('progressText').textContent = reviewOrder.length
+    ? completedCount() + ' / ' + reviewOrder.length + ' ' + text.completed
+    : (cases.length ? text.noReviewable : text.empty);
+  document.getElementById('progressBar').style.width = (reviewOrder.length ? completedCount() / reviewOrder.length * 100 : 0) + '%';
+  document.getElementById('categoryText').textContent = c ? text.case + ' ' + (position + 1) + ' / ' + order.length : text.empty;
+  document.getElementById('timeText').textContent = reviewOrder.length
+    ? (completedCount() === reviewOrder.length ? text.finished : '')
+    : (cases.length ? text.preparationRequired : '');
+  if (!storageAvailable) document.getElementById('saveStatus').textContent = text.storageError;
+  if (!c) return;
+  const context = c.reviewContext || {};
+  const doc = documentFor(c);
+  document.getElementById('sampleSite').textContent = context.resourceName || (locale === 'pt' ? 'Site da amostra não identificado' : 'Sampled website unidentified');
+  document.getElementById('sampleUrl').textContent = (context.resourceUrl || '') + ' · Resource ID: ' + c.resourceId;
+  document.getElementById('type').textContent = questions[locale][c.evidenceType] || String(c.evidenceType).replaceAll('_', ' ');
+  document.getElementById('pageContext').textContent = (doc?.title || '') + ' · ' + (locale === 'pt' ? 'Coletado em: ' : 'Collected at: ') + (context.fetchedAt || '—');
+  const warnings = [];
+  if (context.truncated) warnings.push(locale === 'pt' ? 'A coleta foi truncada. Use “Não é possível concluir” se a resposta depender da parte não preservada.' : 'The collection was truncated. Use Unknown if the answer requires the missing part.');
+  try {
+    if (new URL(context.resourceUrl).hostname !== new URL(c.sourceUrl).hostname) warnings.push(locale === 'pt' ? 'Esta página está em outro domínio. O vínculo da coleta não comprova que ela descreve o tratamento de dados do site da amostra.' : 'This page is on another domain. A crawl link does not prove it describes processing by the sampled website.');
+  } catch (_) {}
+  document.getElementById('contextWarning').hidden = warnings.length === 0;
+  document.getElementById('contextWarning').textContent = warnings.join(' ');
+  const labels = locale === 'pt' ? ['Instruções', 'Critério de avaliação', 'Proveniência', 'Sobre esta revisão'] : ['Instructions', 'Assessment criteria', 'Provenance', 'About this review'];
+  ['instructionsLabel', 'criteriaLabel', 'provenanceLabel', 'methodLabel'].forEach((id, i) => { document.getElementById(id).textContent = labels[i]; });
+  document.getElementById('guidance').textContent = guidanceFor(c.evidenceType);
+  document.getElementById('excerpt').textContent = doc && doc.text
+    ? doc.text
+    : (locale === 'pt' ? '[O conteúdo textual não está disponível neste pacote.]' : '[No preserved text evidence is available for this case.]');
+
+  const missing = document.getElementById('missingEvidence');
+  missing.hidden = hasPreservedExcerpt(c);
+  const reason = contextReasons[locale][context.reason] || text.noExcerpt;
+  missing.textContent = reason + ' ' + (locale === 'pt' ? 'Caso mantido para investigação, sem exigir uma resposta. O site ao vivo não substitui a coleta original.' : 'Case retained for investigation without requiring an answer. A live website does not replace the original collection.');
+
+  const link = document.getElementById('sourceUrl');
+  link.removeAttribute('href');
+  try {
+    const url = new URL(c.sourceUrl);
+    if (url.protocol === 'https:' || url.protocol === 'http:') link.href = url.href;
+  } catch (_) {}
+  link.textContent = c.sourceUrl || (locale === 'pt' ? 'Sem URL de origem' : 'No source URL');
+  document.getElementById('artifactContext').textContent = 'Artifact SHA-256: ' + (c.artifactHash || '—') + ' · Evidence ID: ' + c.evidenceId;
+  document.getElementById('rationale').value = c.rationale || '';
+  document.getElementById('validation').textContent = '';
+
+  renderStateButtons();
+
+  const done = completedCount();
+  const pct = reviewOrder.length ? (done / reviewOrder.length) * 100 : 0;
+  document.getElementById('progressBar').style.width = pct.toFixed(1) + '%';
+  document.getElementById('progressText').textContent = reviewOrder.length
+    ? done + ' / ' + reviewOrder.length + ' ' + text.completed
+    : text.noReviewable;
+  document.getElementById('categoryText').textContent = text.case + ' ' + (position + 1) + ' / ' + order.length;
+
+  const validDurations = (timing.durations || []).filter(v => v >= 5 && v <= 600);
+  if (reviewOrder.length === 0) {
+    document.getElementById('timeText').textContent = text.preparationRequired;
+  } else if (done === reviewOrder.length) {
+    document.getElementById('timeText').textContent = text.finished;
+  } else if (done < minimumForEstimate || validDurations.length < minimumForEstimate) {
+    document.getElementById('timeText').textContent = done === 0
+      ? text.estimatedWorkload + ' ' + reviewOrder.length + ' ' + text.cases
+      : text.estimatePending;
+  } else {
+    const secondsPerCase = median(validDurations);
+    const minutes = Math.max(1, Math.round(((reviewOrder.length - done) * secondsPerCase) / 60));
+    document.getElementById('timeText').textContent = text.estimateRemaining + ' ' + minutes + ' ' + text.minutes;
+  }
+
+  document.getElementById('previous').disabled = position === 0;
+  document.getElementById('next').textContent = showingDeferred
+    ? (position === order.length - 1 ? text.inspectLast : text.inspectNext)
+    : (position === order.length - 1 ? text.save : text.next);
+  document.getElementById('next').disabled = showingDeferred && position === order.length - 1;
+  document.getElementById('export').disabled = cases.length === 0 || done !== reviewOrder.length;
+}
+
+function chooseState(state) {
+  const c = currentCase();
+  if (!c || showingDeferred || !states.includes(state)) return;
+  saveDraftRationale();
+  c.humanState = state;
+  c.reviewedAt = null;
+  persist();
+  render();
+  document.getElementById('rationale').focus();
+}
+
+function saveCurrent(advance) {
+  const c = currentCase();
+  if (!c) return false;
+  if (showingDeferred) {
+    if (advance && position < order.length - 1) position++;
+    render();
+    return true;
+  }
+  c.rationale = document.getElementById('rationale').value.trim();
+  if (!c.humanState || !c.rationale) {
+    document.getElementById('validation').textContent = t().validation;
+    return false;
+  }
+
+  const firstCompletion = !c.reviewedAt;
+  if (firstCompletion) {
+    c.reviewedAt = new Date().toISOString();
+    const seconds = Math.round((Date.now() - timing.caseStarted) / 1000);
+    if (seconds > 0) timing.durations.push(seconds);
+  }
+
+  persist();
+  if (advance && position < order.length - 1) position++;
+  timing.caseStarted = Date.now();
+  render();
+  return true;
+}
+
+function jumpToNextUnanswered() {
+  if (showingDeferred) return;
+  saveDraftRationale();
+  for (let step = 1; step <= order.length; step++) {
+    const candidate = (position + step) % order.length;
+    if (!isComplete(cases[order[candidate]])) {
+      position = candidate;
+      timing.caseStarted = Date.now();
+      render();
+      return;
+    }
+  }
+}
+
+function saveDraftRationale() {
+  const c = currentCase();
+  if (!c || showingDeferred) return;
+  const value = document.getElementById('rationale').value;
+  if (c.rationale !== value) c.reviewedAt = null;
+  c.rationale = value;
+  persist();
+}
+
+function exportPackage() {
+  saveDraftRationale();
+  if (cases.length === 0 || completedCount() !== reviewOrder.length) return;
+  const blob = new Blob([JSON.stringify(packageData, null, 2) + '\n'], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = testMode ? 'privacy-evidence-review-TEST.json'
+    : (reviewOrder.length === 0 ? 'privacy-evidence-review-pending.json' : 'privacy-evidence-review-completed.json');
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+document.getElementById('languageToggle').addEventListener('click', () => {
+  saveDraftRationale();
+  locale = locale === 'pt' ? 'en' : 'pt';
+  persist();
+  render();
+});
+document.getElementById('moreStates').addEventListener('click', () => {
+  secondaryVisible = document.getElementById('secondaryStates').hidden;
+  renderStateButtons();
+});
+document.getElementById('rationale').addEventListener('input', () => {
+  document.getElementById('validation').textContent = '';
+  saveDraftRationale();
+  const done = completedCount();
+  document.getElementById('export').disabled = cases.length === 0 || done !== reviewOrder.length;
+  document.getElementById('nextUnanswered').disabled = done === reviewOrder.length;
+  document.getElementById('progressText').textContent = done + ' / ' + reviewOrder.length + ' ' + t().completed;
+  document.getElementById('progressBar').style.width = (reviewOrder.length ? done / reviewOrder.length * 100 : 100) + '%';
+});
+document.getElementById('rationaleHelper').addEventListener('click', () => {
+  const c = currentCase();
+  if (!c || showingDeferred) return;
+  if (!c.humanState) {
+    document.getElementById('validation').textContent = t().chooseStateFirst;
+    return;
+  }
+  const area = document.getElementById('rationale');
+  if (!area.value.trim()) {
+    const readableType = String(c.evidenceType).replaceAll('_', ' ');
+    area.value = rationaleTemplates[locale][c.humanState](readableType);
+  }
+  area.focus();
+  saveDraftRationale();
+});
+document.getElementById('previous').addEventListener('click', () => {
+  saveDraftRationale();
+  if (position > 0) position--;
+  timing.caseStarted = Date.now();
+  render();
+});
+document.getElementById('queueToggle').addEventListener('click', () => {
+  saveDraftRationale();
+  showingDeferred = !showingDeferred;
+  order = showingDeferred ? deferredOrder : reviewOrder;
+  position = 0;
+  timing.caseStarted = Date.now();
+  render();
+});
+document.getElementById('next').addEventListener('click', () => saveCurrent(true));
+document.getElementById('nextUnanswered').addEventListener('click', jumpToNextUnanswered);
+document.getElementById('export').addEventListener('click', exportPackage);
+document.addEventListener('keydown', event => {
+  if (event.target && ['TEXTAREA', 'INPUT', 'SELECT'].includes(event.target.tagName)) {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault();
+      saveCurrent(true);
+    }
+    return;
+  }
+  const number = Number(event.key);
+  if (number >= 1 && number <= states.length) chooseState(states[number - 1]);
+});
+
+loadProgress();
+render();
+</script>
+</body>
+</html>
+
