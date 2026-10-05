@@ -33,7 +33,7 @@ jobs:
             echo
             echo 'Command: examples/hacktoberfest/run-demo.sh'
             echo
-            examples/hacktoberfest/run-demo.sh
+            sh examples/hacktoberfest/run-demo.sh
           } | tee hacktoberfest-demo-output/demo-output.txt
       - name: Upload demo evidence
         uses: actions/upload-artifact@v6
