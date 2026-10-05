@@ -33,6 +33,10 @@ before(async () => {
       ? fixtureCases.filter(c => c.excerpt === null) : fixtureCases;
     const data = { packageVersion: '1.0.0', annotationHandbookVersion: '1.0.0', runId: 'fixture', seed: 'fixture', perStratum: 2, cases, reviewDocuments: Object.fromEntries(cases.filter(c => c.excerpt).map(c => [c.artifactHash, {title: 'Preserved policy', text: 'Full preserved content for site ' + c.resourceId + '. The data controller is Synthetic Example Ltd. Contact privacy@example.test.'}])) };
     // A changed packet under the same path must not recover obsolete progress.
+    if (url.searchParams.has('allMissing')) {
+      data.cases = fixtureCases.map(c => ({...c, reviewContext: {...c.reviewContext, reason: 'missing_artifact'}}));
+      data.reviewDocuments = {};
+    }
     if (url.searchParams.has('context')) {
       data.cases = [{...fixtureCases[1], evidenceType: 'controller_identity', excerpt: null, sourceUrl: 'https://external.test/policy'}];
       data.reviewDocuments = {[fixtureCases[1].artifactHash]: {title: 'Controller information', text: 'A controlador de dados is a generic legal term. The responsible controller is Synthetic Example Ltd. <script>window.contextExecuted = true</script>'}};
@@ -160,21 +164,53 @@ test('test answers cannot restore into research, and a changed packet cannot reu
   } finally { await context.close(); }
 });
 
-test('empty and entirely deferred packets remain navigable and exportable without invented labels', async () => {
-  for (const query of ['?empty', '?missing']) {
+test('empty packet never reports completion or offers a completed download', async () => {
+  for (const query of ['?empty', '?test&empty']) {
     const { context, page, errors } = await session(query);
     try {
-      assert.equal(await page.locator('#next').isDisabled(), true);
-      const result = await download(page);
-      assert.equal(result.data.cases.length, query === '?empty' ? 0 : 29);
-      if (query === '?missing') {
-        await page.locator('#queueToggle').click();
-        assert.equal(await page.locator('#evidenceCard').isVisible(), true);
-        assert.equal(await page.locator('#decisionCard').isVisible(), false);
-      }
+      assert.equal(await page.locator('#next').isVisible(), false);
+      assert.equal(await page.locator('#export').isDisabled(), true);
+      assert.equal(await page.locator('#timeText').innerText(), '');
+      assert.doesNotMatch(await page.locator('#progressText').innerText(), /0 \/ 0|concluídos/);
+      assert.equal(await page.locator('#progressBar').evaluate(e => e.style.width), '0%');
+      await page.locator('#languageToggle').click();
+      assert.doesNotMatch(await page.locator('#progressText').innerText(), /0 \/ 0|completed/);
       assert.deepEqual(errors, []);
     } finally { await context.close(); }
   }
+});
+
+test('entirely deferred packet opens sites and missing reasons without claiming review completion', async () => {
+  const { context, page, errors } = await session('?allMissing');
+  try {
+    assert.match(await page.locator('#queueNotice').innerText(), /85.*0.*85/);
+    assert.equal(await page.locator('#evidenceCard').isVisible(), true);
+    assert.equal(await page.locator('#decisionCard').isVisible(), false);
+    assert.equal(await page.locator('#queueToggle').isVisible(), false);
+    assert.match(await page.locator('#sampleSite').innerText(), /Synthetic site/);
+    assert.match(await page.locator('#missingEvidence').innerText(), /conteúdo original da página não foi encontrado/);
+    assert.match(await page.locator('#timeText').innerText(), /ainda precisa ser preparado/);
+    assert.doesNotMatch(await page.locator('#progressText').innerText(), /0 \/ 0|concluídos/);
+    assert.equal(await page.locator('#export').innerText(), 'Exportar pacote com pendências');
+    await screenshot(page, 'entirely-deferred-desktop');
+    for (let i = 1; i < 85; i++) await page.locator('#next').click();
+    assert.equal(await page.locator('#next').isDisabled(), true);
+    await page.locator('#languageToggle').click();
+    assert.match(await page.locator('#timeText').innerText(), /still needs preparation/);
+    assert.doesNotMatch(await page.locator('#timeText').innerText(), /Review complete/);
+    assert.equal(await page.locator('#export').innerText(), 'Export pending packet');
+    await page.reload();
+    assert.equal(await page.locator('#evidenceCard').isVisible(), true);
+    const result = await download(page);
+    assert.match(result.filename, /pending/);
+    assert.equal(result.data.cases.length, 85);
+    for (const c of result.data.cases) {
+      assert.equal(c.humanState, null);
+      assert.equal(c.rationale, null);
+      assert.equal(c.reviewedAt, null);
+    }
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
 });
 
 test('blocked local storage does not prevent completing and exporting the form', async () => {

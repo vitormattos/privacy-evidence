@@ -139,6 +139,8 @@ Test mode includes all cases, permits arbitrary labels even without text, and is
 
 For actual reviewers, regenerate HTML without `--test-mode`. Test answers will not be restored into that page. Packet content hashes also isolate progress after a packet changes, even if the filename is reused. The deliberate new storage namespace does not migrate answers from older HTML versions: export any existing real work before replacing an old page.
 
+When every real case is deferred, the HTML opens the investigation queue directly and reports that the packet needs preparation. It does not show `0 / 0 completed` or claim that review is finished. The optional download is explicitly named `privacy-evidence-review-pending.json` and preserves blank human fields. An empty packet cannot be exported as a completed review. Test mode still permits traversal and arbitrary answers for every nonempty case.
+
 A browser storage failure is shown explicitly. Keep the tab open and export the JSON at the end if local storage is unavailable.
 
 Run the synthetic offline browser regression suite with:
