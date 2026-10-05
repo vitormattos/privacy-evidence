@@ -19,6 +19,30 @@ final class HttpProbeTest extends TestCase
         self::assertSame(ProbeFailure::InvalidUrl, $result->failure);
     }
 
+    public function testBlockedUnresolvableHostIsClassifiedAsDnsFailure(): void
+    {
+        $client = new MockHttpClient(new MockResponse('', [
+            'error' => 'Host "does-not-exist.invalid" is blocked for "https://does-not-exist.invalid/".',
+        ]));
+
+        $result = (new HttpProbe($client))->probe('https://does-not-exist.invalid/');
+
+        self::assertSame(ProbeFailure::Dns, $result->failure);
+        self::assertSame('failed', $result->dnsState);
+        self::assertSame('Host has no resolvable A/AAAA address.', $result->failureDetail);
+    }
+
+    public function testBlockedResolvablePrivateHostRemainsPrivateNetworkFailure(): void
+    {
+        $client = new MockHttpClient(new MockResponse('', [
+            'error' => 'Host "localhost" is blocked for "http://localhost/".',
+        ]));
+
+        $result = (new HttpProbe($client))->probe('http://localhost/');
+
+        self::assertSame(ProbeFailure::PrivateNetwork, $result->failure);
+    }
+
     public function testClassifiesConnectionRefusedSeparately(): void
     {
         $client = new MockHttpClient(new MockResponse('', [

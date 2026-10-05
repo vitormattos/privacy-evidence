@@ -104,7 +104,11 @@ final class HttpProbe
                     transportState: 'connected',
                 );
             } catch (TransportExceptionInterface $e) {
-                $failure = $this->classifyTransportFailure($e->getMessage());
+                $failure = $this->classifyTransportFailure($e->getMessage(), $current);
+                $failureDetail = $failure === ProbeFailure::Dns
+                    && str_contains(strtolower($e->getMessage()), ' is blocked')
+                    ? 'Host has no resolvable A/AAAA address.'
+                    : $e->getMessage();
 
                 return new HttpProbeResult(
                     requestedUrl: $url,
@@ -116,7 +120,7 @@ final class HttpProbe
                     tlsState: $failure === ProbeFailure::Tls ? 'failed' : 'unknown',
                     transportState: 'failed',
                     failure: $failure,
-                    failureDetail: $e->getMessage(),
+                    failureDetail: $failureDetail,
                 );
             }
         }
@@ -130,6 +134,31 @@ final class HttpProbe
 
         return filter_var($url, FILTER_VALIDATE_URL) !== false
             && in_array($scheme, ['http', 'https'], true);
+    }
+
+    private function blockedHostFailure(string $url): ProbeFailure
+    {
+        $host = parse_url($url, PHP_URL_HOST);
+        if (!is_string($host) || $host === '') {
+            return ProbeFailure::PrivateNetwork;
+        }
+
+        $host = trim($host, '[]');
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return ProbeFailure::PrivateNetwork;
+        }
+
+        $addresses = gethostbynamel($host);
+        if (is_array($addresses) && $addresses !== []) {
+            return ProbeFailure::PrivateNetwork;
+        }
+
+        $aaaa = @dns_get_record($host, DNS_AAAA);
+        if (is_array($aaaa) && $aaaa !== []) {
+            return ProbeFailure::PrivateNetwork;
+        }
+
+        return ProbeFailure::Dns;
     }
 
     private function tlsStateForSuccess(string $url): string
@@ -163,14 +192,16 @@ final class HttpProbe
         return $origin . ($directory === '' ? '' : $directory) . '/' . $location;
     }
 
-    private function classifyTransportFailure(string $message): ProbeFailure
+    private function classifyTransportFailure(string $message, string $url): ProbeFailure
     {
         $lower = strtolower($message);
 
+        if (str_contains($lower, ' is blocked')) {
+            return $this->blockedHostFailure($url);
+        }
         if (
             str_contains($lower, 'private')
             || str_contains($lower, 'reserved')
-            || str_contains($lower, ' is blocked')
         ) {
             return ProbeFailure::PrivateNetwork;
         }
