@@ -1,5 +1,5 @@
 ---
-title: I built the research tool I wish I had for my own privacy study
+title: I turned my old privacy study into a reproducible research tool for my master's advisor
 published: false
 tags: devchallenge, weekendchallenge, hf26challenge
 ---
@@ -8,9 +8,9 @@ tags: devchallenge, weekendchallenge, hf26challenge
 
 ## What I Built
 
-I built **Privacy Evidence** for the researcher I know best: myself.
+I built **Privacy Evidence** with a real person in mind: **Igor Scaliante Wiese, my master's advisor at UTFPR**.
 
-A previous academic monograph at Seminário Simonton explored digital ethics and the effect of digital practices on Christian fellowship. One part of the research looked at privacy and data-protection practices on websites associated with churches of the Igreja Presbiteriana do Brasil (IPB).
+A previous academic monograph I wrote at Seminário Simonton explored digital ethics and the effect of digital practices on Christian fellowship. One part of the research looked at privacy and data-protection practices on websites associated with churches of the Igreja Presbiteriana do Brasil (IPB).
 
 The hard part was not only interpreting LGPD-related evidence. It was building the sample itself.
 
@@ -18,7 +18,9 @@ I started from the public IPB directory and worked through entries one by one. S
 
 That process helped answer the research question, but it had a serious empirical-software-engineering problem: too much of the workflow was manual. Another researcher could read the methodology, but could not reliably replay the same sequence of filtering, collection, classification and review from the original source data.
 
-Privacy Evidence is the tool I wanted that study to have.
+Privacy Evidence is the tool I wanted that study to have, but the current goal is broader: turn the old work into something my advisor can inspect as empirical software-engineering research and that can support the scientific publications I need to produce during the master's program.
+
+I am not claiming that Igor asked me to build this exact software or that he has already validated the results. The point is that he is a real academic mentor and intended reviewer of the next research step, not an invented persona.
 
 It accepts a population of websites from a source adapter, preserves provenance, acquires public evidence through a repeatable protocol, classifies observable privacy signals, sends ambiguous cases to review, and lets the same generic evidence be evaluated against versioned profiles such as LGPD, GDPR and cookie/ePrivacy requirements.
 
@@ -157,7 +159,7 @@ Before publishing this DEV post:
 - [x] project repository was created during the official challenge window;
 - [x] frozen code commit is inside the challenge window;
 - [x] open-source AI/ML is materially required by the demo;
-- [x] one real user and real problem are documented;
+- [x] one real academic beneficiary and real research problem are documented;
 - [x] repository/code link is included;
 - [x] required tags are present: `#devchallenge`, `#weekendchallenge`, `#hf26challenge`;
 - [x] English submission is prepared for prize eligibility;

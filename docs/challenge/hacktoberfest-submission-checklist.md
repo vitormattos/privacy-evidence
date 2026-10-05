@@ -1,12 +1,12 @@
 # Hacktoberfest Weekend Challenge final submission checklist
 
-Last rule verification source: official DEV challenge page and contest rules, checked 2026-10-03.
+Last rule verification source: official DEV challenge page and contest rules, checked 2026-10-05.
 
 ## Official required elements
 
 - [x] New repository/project started during the entry period.
 - [x] Open-source AI/ML at the core of the demonstrated result.
-- [x] Real-person problem documented.
+- [x] Real-person problem documented: master's advisor Igor Scaliante Wiese as intended academic beneficiary/reviewer.
 - [x] Code link prepared.
 - [x] Explanation of why open-source/local AI matters.
 - [x] DEV submission drafted from the official template.
@@ -29,6 +29,7 @@ Last rule verification source: official DEV challenge page and contest rules, ch
 
 The post must not claim:
 
+- that Igor requested this exact implementation, approved the results or gave feedback that has not been collected;
 - organization-level LGPD/GDPR compliance or non-compliance from website evidence;
 - that ML is more accurate than deterministic rules on the target project population;
 - that external-corpus results satisfy the final project validation gate;
