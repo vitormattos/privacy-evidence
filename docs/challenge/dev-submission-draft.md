@@ -74,7 +74,7 @@ This GitHub Actions run executes the real PHP-native Rubix model build and infer
 
 This project is not only a crawler or a classifier. I designed it as a **reproducible empirical software-engineering study**.
 
-The research protocol uses the **Goal–Question–Metric (GQM)** paradigm to connect the research goal, research questions and observable measurements. The reporting and study-design choices also use the **ACM SIGSOFT Empirical Standards** as a methodological reference.
+The research protocol uses the **Goal-Question-Metric (GQM)** paradigm to connect the research goal, research questions and observable measurements. The reporting and study-design choices also use the **ACM SIGSOFT Empirical Standards** as a methodological reference.
 
 The object of study is deliberately narrow:
 
@@ -86,13 +86,13 @@ It is **not** a measurement of organization-wide legal compliance.
 
 The study follows seven measurement layers. Each layer preserves the previous observation instead of silently replacing it:
 
-1. **Source observation** — preserve the original value from the source population.
-2. **Normalization and classification** — determine whether the source represents an institutional website, social network, third-party page, malformed address or another resource type.
-3. **Technical acquisition** — attempt HTTP acquisition and, when justified, browser-based acquisition under bounded crawl rules.
-4. **Automated evidence classification** — apply deterministic detectors to immutable acquired documents.
-5. **Human review and adjudication** — keep uncertain, conflicting or review-dependent evidence separate from automated output.
-6. **Regulatory mapping** — map generic reviewed evidence to versioned regulatory profiles such as LGPD.
-7. **Derived metrics and interpretation** — aggregate only after the earlier states and denominators are preserved.
+1. **Source observation**: preserve the original value from the source population.
+2. **Normalization and classification**: determine whether the source represents an institutional website, social network, third-party page, malformed address or another resource type.
+3. **Technical acquisition**: attempt HTTP acquisition and, when justified, browser-based acquisition under bounded crawl rules.
+4. **Automated evidence classification**: apply deterministic detectors to immutable acquired documents.
+5. **Human review and adjudication**: keep uncertain, conflicting or review-dependent evidence separate from automated output.
+6. **Regulatory mapping**: map generic reviewed evidence to versioned regulatory profiles such as LGPD.
+7. **Derived metrics and interpretation**: aggregate only after the earlier states and denominators are preserved.
 
 ### Population and units of analysis
 
@@ -100,12 +100,12 @@ The starting population is the complete set of source records obtained from the 
 
 The protocol distinguishes several units:
 
-- **source record** — the original value obtained from the source population;
-- **normalized resource** — a protocol-derived HTTP/HTTPS representation when possible;
-- **unique website measurement unit** — the canonical website after duplicate references are resolved;
-- **fetched document** — an immutable acquisition artifact;
-- **evidence item** — a detector or reviewer observation tied to an exact artifact;
-- **ResearchRun** — the versioned execution context binding dataset, code, protocol, profiles and configuration.
+- **source record**: the original value obtained from the source population;
+- **normalized resource**: a protocol-derived HTTP/HTTPS representation when possible;
+- **unique website measurement unit**: the canonical website after duplicate references are resolved;
+- **fetched document**: an immutable acquisition artifact;
+- **evidence item**: a detector or reviewer observation tied to an exact artifact;
+- **ResearchRun**: the versioned execution context binding dataset, code, protocol, profiles and configuration.
 
 This distinction prevents sample construction from becoming an undocumented preprocessing step.
 
@@ -196,7 +196,7 @@ The original monograph gives this project something unusually useful: a **histor
 
 The first dataset was processed on **June 20, 2025**. The new full-population validation run was executed on **October 5, 2026**. The table below puts both observations side by side.
 
-| Dimension | June 20, 2025 — monograph | October 5, 2026 — Privacy Evidence | How to interpret it |
+| Dimension | June 20, 2025 (monograph) | October 5, 2026 (Privacy Evidence) | How to interpret it |
 | --- | ---: | ---: | --- |
 | Source population | **2,935 churches** | **2,993 source records** | The underlying directory changed over time; the 2026 run contains 58 more source records. |
 | Website addresses / website-eligible records | **640 addresses informed** | **589 eligible source records** | The criteria are not identical. The current protocol classifies resource type before deciding website eligibility. |
@@ -353,11 +353,11 @@ It also exposes an important methodological limitation: **website observability 
 
 The full-population run provides a baseline for several follow-up studies:
 
-1. **Longitudinal analysis** — how public privacy evidence changes over time.
-2. **Population comparison** — differences between denominations, organizations or sectors.
-3. **Classifier validation** — deterministic and ML-based classifiers against independently human-reviewed samples.
-4. **Website characteristics** — whether particular technical or organizational characteristics are associated with greater privacy-information visibility.
-5. **Regulatory-profile replication** — reevaluating the same collected evidence against other regulatory profiles without repeating acquisition.
+1. **Longitudinal analysis**: how public privacy evidence changes over time.
+2. **Population comparison**: differences between denominations, organizations or sectors.
+3. **Classifier validation**: deterministic and ML-based classifiers against independently human-reviewed samples.
+4. **Website characteristics**: whether particular technical or organizational characteristics are associated with greater privacy-information visibility.
+5. **Regulatory-profile replication**: reevaluating the same collected evidence against other regulatory profiles without repeating acquisition.
 
 In that sense, the main contribution of the run is not only the descriptive result for the websites that could be measured. It is the preservation of the **entire research population**, including the records for which website analysis was not applicable or technically possible, together with an auditable explanation of how every record reached its final state.
 
@@ -421,7 +421,7 @@ That matters because a scientific workflow should be inspectable enough that ano
 - which probability and threshold produced the candidate result;
 - how disagreement reached human review.
 
-A closed API can be useful, but it introduces a research dependency whose implementation and model can change outside the repository. For the specific problem I was trying to fix — a previous study that was not reproducible enough — moving the crucial classification step behind an opaque remote API would solve the wrong problem.
+A closed API can be useful, but it introduces a research dependency whose implementation and model can change outside the repository. For the specific problem I was trying to fix: a previous study that was not reproducible enough: moving the crucial classification step behind an opaque remote API would solve the wrong problem.
 
 Open-source local ML gives me a model I can version, inspect, replace, benchmark and rerun as part of the same research instrument.
 
