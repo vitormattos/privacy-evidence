@@ -152,22 +152,3 @@ Optional for this entry. No DevRelay session is currently included.
 
 No partner prize category is claimed for this submission.
 
----
-
-### Submission checklist
-
-Before publishing this DEV post:
-
-- [x] project repository was created during the official challenge window;
-- [x] frozen code commit is inside the challenge window;
-- [x] open-source AI/ML is materially required by the demo;
-- [x] one real academic beneficiary and real research problem are documented;
-- [x] repository/code link is included;
-- [x] required tags are present: `#devchallenge`, `#weekendchallenge`, `#hf26challenge`;
-- [x] English submission is prepared for prize eligibility;
-- [x] no legal-compliance or unsupported model-quality claim is made;
-- [x] no user reaction is fabricated;
-- [x] add a deployed demo link or public video, as required by the official rules;
-- [x] run the public PHP-native ML demo and preserve the successful output in GitHub Actions;
-- [ ] re-check the live challenge page immediately before publishing;
-- [ ] publish before 2026-10-05 06:59 UTC.
