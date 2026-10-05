@@ -46,7 +46,9 @@ The JSON output includes the deterministic detector state, model probability and
 
 Most importantly, the demo **fails if the model artifact is removed**. The ML is not decorative; it is required to produce the demonstrated second opinion.
 
-**Video demo:** TODO before publishing — add the public video/demo URL here.
+**Public demo:** https://github.com/vitormattos/privacy-evidence/actions/runs/37265354267
+
+This GitHub Actions run executes the real PHP-native Rubix model build and inference path in public. The successful output shows `aiAtCore: true`, `modelRequired: true`, a `controller_identity` ML candidate with probability `1`, rule/ML disagreement, one pending review case and an auditable `ai_suggestion`.
 
 ## Code
 
@@ -165,7 +167,7 @@ Before publishing this DEV post:
 - [x] English submission is prepared for prize eligibility;
 - [x] no legal-compliance or unsupported model-quality claim is made;
 - [x] no user reaction is fabricated;
-- [ ] add a deployed demo link or public video, as required by the official rules;
-- [ ] run the demo once more from the frozen commit and record the output/video;
+- [x] add a deployed demo link or public video, as required by the official rules;
+- [x] run the public PHP-native ML demo and preserve the successful output in GitHub Actions;
 - [ ] re-check the live challenge page immediately before publishing;
 - [ ] publish before 2026-10-05 06:59 UTC.

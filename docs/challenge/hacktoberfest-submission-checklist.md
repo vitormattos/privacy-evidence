@@ -12,7 +12,7 @@ Last rule verification source: official DEV challenge page and contest rules, ch
 - [x] DEV submission drafted from the official template.
 - [x] Required tags prepared: `devchallenge`, `weekendchallenge`, `hf26challenge`.
 - [x] English draft prepared for prize eligibility.
-- [ ] Public deployed demo link or video added to the post.
+- [x] Public demo link added to the post: https://github.com/vitormattos/privacy-evidence/actions/runs/37265354267
 - [ ] Final DEV post published before 2026-10-05 06:59 UTC.
 
 ## Repository evidence
@@ -38,6 +38,6 @@ The post must not claim:
 
 ## Remaining human action
 
-The only contest-submission artifact still missing is the required public demo evidence: a deployed demo link or video. The repository contains the exact one-command demo to record.
+Public demo evidence is complete through the successful GitHub Actions run https://github.com/vitormattos/privacy-evidence/actions/runs/37265354267.
 
-After that link is available, replace the TODO in the DEV draft, re-check the live rules/template, and publish the post.
+Remaining human action: publish the DEV post before the official deadline and record the published URL in #117.
