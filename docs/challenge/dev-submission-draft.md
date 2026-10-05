@@ -50,6 +50,41 @@ Most importantly, the demo **fails if the model artifact is removed**. The ML is
 
 This GitHub Actions run executes the real PHP-native Rubix model build and inference path in public. The successful output shows `aiAtCore: true`, `modelRequired: true`, a `controller_identity` ML candidate with probability `1`, rule/ML disagreement, one pending review case and an auditable `ai_suggestion`.
 
+## Test Results
+
+I did not want the challenge demo to be only a description of what the code was supposed to do. The project is exercised by the same automated quality gates used during development.
+
+On the final CI validation run:
+
+- **143 unit tests** passed with **746 assertions**;
+- **53 integration tests** passed with **709 assertions**;
+- PHPStan and Psalm static analysis passed;
+- PHPCS passed;
+- Composer validation and security audit passed;
+- the container smoke test passed;
+- REUSE license compliance passed;
+- mutation testing passed.
+
+The public Hacktoberfest demo also completed successfully.
+
+For the demonstration sentence, the deterministic rule reported the controller-identity signal as absent, while the local Rubix model identified `controller_identity` with probability `1.0` using a `0.5` threshold.
+
+That disagreement was not converted directly into evidence or a legal conclusion. Instead, the system recorded:
+
+- `aiAtCore: true`;
+- `modelRequired: true`;
+- `legalConclusion: false`;
+- `disagreesWithRule: true`;
+- `needsReview: true`;
+- one pending review case;
+- one auditable `ai_suggestion`.
+
+The complete public demo execution can be inspected here:
+
+https://github.com/vitormattos/privacy-evidence/actions/runs/37265354267
+
+These results demonstrate that the ML path works end to end. They do **not** establish model accuracy on the target research population, which still requires independently reviewed project data.
+
 ## Code
 
 Repository:
