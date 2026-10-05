@@ -632,12 +632,8 @@ final readonly class RunExporter
             $noRelevantLinks = $data['noRelevantLinks'] ?? false;
             $budgetLimited = $data['budgetLimited'] ?? false;
             $antiBotChallenge = $data['antiBotChallenge'] ?? false;
-            /** @psalm-suppress MixedAssignment */
-            $measurementLimitsValue = $data['measurementLimits'] ?? [];
             /** @var array<string,true> $measurementLimitMap */
-            $measurementLimitMap = is_array($measurementLimitsValue)
-                ? $measurementLimitsValue
-                : [];
+            $measurementLimitMap = $data['measurementLimits'] ?? [];
             $measurementLimitReasons = array_keys($measurementLimitMap);
             sort($measurementLimitReasons, SORT_STRING);
 
