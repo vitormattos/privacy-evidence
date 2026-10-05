@@ -50,40 +50,30 @@ Most importantly, the demo **fails if the model artifact is removed**. The ML is
 
 This GitHub Actions run executes the real PHP-native Rubix model build and inference path in public. The successful output shows `aiAtCore: true`, `modelRequired: true`, a `controller_identity` ML candidate with probability `1`, rule/ML disagreement, one pending review case and an auditable `ai_suggestion`.
 
-## Test Results
+## Results from the IPB Analysis
 
-I did not want the challenge demo to be only a description of what the code was supposed to do. The project is exercised by the same automated quality gates used during development.
+The project was also validated against the complete source population extracted from the public IPB directory.
 
-On the final CI validation run:
+The run accounted for **2,993 source records**. Of those, **589 were eligible for website measurement**, representing **566 unique website measurement units** after duplicate references were resolved.
 
-- **143 unit tests** passed with **746 assertions**;
-- **53 integration tests** passed with **709 assertions**;
-- PHPStan and Psalm static analysis passed;
-- PHPCS passed;
-- Composer validation and security audit passed;
-- the container smoke test passed;
-- REUSE license compliance passed;
-- mutation testing passed.
+The final measurement outcomes across those 566 unique websites were:
 
-The public Hacktoberfest demo also completed successfully.
+- **193 fully measured**;
+- **12 partially measured**;
+- **361 not measurable**.
 
-For the demonstration sentence, the deterministic rule reported the controller-identity signal as absent, while the local Rubix model identified `controller_identity` with probability `1.0` using a `0.5` threshold.
+That means the pipeline produced a complete, auditable outcome for every source record rather than silently dropping websites that could not be analyzed.
 
-That disagreement was not converted directly into evidence or a legal conclusion. Instead, the system recorded:
+The main reasons for non-measurement included DNS failures, anti-bot challenges, HTTP 429 responses, unavailable or redirected sites, TLS failures, timeouts and crawl-budget limits. These are preserved as research observations because failure to measure a site is itself relevant to reproducibility.
 
-- `aiAtCore: true`;
-- `modelRequired: true`;
-- `legalConclusion: false`;
-- `disagreesWithRule: true`;
-- `needsReview: true`;
-- one pending review case;
-- one auditable `ai_suggestion`.
+For the LGPD-oriented public-evidence profile, the average coverage across the unique website population was approximately **27.2%**. Full observed support across the evaluated requirements averaged approximately **5.3%**, while any observed support averaged approximately **6.6%**.
 
-The complete public demo execution can be inspected here:
+These numbers must not be read as legal-compliance rates. Privacy Evidence only reports what could or could not be observed on the public website under a documented protocol. A website can expose little public evidence and still have other privacy processes outside the site, and the opposite is also possible.
 
-https://github.com/vitormattos/privacy-evidence/actions/runs/37265354267
+Some requirement-level observations were especially sparse. For example, controller-related evidence, purpose, sharing, data-subject rights information and retention/duration disclosures were often not observable in the public website evidence. The DPO/encarregado requirement had a very small measurable sample, so its percentage is not suitable for generalization.
 
-These results demonstrate that the ML path works end to end. They do **not** establish model accuracy on the target research population, which still requires independently reviewed project data.
+The full-population validation therefore gave me two useful results at once: a reproducible dataset of observable evidence and a precise account of why many websites could not be fully measured.
+
 
 ## Code
 
