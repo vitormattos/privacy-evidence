@@ -1,0 +1,7 @@
+flowchart TD
+    A["2,993 IPB source records"] --> B["Source classification"]
+    B -. retained with reason .-> C["2,404 not eligible for website measurement"]
+    B --> D["589 eligible source records"]
+    D --> E["Deduplication"]
+    E --> F["566 unique websites"]
+    F --> G["Measurement and evidence analysis"]
