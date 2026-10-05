@@ -8,7 +8,7 @@ tags: devchallenge, weekendchallenge, hf26challenge
 
 ## What I Built
 
-I built **Privacy Evidence** with a real person in mind: **Igor Scaliante Wiese, my master's advisor at UTFPR**.
+I dedicate **Privacy Evidence** to **Igor Scaliante Wiese, my master's advisor at UTFPR and professor of the Free Software Development course**.
 
 A previous academic monograph I wrote at Seminário Simonton explored digital ethics and the effect of digital practices on Christian fellowship. One part of the research looked at privacy and data-protection practices on websites associated with churches of the Igreja Presbiteriana do Brasil (IPB).
 
@@ -20,7 +20,7 @@ That process helped answer the research question, but it had a serious empirical
 
 Privacy Evidence is the tool I wanted that study to have, but the current goal is broader: turn the old work into something my advisor can inspect as empirical software-engineering research and that can support the scientific publications I need to produce during the master's program.
 
-I am not claiming that Igor asked me to build this exact software or that he has already validated the results. The point is that he is a real academic mentor and intended reviewer of the next research step, not an invented persona.
+Igor did not ask me to build this exact software, and I am not claiming that he has already validated its results. I am dedicating the work to him because his role as my advisor and as a professor of Free Software Development makes him a real academic reference for the kind of research artifact I want this project to become: open, inspectable, reproducible and suitable for scientific scrutiny.
 
 It accepts a population of websites from a source adapter, preserves provenance, acquires public evidence through a repeatable protocol, classifies observable privacy signals, sends ambiguous cases to review, and lets the same generic evidence be evaluated against versioned profiles such as LGPD, GDPR and cookie/ePrivacy requirements.
 
