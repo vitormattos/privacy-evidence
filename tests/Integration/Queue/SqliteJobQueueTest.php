@@ -132,6 +132,55 @@ final class SqliteJobQueueTest extends TestCase
         self::assertSame(['pending' => 1, 'running' => 2], $queue->stageCounts('r1', 'fetch'));
     }
 
+    public function testHostCanBeDeferredWithoutBlockingOtherHosts(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            self::markTestSkipped('pdo_sqlite not available');
+        }
+
+        $queue = new SqliteJobQueue(new PDO('sqlite::memory:'), retryBaseDelayMs: 0);
+        self::assertTrue($queue->enqueue(new Job(
+            'a',
+            'r1',
+            'fetch',
+            'a',
+            ['url' => 'https://a.test/'],
+            priority: 100,
+            host: 'a.test',
+        )));
+        self::assertTrue($queue->enqueue(new Job(
+            'b',
+            'r1',
+            'fetch',
+            'b',
+            ['url' => 'https://b.test/'],
+            priority: 50,
+            host: 'b.test',
+        )));
+
+        $queue->deferHost('r1', 'fetch', 'a.test', 1000);
+
+        $reserved = $queue->reserve('r1', 'fetch', minHostDelayMs: 0);
+        self::assertSame('b', $reserved?->id);
+    }
+
+    public function testExplicitRetryDelayOverridesDefaultBackoff(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            self::markTestSkipped('pdo_sqlite not available');
+        }
+
+        $queue = new SqliteJobQueue(new PDO('sqlite::memory:'), retryBaseDelayMs: 0);
+        $queue->enqueue(new Job('delayed', 'r1', 'fetch', 'delayed', ['url' => 'https://a.test/']));
+        $queue->reserve('r1', 'fetch');
+
+        self::assertSame(
+            JobStatus::Pending,
+            $queue->fail('delayed', '429', retryDelayMs: 1000),
+        );
+        self::assertNull($queue->reserve('r1', 'fetch'));
+    }
+
     public function testExpectedFailuresCanTerminateWithoutDeadLetteringTheRun(): void
     {
         if (!extension_loaded('pdo_sqlite')) {

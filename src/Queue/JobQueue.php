@@ -22,7 +22,10 @@ interface JobQueue
         string $error,
         int $maxAttempts = 3,
         JobStatus $terminalStatus = JobStatus::Dead,
+        ?int $retryDelayMs = null,
     ): JobStatus;
+
+    public function deferHost(string $runId, string $stage, string $host, int $delayMs): void;
 
     public function requeueRunning(string $runId): int;
 

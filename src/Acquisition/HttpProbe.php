@@ -116,7 +116,9 @@ final class HttpProbe
                     statusCode: null,
                     contentType: null,
                     redirectChain: $redirectChain,
-                    dnsState: $failure === ProbeFailure::Dns ? 'failed' : 'unknown',
+                    dnsState: $failure === ProbeFailure::Dns
+                        ? ($failureDetail === 'Host has no resolvable A/AAAA address.' ? 'not_found' : 'failed')
+                        : 'unknown',
                     tlsState: $failure === ProbeFailure::Tls ? 'failed' : 'unknown',
                     transportState: 'failed',
                     failure: $failure,

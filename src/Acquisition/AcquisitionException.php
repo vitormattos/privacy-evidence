@@ -11,6 +11,7 @@ final class AcquisitionException extends \RuntimeException
         public readonly string $category,
         public readonly bool $retryable,
         string $message,
+        public readonly ?int $retryDelayMs = null,
     ) {
         parent::__construct($message);
     }

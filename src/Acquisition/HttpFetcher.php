@@ -37,13 +37,13 @@ final class HttpFetcher
         $probe = $this->probe->probe($url);
         if (!$probe->succeeded() || $probe->finalUrl === null || $probe->statusCode === null) {
             $failure = $probe->failure ?? ProbeFailure::Transport;
-            $retryable = in_array($failure, [
-                ProbeFailure::Dns,
+            $retryable = match ($failure) {
+                ProbeFailure::Dns => $probe->dnsState !== 'not_found',
                 ProbeFailure::Timeout,
                 ProbeFailure::ConnectionRefused,
-                ProbeFailure::Transport,
-            ], true)
-                && $probe->transportState !== 'redirect_limit';
+                ProbeFailure::Transport => true,
+                default => false,
+            };
 
             throw new AcquisitionException(
                 url: $url,
@@ -104,6 +104,7 @@ final class HttpFetcher
         }
 
         $headers = $response->getHeaders(false);
+        $retryAfterMs = $this->retryAfterMs($headers['retry-after'][0] ?? null);
 
         return new FetchedDocument(
             resourceId: $resourceId,
@@ -115,7 +116,27 @@ final class HttpFetcher
             fetchedAt: gmdate(DATE_ATOM),
             acquisitionMode: 'http',
             truncated: $truncated,
+            metadata: $retryAfterMs === null ? [] : ['retryAfterMs' => $retryAfterMs],
         );
+    }
+
+    private function retryAfterMs(?string $value): ?int
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        $value = trim($value);
+        if (ctype_digit($value)) {
+            return min(120_000, (int) $value * 1000);
+        }
+
+        $timestamp = strtotime($value);
+        if ($timestamp === false) {
+            return null;
+        }
+
+        return min(120_000, max(0, ($timestamp - time()) * 1000));
     }
 
     private function mediaType(string $value): string

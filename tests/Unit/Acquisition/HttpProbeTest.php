@@ -28,7 +28,7 @@ final class HttpProbeTest extends TestCase
         $result = (new HttpProbe($client))->probe('https://does-not-exist.invalid/');
 
         self::assertSame(ProbeFailure::Dns, $result->failure);
-        self::assertSame('failed', $result->dnsState);
+        self::assertSame('not_found', $result->dnsState);
         self::assertSame('Host has no resolvable A/AAAA address.', $result->failureDetail);
     }
 

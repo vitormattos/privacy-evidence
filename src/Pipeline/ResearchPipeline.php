@@ -230,6 +230,7 @@ final readonly class ResearchPipeline
                     $e->getMessage(),
                     maxAttempts: $retryable ? 3 : 1,
                     terminalStatus: $terminalStatus,
+                    retryDelayMs: $e instanceof AcquisitionException ? $e->retryDelayMs : null,
                 );
 
                 $this->runs->increment($runId, 'job_attempt_failures');
@@ -272,6 +273,7 @@ final readonly class ResearchPipeline
                         'url' => $this->payloadString($job, 'url'),
                         'category' => $category,
                         'retryable' => $retryable,
+                        'retry_delay_ms' => $e instanceof AcquisitionException ? $e->retryDelayMs : null,
                         'error' => mb_substr($e->getMessage(), 0, 500),
                     ],
                 );
@@ -324,8 +326,59 @@ final readonly class ResearchPipeline
             maxBytes: $this->config->maxBodyBytes,
         );
         $this->persistAndAnalyze($runId, $document);
+
+        if (
+            in_array($document->statusCode, [429, 502, 503, 504], true)
+            && $job->attempts < 3
+        ) {
+            $retryAfterValue = $document->metadata['retryAfterMs'] ?? null;
+            $retryAfterMs = is_int($retryAfterValue)
+                ? max(1_000, $retryAfterValue)
+                : min(30_000, 2_000 * (1 << max(0, $job->attempts - 1)));
+
+            if ($job->host !== null) {
+                $this->jobs->deferHost($runId, 'fetch', $job->host, $retryAfterMs);
+            }
+
+            $this->runs->increment($runId, 'http_retries');
+            $this->runs->increment($runId, 'http_retries.' . $document->statusCode);
+
+            throw new AcquisitionException(
+                url: $url,
+                category: 'http_' . $document->statusCode,
+                retryable: true,
+                message: sprintf(
+                    'Transient HTTP %d response from %s.',
+                    $document->statusCode,
+                    $document->finalUrl,
+                ),
+                retryDelayMs: $retryAfterMs,
+            );
+        }
+
         if ($document->statusCode < 200 || $document->statusCode >= 300) {
             $this->runs->increment($runId, 'http_status.' . $document->statusCode);
+
+            if ($document->statusCode === 403) {
+                $challenge = $this->browserPolicy->decide($document);
+                if (
+                    $challenge->required
+                    && $challenge->reason === 'anti_bot_challenge_candidate'
+                    && $this->config->enableBrowserEscalation
+                    && $this->browser !== null
+                ) {
+                    $this->scheduleBrowser(
+                        $runId,
+                        $resourceId,
+                        $url,
+                        $challenge->policyVersion,
+                        $challenge->reason,
+                    );
+                    $this->runs->increment($runId, 'http_403_browser_recovery_candidates');
+                    return;
+                }
+            }
+
             if ($depth === 0) {
                 $this->runs->recordEvent(
                     $runId,
@@ -453,6 +506,22 @@ final readonly class ResearchPipeline
             return;
         }
 
+        $this->scheduleBrowser(
+            $runId,
+            $resourceId,
+            $url,
+            $decision->policyVersion,
+            $decision->reason,
+        );
+    }
+
+    private function scheduleBrowser(
+        string $runId,
+        string $resourceId,
+        string $url,
+        string $policyVersion,
+        string $reason,
+    ): void {
         $this->jobs->enqueue(
             new Job(
                 id: Uuid::v7()->toRfc4122(),
@@ -462,8 +531,8 @@ final readonly class ResearchPipeline
                 payload: [
                     'resource_id' => $resourceId,
                     'url' => $url,
-                    'policy_version' => $decision->policyVersion,
-                    'escalation_reason' => $decision->reason,
+                    'policy_version' => $policyVersion,
+                    'escalation_reason' => $reason,
                 ],
                 priority: 1000,
                 host: $this->hostForUrl($url),

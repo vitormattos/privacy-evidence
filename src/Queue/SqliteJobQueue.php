@@ -223,12 +223,16 @@ final class SqliteJobQueue implements JobQueue
         string $error,
         int $maxAttempts = 3,
         JobStatus $terminalStatus = JobStatus::Dead,
+        ?int $retryDelayMs = null,
     ): JobStatus {
         if ($maxAttempts <= 0) {
             throw new \InvalidArgumentException('maxAttempts must be positive.');
         }
         if (!in_array($terminalStatus, [JobStatus::Failed, JobStatus::Dead], true)) {
             throw new \InvalidArgumentException('Terminal failure status must be failed or dead.');
+        }
+        if ($retryDelayMs !== null && $retryDelayMs < 0) {
+            throw new \InvalidArgumentException('Retry delay cannot be negative.');
         }
 
         $stmt = $this->pdo->prepare(
@@ -240,7 +244,7 @@ final class SqliteJobQueue implements JobQueue
         $exponent = min(max($attempts - 1, 0), 16);
         $retryMultiplier = 1 << $exponent;
         $delayMs = $status === JobStatus::Pending
-            ? min(30_000, $this->retryBaseDelayMs * $retryMultiplier)
+            ? ($retryDelayMs ?? min(30_000, $this->retryBaseDelayMs * $retryMultiplier))
             : 0;
 
         $update = $this->pdo->prepare(
@@ -259,6 +263,32 @@ final class SqliteJobQueue implements JobQueue
         ]);
 
         return $status;
+    }
+
+    public function deferHost(string $runId, string $stage, string $host, int $delayMs): void
+    {
+        if ($delayMs < 0) {
+            throw new \InvalidArgumentException('Host defer delay cannot be negative.');
+        }
+
+        $until = self::nowMs() + $delayMs;
+        $stmt = $this->pdo->prepare(
+            'UPDATE jobs
+             SET available_at_ms = CASE
+                 WHEN available_at_ms < :until THEN :until
+                 ELSE available_at_ms
+             END
+             WHERE run_id = :run_id
+               AND stage = :stage
+               AND host = :host
+               AND status = "pending"',
+        );
+        SqliteRetry::execute($stmt, [
+            'until' => $until,
+            'run_id' => $runId,
+            'stage' => $stage,
+            'host' => $host,
+        ]);
     }
 
     public function requeueRunning(string $runId): int
