@@ -632,41 +632,31 @@ final readonly class RunExporter
             $noRelevantLinks = $data['noRelevantLinks'] ?? false;
             $budgetLimited = $data['budgetLimited'] ?? false;
             $antiBotChallenge = $data['antiBotChallenge'] ?? false;
-            /** @var array<string,bool> $measurementLimitMap */
-            $measurementLimitMap = is_array($data['measurementLimits'] ?? null)
-                ? $data['measurementLimits']
+            /** @psalm-suppress MixedAssignment */
+            $measurementLimitsValue = $data['measurementLimits'] ?? [];
+            /** @var array<string,true> $measurementLimitMap */
+            $measurementLimitMap = is_array($measurementLimitsValue)
+                ? $measurementLimitsValue
                 : [];
             $measurementLimitReasons = array_keys($measurementLimitMap);
             sort($measurementLimitReasons, SORT_STRING);
-            $hasHardMeasurementLimit = in_array(
-                'root_non_html',
+
+            $hardMeasurementLimitReason = $this->firstMatchingReason(
                 $measurementLimitReasons,
-                true,
-            ) || in_array(
-                'empty_html_content',
-                $measurementLimitReasons,
-                true,
-            ) || in_array(
-                'anti_bot_challenge_browser_unavailable',
-                $measurementLimitReasons,
-                true,
-            ) || in_array(
-                'dynamic_content_browser_unavailable',
-                $measurementLimitReasons,
-                true,
+                [
+                    'anti_bot_challenge_browser_unavailable',
+                    'dynamic_content_browser_unavailable',
+                    'root_non_html',
+                    'empty_html_content',
+                ],
             );
-            $hasPartialMeasurementLimit = in_array(
-                'response_truncated',
+            $partialMeasurementLimitReason = $this->firstMatchingReason(
                 $measurementLimitReasons,
-                true,
-            ) || in_array(
-                'behavioral_evidence_browser_unavailable',
-                $measurementLimitReasons,
-                true,
-            ) || in_array(
-                'browser_required_unavailable',
-                $measurementLimitReasons,
-                true,
+                [
+                    'behavioral_evidence_browser_unavailable',
+                    'browser_required_unavailable',
+                    'response_truncated',
+                ],
             );
 
             if ($terminalStatus === 'not_eligible') {
@@ -684,14 +674,14 @@ final readonly class RunExporter
             } elseif ($antiBotChallenge) {
                 $measurementStatus = 'not_measurable';
                 $primaryReason = 'anti_bot_challenge';
-            } elseif ($hasHardMeasurementLimit) {
+            } elseif ($hardMeasurementLimitReason !== null) {
                 $measurementStatus = 'not_measurable';
-                $primaryReason = $measurementLimitReasons[0];
-            } elseif ($budgetLimited || $hasPartialMeasurementLimit) {
+                $primaryReason = $hardMeasurementLimitReason;
+            } elseif ($budgetLimited || $partialMeasurementLimitReason !== null) {
                 $measurementStatus = 'partially_measured';
                 $primaryReason = $budgetLimited
                     ? 'crawl_budget_exhausted'
-                    : $measurementLimitReasons[0];
+                    : $partialMeasurementLimitReason;
             } elseif ($successCount > 0 && $noRelevantLinks) {
                 $measurementStatus = 'measured';
                 $primaryReason = 'homepage_only_no_relevant_links';
@@ -961,6 +951,21 @@ final readonly class RunExporter
         }
 
         return $rows;
+    }
+
+    /**
+     * @param list<string> $reasons
+     * @param list<string> $priority
+     */
+    private function firstMatchingReason(array $reasons, array $priority): ?string
+    {
+        foreach ($priority as $candidate) {
+            if (in_array($candidate, $reasons, true)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     private function intValue(mixed $value): int
