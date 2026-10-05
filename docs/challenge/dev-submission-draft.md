@@ -1,10 +1,21 @@
 ---
 title: I turned my old privacy study into a reproducible research tool for my master's advisor
-published: false
+published: true
 tags: devchallenge, weekendchallenge, hf26challenge
 ---
 
 *This is a submission for the [Hacktoberfest Weekend Challenge: Build for a Friend](https://dev.to/challenges/hacktoberfest-weekend-2026-10-01).*
+
+## Table of Contents
+
+- [What I Built](#what-i-built)
+- [Demo](#demo)
+- [Results from the IPB Analysis](#results-from-the-ipb-analysis)
+- [Code](#code)
+- [How I Built It](#how-i-built-it)
+- [Why Does Open Innovation Matter?](#why-does-open-innovation-matter)
+
+---
 
 ## What I Built
 
@@ -24,7 +35,13 @@ Igor did not ask me to build this exact software, and I am not claiming that he 
 
 It accepts a population of websites from a source adapter, preserves provenance, acquires public evidence through a repeatable protocol, classifies observable privacy signals, sends ambiguous cases to review, and lets the same generic evidence be evaluated against versioned profiles such as LGPD, GDPR and cookie/ePrivacy requirements.
 
-It deliberately does **not** say that a website or organization is legally compliant. A public website is only one observable slice of a broader privacy program.
+{% card %}
+### Important methodological boundary
+
+Privacy Evidence deliberately does **not** say that a website or organization is legally compliant.
+
+A public website is only one observable slice of a broader privacy program. The project measures **publicly observable evidence**, not organization-wide legal compliance.
+{% endcard %}
 
 The immediate problem came from IPB websites, but the architecture is source-agnostic. The same workflow can be used for another denomination, an organization that owns many public sites, or an empirical research population supplied as a list of URLs.
 
@@ -46,7 +63,9 @@ The JSON output includes the deterministic detector state, model probability and
 
 Most importantly, the demo **fails if the model artifact is removed**. The ML is not decorative; it is required to produce the demonstrated second opinion.
 
-**Public demo:** https://github.com/vitormattos/privacy-evidence/actions/runs/37265354267
+{% cta https://github.com/vitormattos/privacy-evidence/actions/runs/37265354267 %}
+Inspect the successful public Hacktoberfest demo
+{% endcta %}
 
 This GitHub Actions run executes the real PHP-native Rubix model build and inference path in public. The successful output shows `aiAtCore: true`, `modelRequired: true`, a `controller_identity` ML candidate with probability `1`, rule/ML disagreement, one pending review case and an auditable `ai_suggestion`.
 
@@ -62,9 +81,12 @@ This distinction matters methodologically. The original source is not equivalent
 
 Among the **566 unique websites**:
 
-- **193 (34.1%)** were fully measured;
-- **12 (2.1%)** were partially measured;
-- **361 (63.8%)** could not be measured under the defined protocol.
+| Measurement outcome | Websites | Share |
+| --- | ---: | ---: |
+| Fully measured | **193** | **34.1%** |
+| Partially measured | **12** | **2.1%** |
+| Not measurable under the protocol | **361** | **63.8%** |
+| **Total** | **566** | **100%** |
 
 The high proportion of non-measurable websites is itself an important empirical result. It shows that large-scale public-web research is constrained not only by the analytical method, but also by the condition of the web population being studied.
 
@@ -74,19 +96,29 @@ That decision changes the interpretation of the study: the result is not simply 
 
 ### Observable LGPD-related evidence
 
-For the websites that could be evaluated, the average LGPD-oriented evidence coverage across the unique website population was approximately **27.2%**.
+For the websites that could be evaluated, the aggregate observability metrics were:
 
-The average rate of **full observed support** across the evaluated requirements was approximately **5.3%**, while **any observed support** was approximately **6.6%**.
+| Metric | Result |
+| --- | ---: |
+| Average LGPD-oriented evidence coverage | **27.2%** |
+| Average full observed support | **5.3%** |
+| Average any observed support | **6.6%** |
 
 These low values suggest that the privacy-related information evaluated by the protocol is often not clearly observable on public-facing church websites. In particular, evidence related to controller identification, processing purpose, data-sharing information, data-subject rights and retention/duration was frequently absent or indeterminate in the collected public content.
 
-This finding should be interpreted carefully. Privacy Evidence does not evaluate an organization's complete privacy governance program and does not establish legal compliance or non-compliance. It only reports whether predefined evidence could be observed on the public website under the documented acquisition and classification protocol.
+{% card %}
+### How to read these percentages
+
+These values are **not compliance rates**.
+
+Privacy Evidence does not evaluate an organization's complete privacy governance program and does not establish legal compliance or non-compliance. It reports whether predefined evidence could be observed on the public website under the documented acquisition and classification protocol.
+{% endcard %}
 
 The distinction is important because absence of observable website evidence can mean several different things: the information may genuinely be missing, it may exist outside the crawled pages, it may be provided through another channel, or the site may not have been measurable enough to support a conclusion.
 
 ### What the results say about the research method
 
-The most relevant outcome for me was not a single percentage. It was the ability to reproduce the entire path from the original directory to the final analytical state.
+> **The most relevant outcome was not a single percentage.** It was the ability to reproduce the entire path from the original directory to the final analytical state.
 
 For every source record, the system can explain whether it represented an independent website, whether it was eligible for measurement, whether acquisition succeeded, what evidence was observed, which detector or model produced the classification, and why a case remained unavailable, indeterminate or pending human review.
 
@@ -98,20 +130,22 @@ The results also expose an important methodological limitation for future work: 
 
 The full-population run provides a baseline for several follow-up studies:
 
-- longitudinal analysis of how privacy evidence changes over time;
-- comparison between denominations, organizations or sectors;
-- validation of deterministic and ML-based classifiers against independently human-reviewed samples;
-- investigation of whether specific website characteristics are associated with greater privacy-information visibility;
-- replication of the protocol against other regulatory profiles without repeating the entire acquisition step.
+1. **Longitudinal analysis** — how public privacy evidence changes over time.
+2. **Population comparison** — differences between denominations, organizations or sectors.
+3. **Classifier validation** — deterministic and ML-based classifiers against independently human-reviewed samples.
+4. **Website characteristics** — whether particular technical or organizational characteristics are associated with greater privacy-information visibility.
+5. **Regulatory-profile replication** — reevaluating the same collected evidence against other regulatory profiles without repeating acquisition.
 
 In that sense, the main contribution of the run is not only the descriptive result for the IPB population. It is the creation of a reproducible research instrument that can support new empirical questions while preserving the limits of what the collected evidence can actually demonstrate.
 
 
 ## Code
 
-Repository:
+{% embed https://github.com/vitormattos/privacy-evidence %}
 
-https://github.com/vitormattos/privacy-evidence
+{% cta https://github.com/vitormattos/privacy-evidence %}
+Explore Privacy Evidence on GitHub
+{% endcta %}
 
 The frozen Weekend Challenge code boundary is commit:
 
@@ -200,12 +234,3 @@ There is also an important result I am **not** claiming: the ML model has not be
 External development data is useful for engineering and feasibility, but the project requires evaluation against independently human-reviewed project evidence before a model can be promoted. Until that exists, deterministic detectors remain the default and ML remains an experimental second opinion.
 
 That limitation is part of the result, not something I want to hide.
-
-## My Agent Session
-
-Optional for this entry. No DevRelay session is currently included.
-
-## Prize Categories
-
-No partner prize category is claimed for this submission.
-
