@@ -6,11 +6,12 @@ namespace PrivacyEvidence\Crawl;
 
 use DOMElement;
 use PrivacyEvidence\Acquisition\FetchedDocument;
+use PrivacyEvidence\Source\UrlNormalizer;
 use Symfony\Component\DomCrawler\Crawler;
 
 final class LinkDiscoverer
 {
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.3.0';
 
     /** @var list<string> */
     private array $privacyTerms;
@@ -31,15 +32,21 @@ final class LinkDiscoverer
         ?array $controlTerms = null,
         ?array $supportingTerms = null,
         private readonly string $version = self::VERSION,
+        private readonly UrlNormalizer $urlNormalizer = new UrlNormalizer(),
     ) {
         $this->privacyTerms = $privacyTerms ?? [
-            'privacy', 'privacidade', 'proteção de dados', 'protecao-de-dados', 'lgpd', 'gdpr',
+            'privacy', 'privacidade', 'política de privacidade', 'politica de privacidade',
+            'proteção de dados', 'protecao de dados', 'proteção de dados pessoais',
+            'protecao de dados pessoais', 'dados pessoais', 'lgpd', 'gdpr',
+            'data protection', 'privacy notice',
         ];
         $this->controlTerms = $controlTerms ?? [
-            'cookie', 'dpo', 'encarregado', 'direitos', 'rights',
+            'cookie', 'cookies', 'dpo', 'encarregado', 'direitos', 'rights',
+            'titular', 'consentimento', 'consent',
         ];
         $this->supportingTerms = $supportingTerms ?? [
-            'contact', 'contato', 'about', 'sobre', 'terms', 'termos', 'legal',
+            'contact', 'contato', 'fale conosco', 'about', 'sobre', 'quem somos',
+            'terms', 'termos', 'legal', 'institucional',
         ];
     }
 
@@ -74,10 +81,17 @@ final class LinkDiscoverer
                 continue;
             }
 
-            $absolute = $this->withoutFragment($absolute);
-            $current = $this->withoutFragment($document->finalUrl);
+            $absolute = $this->urlNormalizer->normalize(
+                $this->withoutTrackingParameters(
+                    $this->withoutFragment($absolute),
+                ),
+            );
+            $current = $this->urlNormalizer->normalize(
+                $this->withoutFragment($document->finalUrl),
+            );
             if (
-                $absolute === ''
+                $absolute === null
+                || $current === null
                 || $absolute === $current
                 || !$this->sameHost($current, $absolute)
             ) {
@@ -85,8 +99,8 @@ final class LinkDiscoverer
             }
 
             $text = trim($node->textContent);
-            [$priority, $reason] = $this->priority($absolute, strtolower($text));
-            $candidates[$absolute] = new CandidateUrl(
+            [$priority, $reason] = $this->priority($absolute, $text);
+            $candidate = new CandidateUrl(
                 url: $absolute,
                 priority: $priority,
                 reason: $reason,
@@ -94,6 +108,10 @@ final class LinkDiscoverer
                 anchorText: $text,
                 ruleVersion: $this->version,
             );
+            $existing = $candidates[$absolute] ?? null;
+            if ($existing === null || $candidate->priority > $existing->priority) {
+                $candidates[$absolute] = $candidate;
+            }
         }
 
         $result = array_values($candidates);
@@ -117,10 +135,53 @@ final class LinkDiscoverer
     {
         $baseHost = parse_url($base, PHP_URL_HOST);
         $candidateHost = parse_url($candidate, PHP_URL_HOST);
+        if (!is_string($baseHost) || !is_string($candidateHost)) {
+            return false;
+        }
 
-        return is_string($baseHost)
-            && is_string($candidateHost)
-            && strtolower($baseHost) === strtolower($candidateHost);
+        return $this->canonicalHost($baseHost) === $this->canonicalHost($candidateHost);
+    }
+
+    private function canonicalHost(string $host): string
+    {
+        $host = strtolower($host);
+
+        return str_starts_with($host, 'www.') ? substr($host, 4) : $host;
+    }
+
+    private function withoutTrackingParameters(string $url): string
+    {
+        $question = strpos($url, '?');
+        if ($question === false) {
+            return $url;
+        }
+
+        $base = substr($url, 0, $question);
+        $query = substr($url, $question + 1);
+        $kept = [];
+
+        foreach (explode('&', $query) as $parameter) {
+            if ($parameter === '') {
+                continue;
+            }
+
+            $key = rawurldecode(explode('=', $parameter, 2)[0]);
+            $normalizedKey = strtolower($key);
+            if (
+                str_starts_with($normalizedKey, 'utm_')
+                || in_array(
+                    $normalizedKey,
+                    ['fbclid', 'gclid', 'dclid', 'msclkid', 'mc_cid', 'mc_eid', '_ga'],
+                    true,
+                )
+            ) {
+                continue;
+            }
+
+            $kept[] = $parameter;
+        }
+
+        return $kept === [] ? $base : $base . '?' . implode('&', $kept);
     }
 
     /**
@@ -128,7 +189,10 @@ final class LinkDiscoverer
      */
     private function priority(string $url, string $text): array
     {
-        $haystack = strtolower($url . ' ' . $text);
+        $haystack = mb_strtolower(
+            html_entity_decode(rawurldecode($url) . ' ' . $text, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+            'UTF-8',
+        );
 
         foreach ($this->privacyTerms as $needle) {
             if ($needle !== '' && str_contains($haystack, $needle)) {

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace PrivacyEvidence\Source;
 
 use PrivacyEvidence\Source\Csv\CsvSource;
-use PrivacyEvidence\Source\Ipb\IpbAnuarioSource;
 use PrivacyEvidence\Source\Json\JsonSource;
 
 final class DatasetSourceFactory
@@ -17,9 +16,8 @@ final class DatasetSourceFactory
         return match ($extension) {
             'csv' => new CsvSource($path),
             'json' => new JsonSource($path),
-            'html', 'htm' => IpbAnuarioSource::fromFile($path),
             default => throw new \InvalidArgumentException(
-                sprintf('Unsupported dataset/source extension: %s', $extension),
+                sprintf('Unsupported dataset format: %s. Use CSV or JSON.', $extension),
             ),
         };
     }

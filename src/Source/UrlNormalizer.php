@@ -26,10 +26,6 @@ final class UrlNormalizer
             $value = 'https://' . $value;
         }
 
-        if (filter_var($value, FILTER_VALIDATE_URL) === false) {
-            return null;
-        }
-
         $parts = parse_url($value);
         if ($parts === false || !isset($parts['scheme'], $parts['host'])) {
             return null;
@@ -40,8 +36,20 @@ final class UrlNormalizer
             return null;
         }
 
+        // Userinfo in a website field is almost always an e-mail address or
+        // malformed source value (for example http://name@gmail.com). Keeping
+        // it would silently transform the source into the provider host.
+        if (isset($parts['user']) || isset($parts['pass'])) {
+            return null;
+        }
+
         $host = strtolower(rtrim($parts['host'], '.'));
         if ($host === '' || preg_match('/\s/u', $host) === 1) {
+            return null;
+        }
+
+        $isIp = filter_var($host, FILTER_VALIDATE_IP) !== false;
+        if (!$isIp && !str_contains($host, '.')) {
             return null;
         }
 
@@ -50,10 +58,22 @@ final class UrlNormalizer
         if ($path === '') {
             $path = '/';
         }
+        $path = $this->encodeUnsafeCharacters($path);
 
-        $query = isset($parts['query']) ? '?' . $parts['query'] : '';
+        $query = isset($parts['query'])
+            ? '?' . $this->encodeUnsafeCharacters($parts['query'])
+            : '';
         $normalized = sprintf('%s://%s%s%s%s', $scheme, $host, $port, $path, $query);
 
         return filter_var($normalized, FILTER_VALIDATE_URL) === false ? null : $normalized;
+    }
+
+    private function encodeUnsafeCharacters(string $value): string
+    {
+        return preg_replace_callback(
+            '/[^\x21-\x7E]/u',
+            static fn (array $match): string => rawurlencode($match[0]),
+            $value,
+        ) ?? $value;
     }
 }

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace PrivacyEvidence\Pipeline;
 
+use PrivacyEvidence\Acquisition\AcquisitionException;
 use PrivacyEvidence\Acquisition\DocumentStore;
 use PrivacyEvidence\Acquisition\FetchedDocument;
+use PDOException;
 use PrivacyEvidence\Acquisition\HttpFetcher;
 use PrivacyEvidence\Browser\BrowserEscalationPolicy;
 use PrivacyEvidence\Browser\BrowserProvider;
@@ -17,8 +19,11 @@ use PrivacyEvidence\Review\ReviewQueue;
 use PrivacyEvidence\Run\ResearchRun;
 use PrivacyEvidence\Run\RunStatus;
 use PrivacyEvidence\Run\RunStore;
+use PrivacyEvidence\Source\ResourceClassifier;
+use PrivacyEvidence\Source\ResourceType;
 use PrivacyEvidence\Source\SourceAdapter;
 use PrivacyEvidence\Storage\ObservationStore;
+use PrivacyEvidence\Storage\SqliteRetry;
 use Symfony\Component\Uid\Uuid;
 
 final readonly class ResearchPipeline
@@ -33,6 +38,7 @@ final readonly class ResearchPipeline
         private DetectorRegistry $detectors,
         private BrowserEscalationPolicy $browserPolicy = new BrowserEscalationPolicy(),
         private LinkDiscoverer $linkDiscoverer = new LinkDiscoverer(),
+        private ResourceClassifier $resourceClassifier = new ResourceClassifier(),
         private ?BrowserProvider $browser = null,
         private PipelineConfig $config = new PipelineConfig(),
     ) {
@@ -42,9 +48,46 @@ final readonly class ResearchPipeline
     {
         $this->runs->create($run);
 
-        foreach ($source->resources() as $resource) {
+        $resources = iterator_to_array($source->resources(), false);
+
+        /** @var array<string,list<string>> $eligibleIdsByUrl */
+        $eligibleIdsByUrl = [];
+        foreach ($resources as $resource) {
+            if (
+                $resource->type->isWebsiteMeasurementEligible()
+                && $resource->normalizedUrl !== null
+            ) {
+                $eligibleIdsByUrl[$resource->normalizedUrl][] = $resource->id;
+            }
+        }
+
+        /** @var array<string,string> $canonicalIdByUrl */
+        $canonicalIdByUrl = [];
+        foreach ($eligibleIdsByUrl as $url => $resourceIds) {
+            sort($resourceIds, SORT_STRING);
+            $canonicalIdByUrl[$url] = $resourceIds[0];
+        }
+
+        foreach ($resources as $resource) {
             $this->observations->recordResource($run->id, $resource);
             $this->runs->increment($run->id, 'resources_imported');
+
+            if (!$resource->type->isWebsiteMeasurementEligible()) {
+                $this->runs->increment($run->id, 'resources_not_eligible');
+                $this->runs->increment($run->id, 'resources_not_eligible.' . $resource->type->value);
+                $this->runs->increment($run->id, 'jobs_skipped');
+                $this->runs->recordEvent(
+                    $run->id,
+                    'resource_terminal',
+                    $resource->id,
+                    [
+                        'status' => 'not_eligible',
+                        'category' => $resource->type->value,
+                        'classification_rule' => $resource->classificationRule,
+                    ],
+                );
+                continue;
+            }
 
             if ($resource->normalizedUrl === null) {
                 $this->runs->increment($run->id, 'resources_invalid');
@@ -54,6 +97,24 @@ final readonly class ResearchPipeline
                     'resource_terminal',
                     $resource->id,
                     ['status' => 'invalid_url'],
+                );
+                continue;
+            }
+
+            $canonicalId = $canonicalIdByUrl[$resource->normalizedUrl] ?? $resource->id;
+            if ($canonicalId !== $resource->id) {
+                $this->runs->increment($run->id, 'resources_duplicate_reference');
+                $this->runs->increment($run->id, 'jobs_skipped');
+                $this->runs->recordEvent(
+                    $run->id,
+                    'resource_terminal',
+                    $resource->id,
+                    [
+                        'status' => 'duplicate_reference',
+                        'category' => 'duplicate_source_url',
+                        'canonical_resource_id' => $canonicalId,
+                        'url' => $resource->normalizedUrl,
+                    ],
                 );
                 continue;
             }
@@ -68,7 +129,10 @@ final readonly class ResearchPipeline
                         'resource_id' => $resource->id,
                         'url' => $resource->normalizedUrl,
                         'depth' => 0,
-                        'crawl_started_at' => time(),
+                        // The per-resource crawl clock starts when the root job
+                        // is actually processed, not while it waits behind the
+                        // rest of the population in the queue.
+                        'crawl_started_at' => 0,
                     ],
                     priority: 1000,
                     host: $this->hostForUrl($resource->normalizedUrl),
@@ -154,15 +218,60 @@ final readonly class ResearchPipeline
                 $this->runs->increment($runId, 'jobs_completed');
                 $this->runs->increment($runId, 'jobs_completed.' . $stage);
             } catch (\Throwable $e) {
-                $status = $this->jobs->fail($job->id, $e->getMessage());
-                $this->runs->increment($runId, 'jobs_failed');
-                $this->runs->increment($runId, 'jobs_failed.' . $stage);
-                $this->runs->increment($runId, 'failure.' . $stage);
+                $retryDelayMs = null;
+                $maxAttempts = 1;
+                if ($e instanceof AcquisitionException) {
+                    $category = $e->category;
+                    $retryable = $e->retryable;
+                    $terminalStatus = JobStatus::Failed;
+                    $retryDelayMs = $e->retryDelayMs;
+                    $maxAttempts = $retryable ? 3 : 1;
+                } elseif ($e instanceof PDOException && SqliteRetry::isBusy($e)) {
+                    $category = 'sqlite_contention';
+                    $retryable = true;
+                    $terminalStatus = JobStatus::Dead;
+                    $retryDelayMs = min(5_000, 250 * (1 << min($job->attempts, 4)));
+                    $maxAttempts = 6;
+                } else {
+                    $category = 'unexpected_exception';
+                    $retryable = false;
+                    $terminalStatus = JobStatus::Dead;
+                }
+                $status = $this->jobs->fail(
+                    $job->id,
+                    $e->getMessage(),
+                    maxAttempts: $maxAttempts,
+                    terminalStatus: $terminalStatus,
+                    retryDelayMs: $retryDelayMs,
+                );
+
+                $this->runs->increment($runId, 'job_attempt_failures');
+                $this->runs->increment($runId, 'job_attempt_failures.' . $stage);
+                $this->runs->increment($runId, 'job_attempt_failures.' . $stage . '.' . $category);
 
                 if ($status === JobStatus::Pending) {
                     $this->runs->increment($runId, 'jobs_retried');
+                } elseif ($status === JobStatus::Failed) {
+                    $this->runs->increment($runId, 'resource_acquisition_failures');
+                    $this->runs->increment($runId, 'resource_acquisition_failures.' . $category);
+                    $resourceId = $this->payloadString($job, 'resource_id');
+                    if ($resourceId !== null) {
+                        $this->runs->recordEvent(
+                            $runId,
+                            'resource_terminal',
+                            $resourceId,
+                            [
+                                'status' => 'unreachable',
+                                'category' => $category,
+                                'url' => $this->payloadString($job, 'url'),
+                            ],
+                        );
+                    }
                 } else {
                     $this->runs->increment($runId, 'jobs_dead');
+                    $this->runs->increment($runId, 'terminal_failures');
+                    $this->runs->increment($runId, 'terminal_failures.' . $stage);
+                    $this->runs->increment($runId, 'terminal_failures.' . $stage . '.' . $category);
                 }
 
                 $this->runs->recordEvent(
@@ -173,6 +282,10 @@ final readonly class ResearchPipeline
                         'stage' => $stage,
                         'status' => $status->value,
                         'attempt' => $job->attempts,
+                        'url' => $this->payloadString($job, 'url'),
+                        'category' => $category,
+                        'retryable' => $retryable,
+                        'retry_delay_ms' => $retryDelayMs,
                         'error' => mb_substr($e->getMessage(), 0, 500),
                     ],
                 );
@@ -214,7 +327,10 @@ final readonly class ResearchPipeline
         $resourceId = $this->requiredPayloadString($job, 'resource_id');
         $url = $this->requiredPayloadString($job, 'url');
         $depth = $this->payloadInt($job, 'depth', 0);
-        $crawlStartedAt = $this->payloadInt($job, 'crawl_started_at', time());
+        $crawlStartedAt = $this->payloadInt($job, 'crawl_started_at', 0);
+        if ($crawlStartedAt <= 0) {
+            $crawlStartedAt = time();
+        }
 
         $document = $this->fetcher->fetch(
             resourceId: $resourceId,
@@ -222,8 +338,60 @@ final readonly class ResearchPipeline
             maxBytes: $this->config->maxBodyBytes,
         );
         $this->persistAndAnalyze($runId, $document);
+
+        if (
+            in_array($document->statusCode, [429, 502, 503, 504], true)
+            && $job->attempts < 3
+        ) {
+            /** @psalm-suppress MixedAssignment */
+            $retryAfterValue = $document->metadata['retryAfterMs'] ?? null;
+            $retryAfterMs = is_int($retryAfterValue)
+                ? max(1_000, $retryAfterValue)
+                : min(30_000, 2_000 * (1 << max(0, $job->attempts - 1)));
+
+            if ($job->host !== null) {
+                $this->jobs->deferHost($runId, 'fetch', $job->host, $retryAfterMs);
+            }
+
+            $this->runs->increment($runId, 'http_retries');
+            $this->runs->increment($runId, 'http_retries.' . $document->statusCode);
+
+            throw new AcquisitionException(
+                url: $url,
+                category: 'http_' . $document->statusCode,
+                retryable: true,
+                message: sprintf(
+                    'Transient HTTP %d response from %s.',
+                    $document->statusCode,
+                    $document->finalUrl,
+                ),
+                retryDelayMs: $retryAfterMs,
+            );
+        }
+
         if ($document->statusCode < 200 || $document->statusCode >= 300) {
             $this->runs->increment($runId, 'http_status.' . $document->statusCode);
+
+            if ($document->statusCode === 403) {
+                $challenge = $this->browserPolicy->decide($document);
+                if (
+                    $challenge->required
+                    && $challenge->reason === 'anti_bot_challenge_candidate'
+                    && $this->config->enableBrowserEscalation
+                    && $this->browser !== null
+                ) {
+                    $this->scheduleBrowser(
+                        $runId,
+                        $resourceId,
+                        $url,
+                        $challenge->policyVersion,
+                        $challenge->reason,
+                    );
+                    $this->runs->increment($runId, 'http_403_browser_recovery_candidates');
+                    return;
+                }
+            }
+
             if ($depth === 0) {
                 $this->runs->recordEvent(
                     $runId,
@@ -239,6 +407,63 @@ final readonly class ResearchPipeline
             return;
         }
 
+        if ($depth === 0) {
+            $finalClassification = $this->resourceClassifier->classifyDetailed(
+                $document->finalUrl,
+                $document->finalUrl,
+            );
+            if ($document->finalUrl !== $url) {
+                $this->runs->recordEvent(
+                    $runId,
+                    'root_redirect',
+                    $resourceId,
+                    [
+                        'requested_url' => $url,
+                        'final_url' => $document->finalUrl,
+                        'final_type' => $finalClassification->type->value,
+                        'classification_rule' => $finalClassification->rule,
+                    ],
+                );
+            }
+
+            if (
+                $document->finalUrl !== $url
+                && !$finalClassification->type->isWebsiteMeasurementEligible()
+            ) {
+                $this->recordMeasurementLimit(
+                    $runId,
+                    $resourceId,
+                    'redirected_to_' . $finalClassification->type->value,
+                    $document->finalUrl,
+                );
+            }
+
+            if (!str_contains(strtolower($document->mediaType), 'html')) {
+                $this->recordMeasurementLimit(
+                    $runId,
+                    $resourceId,
+                    'root_non_html',
+                    $document->finalUrl,
+                );
+            } elseif (trim(strip_tags($document->body)) === '') {
+                $this->recordMeasurementLimit(
+                    $runId,
+                    $resourceId,
+                    'empty_html_content',
+                    $document->finalUrl,
+                );
+            }
+
+            if ($document->truncated) {
+                $this->recordMeasurementLimit(
+                    $runId,
+                    $resourceId,
+                    'response_truncated',
+                    $document->finalUrl,
+                );
+            }
+        }
+
         $this->scheduleLinks(
             runId: $runId,
             resourceId: $resourceId,
@@ -246,10 +471,6 @@ final readonly class ResearchPipeline
             depth: $depth,
             crawlStartedAt: $crawlStartedAt,
         );
-
-        if (!$this->config->enableBrowserEscalation || $this->browser === null) {
-            return;
-        }
 
         $decision = $this->browserPolicy->decide($document);
         if (!$decision->required) {
@@ -261,6 +482,26 @@ final readonly class ResearchPipeline
             $runId,
             'browser_escalation.' . $decision->reason,
         );
+
+        if (!$this->config->enableBrowserEscalation || $this->browser === null) {
+            $limitReason = match ($decision->reason) {
+                'anti_bot_challenge_candidate' => 'anti_bot_challenge_browser_unavailable',
+                'javascript_application_shell',
+                'javascript_challenge_candidate' => 'dynamic_content_browser_unavailable',
+                'consent_behavior_candidate' => 'behavioral_evidence_browser_unavailable',
+                default => 'browser_required_unavailable',
+            };
+            $this->recordMeasurementLimit(
+                $runId,
+                $resourceId,
+                $limitReason,
+                $document->finalUrl,
+            );
+            $this->runs->increment($runId, 'browser_escalations_unavailable');
+            $this->runs->increment($runId, 'jobs_skipped');
+
+            return;
+        }
 
         $scheduledBrowserPages = $this->jobs->scheduledCount(
             $runId,
@@ -278,6 +519,22 @@ final readonly class ResearchPipeline
             return;
         }
 
+        $this->scheduleBrowser(
+            $runId,
+            $resourceId,
+            $url,
+            $decision->policyVersion,
+            $decision->reason,
+        );
+    }
+
+    private function scheduleBrowser(
+        string $runId,
+        string $resourceId,
+        string $url,
+        string $policyVersion,
+        string $reason,
+    ): void {
         $this->jobs->enqueue(
             new Job(
                 id: Uuid::v7()->toRfc4122(),
@@ -287,8 +544,8 @@ final readonly class ResearchPipeline
                 payload: [
                     'resource_id' => $resourceId,
                     'url' => $url,
-                    'policy_version' => $decision->policyVersion,
-                    'escalation_reason' => $decision->reason,
+                    'policy_version' => $policyVersion,
+                    'escalation_reason' => $reason,
                 ],
                 priority: 1000,
                 host: $this->hostForUrl($url),
@@ -304,7 +561,25 @@ final readonly class ResearchPipeline
 
         $resourceId = $this->requiredPayloadString($job, 'resource_id');
         $url = $this->requiredPayloadString($job, 'url');
-        $observation = $this->browser->observe($url);
+        try {
+            $observation = $this->browser->observe($url);
+        } catch (\Throwable $exception) {
+            $reason = $this->payloadString($job, 'escalation_reason');
+            $category = $reason === 'anti_bot_challenge_candidate'
+                ? 'anti_bot_challenge'
+                : 'browser_failure';
+
+            throw new AcquisitionException(
+                url: $url,
+                category: $category,
+                retryable: false,
+                message: sprintf(
+                    'Browser acquisition failed for %s: %s',
+                    $url,
+                    mb_substr($exception->getMessage(), 0, 300),
+                ),
+            );
+        }
 
         $rendered = new FetchedDocument(
             resourceId: $resourceId,
@@ -324,6 +599,27 @@ final readonly class ResearchPipeline
                 'browser' => $observation->metadata,
             ],
         );
+
+        $postBrowserDecision = $this->browserPolicy->decide($rendered);
+        if (
+            $postBrowserDecision->required
+            && $postBrowserDecision->reason === 'anti_bot_challenge_candidate'
+        ) {
+            // Preserve the rendered challenge as an auditable artifact, but do
+            // not mistake an HTTP 200 CAPTCHA/challenge page for successful
+            // measurement of the intended website content.
+            $this->persistAndAnalyze($runId, $rendered);
+
+            throw new AcquisitionException(
+                url: $url,
+                category: 'anti_bot_challenge',
+                retryable: false,
+                message: sprintf(
+                    'Browser reached an unresolved anti-bot challenge at %s.',
+                    $observation->url,
+                ),
+            );
+        }
 
         $this->persistAndAnalyze($runId, $rendered);
         $this->runs->increment($runId, 'browser_pages_acquired');
@@ -346,7 +642,10 @@ final readonly class ResearchPipeline
             $stopReason = 'pages';
         } elseif ($usage['bytes'] >= $budget->maxBytes) {
             $stopReason = 'bytes';
-        } elseif ((time() - $crawlStartedAt) >= $budget->maxDurationSeconds) {
+        } elseif (
+            $budget->maxDurationSeconds > 0
+            && (time() - $crawlStartedAt) >= $budget->maxDurationSeconds
+        ) {
             $stopReason = 'duration';
         }
 
@@ -360,8 +659,18 @@ final readonly class ResearchPipeline
             return;
         }
 
-        foreach ($this->linkDiscoverer->discover($document) as $candidate) {
-            if ($this->jobs->scheduledCount($runId, 'fetch', $resourceId . '|') >= $budget->maxPages) {
+        $candidates = $this->linkDiscoverer->discover($document);
+        $relevantCandidates = 0;
+        $scheduledPages = $this->jobs->scheduledCount($runId, 'fetch', $resourceId . '|');
+        foreach ($candidates as $candidate) {
+            if ($candidate->priority < $budget->minLinkPriority) {
+                $this->runs->increment($runId, 'crawl_candidates_skipped_irrelevant');
+                continue;
+            }
+
+            $relevantCandidates++;
+
+            if ($scheduledPages >= $budget->maxPages) {
                 $this->recordBudgetStop(
                     $runId,
                     $resourceId,
@@ -371,7 +680,7 @@ final readonly class ResearchPipeline
                 break;
             }
 
-            $this->jobs->enqueue(
+            $inserted = $this->jobs->enqueue(
                 new Job(
                     id: Uuid::v7()->toRfc4122(),
                     runId: $runId,
@@ -387,6 +696,25 @@ final readonly class ResearchPipeline
                     host: $this->hostForUrl($candidate->url),
                 ),
             );
+            if ($inserted) {
+                $scheduledPages++;
+            }
+        }
+
+        $this->runs->recordEvent(
+            $runId,
+            'crawl_discovery',
+            $resourceId,
+            [
+                'url' => $document->finalUrl,
+                'depth' => $depth,
+                'candidates' => count($candidates),
+                'relevant_candidates' => $relevantCandidates,
+            ],
+        );
+
+        if ($depth === 0 && $relevantCandidates === 0) {
+            $this->runs->increment($runId, 'resources_no_relevant_links');
         }
     }
 
@@ -491,6 +819,25 @@ final readonly class ResearchPipeline
         $wait = max(0, $job->reservedAtMs - $job->enqueuedAtMs);
         $this->runs->increment($runId, 'queue_wait_ms.' . $job->stage, $wait);
         $this->runs->increment($runId, 'queue_reservations.' . $job->stage);
+    }
+
+    private function recordMeasurementLimit(
+        string $runId,
+        string $resourceId,
+        string $reason,
+        string $url,
+    ): void {
+        $this->runs->increment($runId, 'measurement_limits');
+        $this->runs->increment($runId, 'measurement_limit.' . $reason);
+        $this->runs->recordEvent(
+            $runId,
+            'measurement_limit',
+            $resourceId,
+            [
+                'reason' => $reason,
+                'url' => $url,
+            ],
+        );
     }
 
     private function recordBudgetStop(

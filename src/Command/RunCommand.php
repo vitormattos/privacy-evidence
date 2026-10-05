@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace PrivacyEvidence\Command;
 
+use PrivacyEvidence\Analysis\RegulatoryAnalysisService;
 use PrivacyEvidence\Browser\PlaywrightBrowserProvider;
 use PrivacyEvidence\Pipeline\DefaultDetectorRegistry;
 use PrivacyEvidence\Pipeline\DefaultProfileRegistry;
 use PrivacyEvidence\Pipeline\PipelineConfig;
 use PrivacyEvidence\Run\ResearchRun;
 use PrivacyEvidence\Run\RunManifestWriter;
+use PrivacyEvidence\Run\RunStatus;
 use PrivacyEvidence\Runtime\GitRevision;
 use PrivacyEvidence\Runtime\RuntimeFactory;
+use PrivacyEvidence\Source\DatasetProvenance;
 use PrivacyEvidence\Source\DatasetSourceFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -31,7 +34,7 @@ final class RunCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setDescription('Start and execute a research run for a CSV, JSON, or IPB HTML source.')
+            ->setDescription('Start and execute a research run for a canonical CSV or JSON dataset.')
             ->addArgument('dataset', InputArgument::REQUIRED)
             ->addOption(
                 'max-jobs',
@@ -39,6 +42,12 @@ final class RunCommand extends Command
                 InputOption::VALUE_REQUIRED,
                 'Maximum jobs to process before leaving the run interrupted; 0 means unlimited.',
                 '0',
+            )
+            ->addOption(
+                'enqueue-only',
+                null,
+                InputOption::VALUE_NONE,
+                'Create the run and enqueue initial resources without processing jobs; use workers for scale.',
             );
     }
 
@@ -61,6 +70,7 @@ final class RunCommand extends Command
         }
 
         $source = DatasetSourceFactory::fromPath($argument);
+        $provenance = DatasetProvenance::discover($argument);
         $detectors = DefaultDetectorRegistry::create();
         $profiles = DefaultProfileRegistry::create();
 
@@ -142,20 +152,27 @@ final class RunCommand extends Command
             versions: $versions,
             configuration: [
                 'sourceId' => $source->sourceId(),
+                'datasetProvenance' => $provenance === null ? null : [
+                    'path' => $provenance->path,
+                    'sha256' => $provenance->sha256,
+                    'producer' => $provenance->summary['producer'],
+                    'producerVersion' => $provenance->summary['producerVersion'],
+                ],
                 'browserEscalation' => $browser !== null,
                 'maxJobsPerInvocation' => $maxJobs,
                 'scheduler' => [
-                    'recommendedHttpWorkers' => 8,
+                    'recommendedHttpWorkers' => 4,
                     'recommendedBrowserWorkers' => 2,
-                    'perHostConcurrency' => 2,
-                    'minHostDelayMs' => 250,
+                    'perHostConcurrency' => 1,
+                    'minHostDelayMs' => 500,
                 ],
                 'crawlBudget' => [
                     'maxPages' => 20,
                     'maxDepth' => 3,
                     'maxBytes' => 5000000,
-                    'maxDurationSeconds' => 60,
+                    'maxDurationSeconds' => 0,
                     'maxBrowserPages' => 3,
+                    'minLinkPriority' => 50,
                 ],
             ],
         );
@@ -170,11 +187,22 @@ final class RunCommand extends Command
             $browser,
         );
         $pipeline->start($run, $source);
-        $pipeline->execute($run->id);
+
+        if (!$input->getOption('enqueue-only')) {
+            $pipeline->execute($run->id);
+        }
 
         $status = $runtime->runs->status($run->id) ?? throw new \RuntimeException(
             'Run status disappeared after execution.',
         );
+        if ($status === RunStatus::Completed) {
+            (new RegulatoryAnalysisService(
+                $runtime->observations,
+                $profiles,
+                runs: $runtime->runs,
+            ))->analyze($run->id);
+        }
+
         (new RunManifestWriter())->write(
             $run,
             $this->projectRoot . '/data/derived/runs/' . $run->id . '/manifest.json',
@@ -183,6 +211,8 @@ final class RunCommand extends Command
 
         $output->writeln($run->id);
 
-        return Command::SUCCESS;
+        return $status === RunStatus::Failed
+            ? Command::FAILURE
+            : Command::SUCCESS;
     }
 }

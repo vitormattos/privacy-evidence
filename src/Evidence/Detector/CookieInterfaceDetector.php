@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace PrivacyEvidence\Evidence\Detector;
 
+use DOMElement;
 use PrivacyEvidence\Acquisition\FetchedDocument;
 use PrivacyEvidence\Core\ObservationState;
 use PrivacyEvidence\Core\Value;
 use PrivacyEvidence\Evidence\Detector;
 use PrivacyEvidence\Evidence\EvidenceType;
 use PrivacyEvidence\Evidence\PrivacyEvidence;
+use Symfony\Component\DomCrawler\Crawler;
 
 final class CookieInterfaceDetector implements Detector
 {
@@ -25,7 +27,7 @@ final class CookieInterfaceDetector implements Detector
 
     public function version(): string
     {
-        return '1.1.0';
+        return '1.3.0';
     }
 
     public function detect(FetchedDocument $document): array
@@ -36,30 +38,91 @@ final class CookieInterfaceDetector implements Detector
         );
         $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
 
+        $interactiveLabels = $this->interactiveControlLabels($document->body);
+        $hasCookieContext = preg_match('/\bcookies?\b/u', $text) === 1;
+
+        $acceptControl = $hasCookieContext && (
+            preg_match(
+                '/\b(?:aceitar|aceitar todos|accept|accept all|allow all)\b/u',
+                $interactiveLabels,
+            ) === 1
+            || preg_match(
+                '/\b(?:aceitar(?: todos os)? cookies?|accept(?: all)? cookies?|allow all cookies?)\b/u',
+                $text,
+            ) === 1
+        );
+        $rejectControl = $hasCookieContext && (
+            preg_match(
+                '/\b(?:rejeitar|recusar|reject|reject all|decline)\b/u',
+                $interactiveLabels,
+            ) === 1
+            || preg_match(
+                '/\b(?:rejeitar cookies?|recusar cookies?|reject(?: all)? cookies?|decline cookies?)\b/u',
+                $text,
+            ) === 1
+        );
+        $preferencesControl = $hasCookieContext && (
+            preg_match(
+                '/\b(?:prefer[eê]ncias|configurar|configura[cç][oõ]es|gerenciar|preferences|settings|manage)\b/u',
+                $interactiveLabels,
+            ) === 1
+            || preg_match(
+                '/\b(?:prefer[eê]ncias de cookies?|configurar cookies?|configura[cç][oõ]es de cookies?|gerenciar cookies?|cookie preferences|cookie settings|manage cookies?)\b/u',
+                $text,
+            ) === 1
+        );
+        $cookieNotice = (
+            $acceptControl
+            || $rejectControl
+            || $preferencesControl
+            || preg_match(
+                '/\b(?:pol[ií]tica de cookies?|cookie policy|utilizamos cookies?|usamos cookies?|este site utiliza cookies?|we use cookies?|this site uses cookies?)\b/u',
+                $text,
+            ) === 1
+        );
+
         $evidence = [
             $this->signal(
                 $document,
                 EvidenceType::CookieNotice,
-                preg_match('/\b(?:cookie|cookies)\b/u', $text) === 1,
-                'cookie_term',
+                $cookieNotice,
+                'cookie_notice_context',
             ),
             $this->signal(
                 $document,
                 EvidenceType::CookieAcceptControl,
-                preg_match('/\b(?:aceitar|accept(?: all)?)\b/u', $text) === 1,
-                'accept_control_text',
+                $acceptControl,
+                'accept_control_cookie_context',
             ),
             $this->signal(
                 $document,
                 EvidenceType::CookieRejectControl,
-                preg_match('/\b(?:rejeitar|recusar|reject(?: all)?|decline)\b/u', $text) === 1,
-                'reject_control_text',
+                $rejectControl,
+                'reject_control_cookie_context',
             ),
             $this->signal(
                 $document,
                 EvidenceType::CookiePreferencesControl,
-                preg_match('/(?:prefer[eê]ncias|preferences|configurar|settings)/u', $text) === 1,
-                'preferences_control_text',
+                $preferencesControl,
+                'preferences_control_cookie_context',
+            ),
+            $this->signal(
+                $document,
+                EvidenceType::CookieCategoriesDisclosure,
+                preg_match(
+                    '/\b(?:categorias?|tipos?) de cookies\b|\bcookie categories?\b|\b(?:cookies? (?:necess[aá]rios|essenciais|anal[ií]ticos|de marketing|funcionais)|necessary cookies|analytics cookies|marketing cookies|functional cookies)\b/u',
+                    $text,
+                ) === 1,
+                'cookie_categories_text',
+            ),
+            $this->signal(
+                $document,
+                EvidenceType::CookieThirdPartiesDisclosure,
+                preg_match(
+                    '/\bcookies? de terceiros\b|\bthird[- ]party cookies?\b|\bterceiros\b.{0,100}\bcookies?\b/u',
+                    $text,
+                ) === 1,
+                'cookie_third_parties_text',
             ),
         ];
 
@@ -67,6 +130,44 @@ final class CookieInterfaceDetector implements Detector
         $evidence[] = $this->thirdPartyRequestEvidence($document);
 
         return $evidence;
+    }
+
+    private function interactiveControlLabels(string $html): string
+    {
+        try {
+            $crawler = new Crawler($html);
+            $labels = [];
+            foreach (
+                $crawler->filter(
+                    'button, a, input[type="button"], input[type="submit"], [role="button"]',
+                ) as $node
+            ) {
+                if (!$node instanceof DOMElement) {
+                    continue;
+                }
+
+                $parts = [trim($node->textContent)];
+                foreach (['value', 'aria-label', 'title'] as $attribute) {
+                    if ($node->hasAttribute($attribute)) {
+                        $parts[] = trim($node->getAttribute($attribute));
+                    }
+                }
+
+                foreach ($parts as $part) {
+                    if ($part !== '') {
+                        $labels[] = $part;
+                    }
+                }
+            }
+        } catch (\Throwable) {
+            return '';
+        }
+
+        $text = mb_strtolower(
+            html_entity_decode(implode(' ', $labels), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+        );
+
+        return preg_replace('/\s+/u', ' ', $text) ?? $text;
     }
 
     private function nonEssentialStorageEvidence(FetchedDocument $document): PrivacyEvidence

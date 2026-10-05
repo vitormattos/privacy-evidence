@@ -67,7 +67,7 @@ final class HttpProbe
                             dnsState: 'resolved',
                             tlsState: $this->tlsStateForSuccess($current),
                             transportState: 'redirect_limit',
-                            failure: ProbeFailure::Transport,
+                            failure: ProbeFailure::RedirectLimit,
                             failureDetail: 'Maximum redirect count exceeded.',
                         );
                     }
@@ -104,7 +104,11 @@ final class HttpProbe
                     transportState: 'connected',
                 );
             } catch (TransportExceptionInterface $e) {
-                $failure = $this->classifyTransportFailure($e->getMessage());
+                $failure = $this->classifyTransportFailure($e->getMessage(), $current);
+                $failureDetail = $failure === ProbeFailure::Dns
+                    && str_contains(strtolower($e->getMessage()), ' is blocked')
+                    ? 'Host has no resolvable A/AAAA address.'
+                    : $e->getMessage();
 
                 return new HttpProbeResult(
                     requestedUrl: $url,
@@ -112,11 +116,13 @@ final class HttpProbe
                     statusCode: null,
                     contentType: null,
                     redirectChain: $redirectChain,
-                    dnsState: $failure === ProbeFailure::Dns ? 'failed' : 'unknown',
+                    dnsState: $failure === ProbeFailure::Dns
+                        ? ($failureDetail === 'Host has no resolvable A/AAAA address.' ? 'not_found' : 'failed')
+                        : 'unknown',
                     tlsState: $failure === ProbeFailure::Tls ? 'failed' : 'unknown',
                     transportState: 'failed',
                     failure: $failure,
-                    failureDetail: $e->getMessage(),
+                    failureDetail: $failureDetail,
                 );
             }
         }
@@ -130,6 +136,31 @@ final class HttpProbe
 
         return filter_var($url, FILTER_VALIDATE_URL) !== false
             && in_array($scheme, ['http', 'https'], true);
+    }
+
+    private function blockedHostFailure(string $url): ProbeFailure
+    {
+        $host = parse_url($url, PHP_URL_HOST);
+        if (!is_string($host) || $host === '') {
+            return ProbeFailure::PrivateNetwork;
+        }
+
+        $host = trim($host, '[]');
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return ProbeFailure::PrivateNetwork;
+        }
+
+        $addresses = gethostbynamel($host);
+        if (is_array($addresses) && $addresses !== []) {
+            return ProbeFailure::PrivateNetwork;
+        }
+
+        $aaaa = @dns_get_record($host, DNS_AAAA);
+        if (is_array($aaaa) && $aaaa !== []) {
+            return ProbeFailure::PrivateNetwork;
+        }
+
+        return ProbeFailure::Dns;
     }
 
     private function tlsStateForSuccess(string $url): string
@@ -163,11 +194,17 @@ final class HttpProbe
         return $origin . ($directory === '' ? '' : $directory) . '/' . $location;
     }
 
-    private function classifyTransportFailure(string $message): ProbeFailure
+    private function classifyTransportFailure(string $message, string $url): ProbeFailure
     {
         $lower = strtolower($message);
 
-        if (str_contains($lower, 'private') || str_contains($lower, 'reserved')) {
+        if (str_contains($lower, ' is blocked')) {
+            return $this->blockedHostFailure($url);
+        }
+        if (
+            str_contains($lower, 'private')
+            || str_contains($lower, 'reserved')
+        ) {
             return ProbeFailure::PrivateNetwork;
         }
         if (str_contains($lower, 'resolve') || str_contains($lower, 'dns')) {
@@ -182,6 +219,14 @@ final class HttpProbe
         }
         if (str_contains($lower, 'timed out') || str_contains($lower, 'timeout')) {
             return ProbeFailure::Timeout;
+        }
+        if (
+            str_contains($lower, 'connection refused')
+            || str_contains($lower, 'failed to connect')
+            || str_contains($lower, 'could not connect')
+            || str_contains($lower, "couldn't connect")
+        ) {
+            return ProbeFailure::ConnectionRefused;
         }
 
         return ProbeFailure::Transport;

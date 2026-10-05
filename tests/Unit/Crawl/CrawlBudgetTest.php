@@ -17,7 +17,7 @@ final class CrawlBudgetTest extends TestCase
         self::assertSame(20, $budget->maxPages);
         self::assertSame(3, $budget->maxDepth);
         self::assertSame(5_000_000, $budget->maxBytes);
-        self::assertSame(60, $budget->maxDurationSeconds);
+        self::assertSame(0, $budget->maxDurationSeconds);
         self::assertSame(3, $budget->maxBrowserPages);
     }
 

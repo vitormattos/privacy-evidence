@@ -35,6 +35,7 @@ final class GdprProfile implements RegulatoryProfile
                 [EvidenceType::DpoRole, EvidenceType::DpoContact],
                 true,
                 'Whether DPO designation is legally required is not inferred from website evidence alone.',
+                conditionalApplicability: true,
             ),
             new RequirementMapping(
                 'gdpr-art13-purpose-basis',
@@ -59,6 +60,7 @@ final class GdprProfile implements RegulatoryProfile
                 [EvidenceType::InternationalTransferDisclosure],
                 true,
                 'No inference is made when transfers are not applicable or not observable.',
+                conditionalApplicability: true,
             ),
             new RequirementMapping(
                 'gdpr-art13-retention',

@@ -1,0 +1,196 @@
+name: IPB full validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/ipb-live-demo
+    paths:
+      - .github/workflows/ipb-full-validation.yml
+      - bin/privacy-evidence
+      - composer.json
+      - composer.lock
+      - browser/**
+      - examples/hacktoberfest/ipb/**
+      - src/**
+      - tests/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ipb-full-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  full-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Install browser dependencies
+        working-directory: browser
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Run complete IPB population validation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          OUT="$RUNNER_TEMP/ipb-full"
+          mkdir -p "$OUT"
+
+          echo '== 1. Preserve official directory snapshot ==' | tee "$OUT/full-run.log"
+          php examples/hacktoberfest/ipb/source.php fetch "$OUT/ipb-anuario.html" 2>&1 | tee -a "$OUT/full-run.log"
+
+          echo '== 2. Convert snapshot to canonical CSV ==' | tee -a "$OUT/full-run.log"
+          php examples/hacktoberfest/ipb/source.php extract "$OUT/ipb-anuario.html" "$OUT/ipb-population.csv" 2>&1 | tee -a "$OUT/full-run.log"
+
+          echo '== 3. Inspect/classify complete population ==' | tee -a "$OUT/full-run.log"
+          php bin/privacy-evidence source:import "$OUT/ipb-population.csv" > "$OUT/source-import.jsonl"
+          php bin/privacy-evidence source:stats "$OUT/ipb-population.csv" \
+            | tee "$OUT/source-stats.json" | tee -a "$OUT/full-run.log"
+
+          echo '== 4. Select every institutional website (no sampling) ==' | tee -a "$OUT/full-run.log"
+          php bin/privacy-evidence source:select "$OUT/ipb-population.csv" "$OUT/ipb-sites.csv" \
+            --type=institutional_website 2>&1 | tee -a "$OUT/full-run.log"
+
+          printf 'population_rows=%s\n' "$(( $(wc -l < "$OUT/ipb-population.csv") - 1 ))" | tee -a "$OUT/full-run.log"
+          printf 'selected_rows=%s\n' "$(( $(wc -l < "$OUT/ipb-sites.csv") - 1 ))" | tee -a "$OUT/full-run.log"
+
+          echo '== 5. Enqueue complete source population; only eligible institutional websites are crawled ==' | tee -a "$OUT/full-run.log"
+          RUN_ID=$(php bin/privacy-evidence run "$OUT/ipb-population.csv" --enqueue-only)
+          printf '%s\n' "$RUN_ID" | tee "$OUT/run-id.txt"
+          printf 'Run ID: %s\n' "$RUN_ID" | tee -a "$OUT/full-run.log"
+
+          # Intentionally use scheduler defaults persisted in the run manifest.
+          echo '== 6. Process HTTP crawl with bounded worker pool ==' | tee -a "$OUT/full-run.log"
+          php bin/privacy-evidence workers "$RUN_ID" fetch \
+            --max-jobs=100 \
+            2>&1 | tee -a "$OUT/full-run.log"
+
+          echo '== 7. Process browser escalation with bounded worker pool ==' | tee -a "$OUT/full-run.log"
+          php bin/privacy-evidence workers "$RUN_ID" browser \
+            --max-jobs=50 \
+            2>&1 | tee -a "$OUT/full-run.log"
+
+          echo '== 8. Finalize run and regulatory analysis ==' | tee -a "$OUT/full-run.log"
+          set +e
+          php bin/privacy-evidence run:resume "$RUN_ID" 2>&1 | tee -a "$OUT/full-run.log"
+          RUN_EXIT=${PIPESTATUS[0]}
+          set -e
+
+          echo '== 9. Durable status ==' | tee -a "$OUT/full-run.log"
+          php bin/privacy-evidence status "$RUN_ID" | tee "$OUT/status.json" | tee -a "$OUT/full-run.log"
+
+          echo '== 10. Report/export for 100% of source population ==' | tee -a "$OUT/full-run.log"
+          EXPORT_DIR=$(php bin/privacy-evidence report "$RUN_ID")
+          printf '%s\n' "$EXPORT_DIR" | tee "$OUT/export-dir.txt"
+          printf 'Export directory: %s\n' "$EXPORT_DIR" | tee -a "$OUT/full-run.log"
+
+          cp -a "data/derived/runs/$RUN_ID" "$OUT/run-derived"
+          cp -a "$EXPORT_DIR" "$OUT/export"
+
+          echo '== 11. Assert and summarize 100% population accounting ==' | tee -a "$OUT/full-run.log"
+          php -r '
+          $population = max(0, count(file($argv[1], FILE_IGNORE_NEW_LINES)) - 1);
+          $summary = json_decode(file_get_contents($argv[2]), true, 512, JSON_THROW_ON_ERROR);
+          $populationResults = json_decode(file_get_contents($argv[3]), true, 512, JSON_THROW_ON_ERROR);
+          $profileMetrics = json_decode(file_get_contents($argv[4]), true, 512, JSON_THROW_ON_ERROR);
+          if (!is_array($summary) || !is_array($populationResults) || !is_array($profileMetrics)) {
+              fwrite(STDERR, "validation exports are not arrays\n");
+              exit(2);
+          }
+
+          $coverage = [];
+          $fullSupport = [];
+          $anySupport = [];
+          foreach ($populationResults as $row) {
+              if (!is_array($row) || ($row["eligibleForWebsiteMeasurement"] ?? false) !== true) {
+                  continue;
+              }
+              if (
+                  ($row["websiteMeasurementCanonicalResourceId"] ?? null)
+                  !== ($row["resourceId"] ?? null)
+              ) {
+                  continue;
+              }
+              foreach ([
+                  "lgpdCoverageRate" => &$coverage,
+                  "lgpdFullObservedSupportRate" => &$fullSupport,
+                  "lgpdAnyObservedSupportRate" => &$anySupport,
+              ] as $key => &$target) {
+                  $value = $row[$key] ?? null;
+                  if (is_int($value) || is_float($value)) {
+                      $target[] = (float)$value;
+                  }
+              }
+              unset($target);
+          }
+
+          $lgpdRequirements = [];
+          foreach ($profileMetrics as $metric) {
+              if (!is_array($metric) || ($metric["profile"] ?? null) !== "lgpd") {
+                  continue;
+              }
+              $id = (string)($metric["requirementId"] ?? "unknown");
+              $lgpdRequirements[$id] = [
+                  "totalResources" => $metric["totalResources"] ?? 0,
+                  "measurableResources" => $metric["measurableResources"] ?? 0,
+                  "observedSupport" => $metric["observedSupport"] ?? 0,
+                  "partialObservedSupport" => $metric["partialObservedSupport"] ?? 0,
+                  "noObservedSupport" => $metric["noObservedSupport"] ?? 0,
+                  "indeterminate" => $metric["indeterminate"] ?? 0,
+                  "unavailable" => $metric["unavailable"] ?? 0,
+                  "applicabilityUnknown" => $metric["applicabilityUnknown"] ?? 0,
+                  "fullObservedSupportRate" => $metric["fullObservedSupportRate"] ?? null,
+              ];
+          }
+          ksort($lgpdRequirements);
+
+          $avg = static fn(array $values): ?float => $values === []
+              ? null
+              : array_sum($values) / count($values);
+
+          $result = $summary;
+          $result["sourcePopulation"] = $population;
+          $result["populationResults"] = count($populationResults);
+          $result["averageLgpdCoverageRate"] = $avg($coverage);
+          $result["averageLgpdFullObservedSupportRate"] = $avg($fullSupport);
+          $result["averageLgpdAnyObservedSupportRate"] = $avg($anySupport);
+          $result["lgpdRequirements"] = $lgpdRequirements;
+
+          echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;
+
+          if (
+              ($summary["completePopulationAccounting"] ?? false) !== true
+              || ($summary["population"] ?? null) !== $population
+              || count($populationResults) !== $population
+          ) {
+              fwrite(STDERR, "Population accounting is not complete.\n");
+              exit(1);
+          }
+          ' "$OUT/ipb-population.csv" "$EXPORT_DIR/population-summary.json" "$EXPORT_DIR/population-results.json" "$EXPORT_DIR/profile-metrics.json" \
+            | tee "$OUT/population-outcomes-summary.json" | tee -a "$OUT/full-run.log"
+
+          if [ "$RUN_EXIT" -ne 0 ]; then
+            echo 'Research run completed with terminal failures.' | tee -a "$OUT/full-run.log"
+            exit "$RUN_EXIT"
+          fi
+
+      - name: Preserve complete validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ipb-full-validation
+          path: |
+            ${{ runner.temp }}/ipb-full
+          retention-days: 7

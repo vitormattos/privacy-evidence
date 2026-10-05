@@ -9,6 +9,7 @@ use PrivacyEvidence\Command\ResumeCommand;
 use PrivacyEvidence\Command\RunCommand;
 use PrivacyEvidence\Command\SourceImportCommand;
 use PrivacyEvidence\Command\StatusCommand;
+use PrivacyEvidence\Queue\Job;
 use PrivacyEvidence\Run\ResearchRun;
 use PrivacyEvidence\Run\RunStatus;
 use PrivacyEvidence\Runtime\RuntimeFactory;
@@ -56,6 +57,28 @@ final class CommandWorkflowTest extends TestCase
         self::assertStringContainsString('max-jobs', $tester->getDisplay());
     }
 
+    public function testRunCanEnqueueOnlyForConcurrentWorkerExecution(): void
+    {
+        $fixture = dirname(__DIR__, 2) . '/Fixtures/sources/sites.csv';
+        $tester = new CommandTester(new RunCommand($this->projectRoot));
+
+        $exit = $tester->execute([
+            'dataset' => $fixture,
+            '--enqueue-only' => true,
+        ]);
+
+        self::assertSame(Command::SUCCESS, $exit);
+        $runId = trim($tester->getDisplay());
+        self::assertNotSame('', $runId);
+
+        $runtime = RuntimeFactory::create($this->projectRoot);
+        self::assertSame(RunStatus::Running, $runtime->runs->status($runId));
+
+        $counts = $runtime->jobs->counts($runId);
+        self::assertGreaterThan(0, $counts['pending'] ?? 0);
+        self::assertSame(0, $runtime->observations->counts($runId)['documents'] ?? 0);
+    }
+
     public function testStatusReportsDurableRunStateAndTelemetry(): void
     {
         $runtime = RuntimeFactory::create($this->projectRoot);
@@ -71,6 +94,18 @@ final class CommandWorkflowTest extends TestCase
         $runtime->runs->create($run);
         $runtime->runs->setStatus($run->id, RunStatus::Interrupted);
         $runtime->runs->increment($run->id, 'jobs_completed', 3);
+        $runtime->jobs->enqueue(new Job(
+            id: 'failed-job',
+            runId: $run->id,
+            stage: 'fetch',
+            deduplicationKey: 'resource-1|https://failure.example/',
+            payload: [
+                'resource_id' => 'resource-1',
+                'url' => 'https://failure.example/',
+            ],
+        ));
+        $runtime->jobs->reserve($run->id, 'fetch', minHostDelayMs: 0);
+        $runtime->jobs->fail('failed-job', 'dns failure', maxAttempts: 1);
 
         $tester = new CommandTester(new StatusCommand($this->projectRoot));
         $exit = $tester->execute(['run-id' => $run->id]);
@@ -87,6 +122,14 @@ final class CommandWorkflowTest extends TestCase
         self::assertIsArray($telemetry);
         self::assertSame(3, $telemetry['jobs_completed'] ?? null);
         self::assertSame(0, $decoded['events'] ?? null);
+
+        $failures = $decoded['failures'] ?? null;
+        self::assertIsArray($failures);
+        self::assertCount(1, $failures);
+        $firstFailure = $failures[0] ?? null;
+        self::assertIsArray($firstFailure);
+        self::assertSame('https://failure.example/', $firstFailure['url'] ?? null);
+        self::assertSame('dns failure', $firstFailure['error'] ?? null);
     }
 
     public function testResumeCompletesInterruptedRunWithNoPendingJobs(): void

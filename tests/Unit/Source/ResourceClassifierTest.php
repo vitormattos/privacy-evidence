@@ -36,6 +36,8 @@ final class ResourceClassifierTest extends TestCase
         yield ['https://WWW.YOUTUBE.COM/watch?v=1', ResourceType::VideoPlatform, 'known_video_host', 1.0];
         yield ['https://team.linktr.ee/example', ResourceType::LinkAggregator, 'known_link_aggregator', 1.0];
         yield ['https://example.wordpress.com/', ResourceType::ThirdPartyHostedPage, 'known_hosted_page', 0.95];
+        yield ['https://church.blogspot.com/', ResourceType::ThirdPartyHostedPage, 'known_hosted_page', 0.95];
+        yield ['https://church.blogspot.com.br/', ResourceType::ThirdPartyHostedPage, 'known_hosted_page', 0.95];
     }
 
     public function testEmptyAndMalformedValuesRemainDistinct(): void
@@ -65,6 +67,18 @@ final class ResourceClassifierTest extends TestCase
             ResourceType::InstitutionalWebsite,
             $classifier->classify('notinstagram.com', 'https://notinstagram.com/'),
         );
+    }
+
+    public function testSpoofedKnownHostPrefixIsNotTreatedAsInstitutionalWebsite(): void
+    {
+        $classification = (new ResourceClassifier())->classifyDetailed(
+            'http://www.facebook.com.bripbariquemes',
+            'http://www.facebook.com.bripbariquemes/',
+        );
+
+        self::assertSame(ResourceType::Malformed, $classification->type);
+        self::assertSame('spoofed_known_host_prefix', $classification->rule);
+        self::assertSame(1.0, $classification->confidence);
     }
 
     public function testNormalWebsiteIsInstitutionalWithDefaultDecisionMetadata(): void

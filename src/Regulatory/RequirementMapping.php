@@ -18,6 +18,7 @@ final readonly class RequirementMapping
         public array $evidenceTypes,
         public bool $publiclyObservable,
         public string $interpretation,
+        public bool $conditionalApplicability = false,
     ) {
     }
 }

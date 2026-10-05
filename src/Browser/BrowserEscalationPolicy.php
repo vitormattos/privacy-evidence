@@ -8,7 +8,7 @@ use PrivacyEvidence\Acquisition\FetchedDocument;
 
 final class BrowserEscalationPolicy
 {
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.1.0';
 
     public function decide(
         FetchedDocument $document,
@@ -54,7 +54,16 @@ final class BrowserEscalationPolicy
 
         if (
             preg_match(
-                '/(?:enable javascript|javascript required|checking your browser|just a moment)/u',
+                '/(?:captcha|recaptcha|hcaptcha|verify you are human|are you human|checking your browser|just a moment|cloudflare)/u',
+                $text,
+            ) === 1
+        ) {
+            return $this->decision(true, 'anti_bot_challenge_candidate');
+        }
+
+        if (
+            preg_match(
+                '/(?:enable javascript|javascript required)/u',
                 $text,
             ) === 1
         ) {

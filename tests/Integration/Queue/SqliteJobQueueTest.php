@@ -28,8 +28,8 @@ final class SqliteJobQueueTest extends TestCase
             host: 'example.test',
         );
 
-        $queue->enqueue($job);
-        $queue->enqueue(
+        self::assertTrue($queue->enqueue($job));
+        self::assertFalse($queue->enqueue(
             new Job(
                 'j2',
                 'r1',
@@ -38,7 +38,7 @@ final class SqliteJobQueueTest extends TestCase
                 ['url' => 'https://example.test'],
                 host: 'example.test',
             ),
-        );
+        ));
 
         self::assertSame(['pending' => 1], $queue->counts('r1'));
 
@@ -132,6 +132,88 @@ final class SqliteJobQueueTest extends TestCase
         self::assertSame(['pending' => 1, 'running' => 2], $queue->stageCounts('r1', 'fetch'));
     }
 
+    public function testHostCanBeDeferredWithoutBlockingOtherHosts(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            self::markTestSkipped('pdo_sqlite not available');
+        }
+
+        $queue = new SqliteJobQueue(new PDO('sqlite::memory:'), retryBaseDelayMs: 0);
+        self::assertTrue($queue->enqueue(new Job(
+            'a',
+            'r1',
+            'fetch',
+            'a',
+            ['url' => 'https://a.test/'],
+            priority: 100,
+            host: 'a.test',
+        )));
+        self::assertTrue($queue->enqueue(new Job(
+            'b',
+            'r1',
+            'fetch',
+            'b',
+            ['url' => 'https://b.test/'],
+            priority: 50,
+            host: 'b.test',
+        )));
+
+        $queue->deferHost('r1', 'fetch', 'a.test', 1000);
+
+        $reserved = $queue->reserve('r1', 'fetch', minHostDelayMs: 0);
+        self::assertSame('b', $reserved?->id);
+    }
+
+    public function testExplicitRetryDelayOverridesDefaultBackoff(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            self::markTestSkipped('pdo_sqlite not available');
+        }
+
+        $queue = new SqliteJobQueue(new PDO('sqlite::memory:'), retryBaseDelayMs: 0);
+        $queue->enqueue(new Job('delayed', 'r1', 'fetch', 'delayed', ['url' => 'https://a.test/']));
+        $queue->reserve('r1', 'fetch');
+
+        self::assertSame(
+            JobStatus::Pending,
+            $queue->fail('delayed', '429', retryDelayMs: 1000),
+        );
+        self::assertNull($queue->reserve('r1', 'fetch'));
+    }
+
+    public function testExpectedFailuresCanTerminateWithoutDeadLetteringTheRun(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            self::markTestSkipped('pdo_sqlite not available');
+        }
+
+        $queue = new SqliteJobQueue(new PDO('sqlite::memory:'));
+        $queue->enqueue(new Job(
+            'unreachable',
+            'r1',
+            'fetch',
+            'unreachable',
+            ['resource_id' => 'resource-1', 'url' => 'https://blocked.example'],
+        ));
+
+        $queue->reserve('r1', 'fetch');
+        self::assertSame(
+            JobStatus::Failed,
+            $queue->fail(
+                'unreachable',
+                'private network destination',
+                maxAttempts: 1,
+                terminalStatus: JobStatus::Failed,
+            ),
+        );
+        self::assertSame(['failed' => 1], $queue->counts('r1'));
+
+        $failures = $queue->failures('r1');
+        self::assertCount(1, $failures);
+        self::assertSame('failed', $failures[0]['status']);
+        self::assertSame('resource-1', $failures[0]['resourceId']);
+    }
+
     public function testDeadLettersAfterMaximumAttempts(): void
     {
         if (!extension_loaded('pdo_sqlite')) {
@@ -150,5 +232,17 @@ final class SqliteJobQueueTest extends TestCase
         $queue->reserve('r1', 'fetch');
         self::assertSame(JobStatus::Dead, $queue->fail('dead', 'fatal', maxAttempts: 1));
         self::assertSame(['dead' => 1], $queue->counts('r1'));
+
+        self::assertSame([
+            [
+                'id' => 'dead',
+                'stage' => 'fetch',
+                'status' => 'dead',
+                'attempts' => 1,
+                'url' => 'https://example.test',
+                'resourceId' => null,
+                'error' => 'fatal',
+            ],
+        ], $queue->failures('r1'));
     }
 }

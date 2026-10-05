@@ -73,9 +73,48 @@ final class LinkDiscovererTest extends TestCase
         $links = (new LinkDiscoverer())->discover($document);
 
         self::assertCount(1, $links);
-        self::assertSame('https://example.TEST/NOTICE', $links[0]->url);
+        self::assertSame('https://example.test/NOTICE', $links[0]->url);
         self::assertSame(100, $links[0]->priority);
         self::assertSame('PRIVACIDADE', $links[0]->anchorText);
+    }
+
+    public function testNormalizesUnicodePathsBeforeScheduling(): void
+    {
+        $links = (new LinkDiscoverer())->discover(
+            $this->document('<a href="/sobre-nós">Privacidade</a>'),
+        );
+
+        self::assertCount(1, $links);
+        self::assertSame(
+            'https://example.test/sobre-n%C3%B3s',
+            $links[0]->url,
+        );
+        self::assertSame(100, $links[0]->priority);
+    }
+
+    public function testKeepsHighestPriorityWhenSameUrlAppearsWithDifferentAnchors(): void
+    {
+        $links = (new LinkDiscoverer())->discover(
+            $this->document(
+                '<a href="/privacy">Política de Privacidade</a>'
+                . '<a href="/privacy">Saiba mais</a>',
+            ),
+        );
+
+        self::assertCount(1, $links);
+        self::assertSame(100, $links[0]->priority);
+        self::assertSame('privacy', $links[0]->reason);
+        self::assertSame('Política de Privacidade', $links[0]->anchorText);
+    }
+
+    public function testMatchesAccentedUppercaseLgpdTerms(): void
+    {
+        $links = (new LinkDiscoverer())->discover(
+            $this->document('<a href="/dados">PROTEÇÃO DE DADOS PESSOAIS</a>'),
+        );
+
+        self::assertCount(1, $links);
+        self::assertSame(100, $links[0]->priority);
     }
 
     public function testPrivacyTermCanMatchUrlWhenAnchorDoesNot(): void
@@ -109,6 +148,38 @@ final class LinkDiscovererTest extends TestCase
         self::assertCount(1, $links);
         self::assertSame('https://example.test/privacy', $links[0]->url);
         self::assertSame(100, $links[0]->priority);
+    }
+
+    public function testDropsTrackingParametersButPreservesFunctionalQueryParameters(): void
+    {
+        $links = (new LinkDiscoverer())->discover(
+            $this->document(
+                '<a href="/privacy?utm_source=footer&lang=pt-BR&fbclid=abc">Privacidade</a>'
+                . '<a href="/privacy?lang=pt-BR&utm_medium=menu">Privacy</a>',
+            ),
+        );
+
+        self::assertCount(1, $links);
+        self::assertSame('https://example.test/privacy?lang=pt-BR', $links[0]->url);
+        self::assertSame(100, $links[0]->priority);
+    }
+
+    public function testTreatsApexAndWwwAsSameWebsite(): void
+    {
+        $document = new FetchedDocument(
+            resourceId: 'site-www',
+            requestedUrl: 'https://www.example.test/',
+            finalUrl: 'https://www.example.test/',
+            statusCode: 200,
+            mediaType: 'text/html',
+            body: '<a href="https://example.test/privacidade">Privacidade</a>',
+            fetchedAt: '2026-10-02T00:00:00Z',
+        );
+
+        $links = (new LinkDiscoverer())->discover($document);
+
+        self::assertCount(1, $links);
+        self::assertSame('https://example.test/privacidade', $links[0]->url);
     }
 
     public function testNonHtmlContentIsIgnored(): void

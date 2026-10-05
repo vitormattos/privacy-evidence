@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PrivacyEvidence\Command;
 
+use PrivacyEvidence\Source\DatasetProvenance;
 use PrivacyEvidence\Source\DatasetSourceFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -21,7 +22,7 @@ final class SourceImportCommand extends Command
     {
         $this
             ->setDescription('Normalize and inspect a source dataset without running acquisition.')
-            ->addArgument('dataset', InputArgument::REQUIRED, 'CSV, JSON, or IPB HTML snapshot.');
+            ->addArgument('dataset', InputArgument::REQUIRED, 'Canonical CSV or JSON dataset.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -34,6 +35,7 @@ final class SourceImportCommand extends Command
         }
 
         $source = DatasetSourceFactory::fromPath($argument);
+        $provenance = DatasetProvenance::discover($argument);
 
         $output->writeln(json_encode([
             'sourceId' => $source->sourceId(),
@@ -41,6 +43,11 @@ final class SourceImportCommand extends Command
                 'sha256' => $source->snapshot()->sha256,
                 'capturedAt' => $source->snapshot()->capturedAt,
                 'location' => $source->snapshot()->location,
+            ],
+            'externalProvenance' => $provenance === null ? null : [
+                'path' => $provenance->path,
+                'sha256' => $provenance->sha256,
+                ...$provenance->summary,
             ],
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
 

@@ -1,45 +1,45 @@
 # LGPD public-evidence profile
 
-Profile version: **1.0.0-draft**
+Profile version: **1.1.0**
 
 ## Scope
 
-This profile maps generic Privacy Evidence observations to LGPD-related public transparency dimensions. It does not certify legal compliance.
+This profile maps generic Privacy Evidence observations to LGPD-related public-transparency dimensions. It does not certify legal compliance and does not infer organization-wide practices from a website alone.
 
 ## Authoritative basis
 
-- Lei nº 13.709/2018 (LGPD), especially principles/transparency, information, rights and encarregado provisions.
-- ANPD educational and orientative materials, including its guidance on cookies, research and the encarregado.
-
-Official materials index:
-https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes
+- Lei nº 13.709/2018 (LGPD), especially arts. 9, 18, 33–36 and 41:
+  https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm
+- ANPD materials and guidance:
+  https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes
+- Resolução CD/ANPD nº 19/2024, for transparency about international transfers:
+  https://www.gov.br/anpd/pt-br/acesso-a-informacao/institucional/atos-normativos/regulamentacoes_anpd/resolucao-cd-anpd-no-19-de-23-de-agosto-de-2024
 
 ## Observable dimensions
 
-### Transparency
-Candidate evidence:
-- privacy notice;
-- controller identity;
-- purposes;
-- legal-basis wording where disclosed;
-- recipients/third parties;
-- retention;
-- international transfer.
+The profile evaluates these dimensions independently:
 
-### Rights
-Candidate evidence:
-- rights disclosure;
-- privacy-specific contact;
-- dedicated rights form/channel.
+- purpose of processing;
+- duration/retention-related information;
+- controller identity and public privacy contact;
+- recipient/shared-use disclosure;
+- data-subject-rights information;
+- public channel for exercising rights;
+- encarregado role/contact evidence, with applicability left unresolved when it cannot be established externally;
+- international-transfer transparency, only as a conditional dimension because a website cannot establish whether transfers occur.
 
-### Encarregado
-Candidate evidence:
-- role mention;
-- named encarregado;
-- dedicated contact.
+## State semantics
 
-The requirement/applicability of an encarregado and the adequacy of a given channel are not inferred solely from presence/absence on a website.
+- `observed_support`: all evidence types mapped to the requirement were observed;
+- `partial_observed_support`: some mapped evidence was observed;
+- `no_observed_support`: the resource was measurable but the mapped non-conditional signal was observed as absent;
+- `indeterminate`: measurement produced unresolved evidence;
+- `unavailable`: required evidence could not be measured;
+- `not_applicable`: the measurement explicitly established non-applicability;
+- `applicability_unknown`: the requirement is conditional and the public measurement cannot establish whether it applies.
 
-## Interpretation rule
+Missing or inaccessible website evidence is never converted into a legal non-compliance verdict.
 
-Profile output states whether relevant evidence was publicly observed, partially observed, unavailable or not applicable under the measurement protocol. It does not output “LGPD compliant/non-compliant”.
+## Interpretation boundary
+
+The output is a structured description of **publicly observable LGPD-related evidence**. Legal compliance depends on facts, processing operations, governance, contracts, security measures and other conditions that are not fully observable from a public website.

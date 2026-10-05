@@ -30,7 +30,7 @@ final class SqliteObservationStore implements ObservationStore
              VALUES (:run_id, :resource_id, :name, :source_value, :normalized_url, :resource_type,
                      :classification_rule, :classification_version, :classification_confidence, :metadata_json)',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'run_id' => $runId,
             'resource_id' => $resource->id,
             'name' => $resource->name,
@@ -53,7 +53,7 @@ final class SqliteObservationStore implements ObservationStore
              VALUES (:run_id, :artifact_hash, :resource_id, :requested_url, :final_url, :status_code,
                      :media_type, :fetched_at, :acquisition_mode, :truncated, :body_size, :metadata_json)',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'run_id' => $runId,
             'artifact_hash' => $document->sha256,
             'resource_id' => $document->resourceId,
@@ -78,7 +78,7 @@ final class SqliteObservationStore implements ObservationStore
              VALUES (:run_id, :evidence_id, :resource_id, :artifact_hash, :type, :state, :source_url,
                      :detector, :detector_version, :method, :excerpt, :confidence, :needs_review, :attributes_json)',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'run_id' => $runId,
             'evidence_id' => $evidence->id(),
             'resource_id' => $evidence->resourceId,
@@ -105,7 +105,7 @@ final class SqliteObservationStore implements ObservationStore
                     classification_rule, classification_version, classification_confidence, metadata_json
              FROM resources WHERE run_id = :run_id ORDER BY resource_id',
         );
-        $stmt->execute(['run_id' => $runId]);
+        SqliteRetry::execute($stmt, ['run_id' => $runId]);
 
         $records = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
@@ -147,7 +147,7 @@ final class SqliteObservationStore implements ObservationStore
                     media_type, fetched_at, acquisition_mode, truncated, body_size, metadata_json
              FROM documents WHERE run_id = :run_id ORDER BY resource_id, fetched_at, artifact_hash',
         );
-        $stmt->execute(['run_id' => $runId]);
+        SqliteRetry::execute($stmt, ['run_id' => $runId]);
 
         $records = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
@@ -178,7 +178,7 @@ final class SqliteObservationStore implements ObservationStore
         $stmt = $this->pdo->prepare(
             'SELECT resource_id FROM resources WHERE run_id = :run_id ORDER BY resource_id',
         );
-        $stmt->execute(['run_id' => $runId]);
+        SqliteRetry::execute($stmt, ['run_id' => $runId]);
 
         $ids = [];
         while (true) {
@@ -199,14 +199,14 @@ final class SqliteObservationStore implements ObservationStore
             $stmt = $this->pdo->prepare(
                 'SELECT * FROM evidence WHERE run_id = :run_id ORDER BY resource_id, type, evidence_id',
             );
-            $stmt->execute(['run_id' => $runId]);
+            SqliteRetry::execute($stmt, ['run_id' => $runId]);
         } else {
             $stmt = $this->pdo->prepare(
                 'SELECT * FROM evidence
                  WHERE run_id = :run_id AND resource_id = :resource_id
                  ORDER BY type, evidence_id',
             );
-            $stmt->execute([
+            SqliteRetry::execute($stmt, [
                 'run_id' => $runId,
                 'resource_id' => $resourceId,
             ]);
@@ -260,7 +260,7 @@ final class SqliteObservationStore implements ObservationStore
              (result_id, run_id, resource_id, profile, profile_version, result_json)
              VALUES (:result_id, :run_id, :resource_id, :profile, :profile_version, :result_json)',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'result_id' => $id,
             'run_id' => $runId,
             'resource_id' => $resourceId,
@@ -272,6 +272,27 @@ final class SqliteObservationStore implements ObservationStore
 
 
 
+    public function clearProfileResults(
+        string $runId,
+        string $resourceId,
+        string $profile,
+        string $profileVersion,
+    ): void {
+        $stmt = $this->pdo->prepare(
+            'DELETE FROM profile_results
+             WHERE run_id = :run_id
+               AND resource_id = :resource_id
+               AND profile = :profile
+               AND profile_version = :profile_version',
+        );
+        SqliteRetry::execute($stmt, [
+            'run_id' => $runId,
+            'resource_id' => $resourceId,
+            'profile' => $profile,
+            'profile_version' => $profileVersion,
+        ]);
+    }
+
     public function profileResults(string $runId): array
     {
         $stmt = $this->pdo->prepare(
@@ -280,7 +301,7 @@ final class SqliteObservationStore implements ObservationStore
              WHERE run_id = :run_id
              ORDER BY resource_id, profile, result_id',
         );
-        $stmt->execute(['run_id' => $runId]);
+        SqliteRetry::execute($stmt, ['run_id' => $runId]);
 
         $results = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
@@ -311,7 +332,7 @@ final class SqliteObservationStore implements ObservationStore
              FROM documents
              WHERE run_id = :run_id AND resource_id = :resource_id',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'run_id' => $runId,
             'resource_id' => $resourceId,
         ]);
@@ -336,7 +357,7 @@ final class SqliteObservationStore implements ObservationStore
             $stmt = $this->pdo->prepare(
                 sprintf('SELECT COUNT(*) FROM %s WHERE run_id = :run_id', $table),
             );
-            $stmt->execute(['run_id' => $runId]);
+            SqliteRetry::execute($stmt, ['run_id' => $runId]);
             $result[$table] = Value::int($stmt->fetchColumn(), 'count');
         }
 

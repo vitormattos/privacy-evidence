@@ -6,7 +6,7 @@ namespace PrivacyEvidence\Queue;
 
 interface JobQueue
 {
-    public function enqueue(Job $job): void;
+    public function enqueue(Job $job): bool;
 
     public function reserve(
         string $runId,
@@ -17,7 +17,15 @@ interface JobQueue
 
     public function complete(string $jobId): void;
 
-    public function fail(string $jobId, string $error, int $maxAttempts = 3): JobStatus;
+    public function fail(
+        string $jobId,
+        string $error,
+        int $maxAttempts = 3,
+        JobStatus $terminalStatus = JobStatus::Dead,
+        ?int $retryDelayMs = null,
+    ): JobStatus;
+
+    public function deferHost(string $runId, string $stage, string $host, int $delayMs): void;
 
     public function requeueRunning(string $runId): int;
 
@@ -36,4 +44,12 @@ interface JobQueue
         string $stage,
         string $deduplicationPrefix,
     ): int;
+
+    /**
+     * @return list<array{
+     *   id:string,stage:string,status:string,attempts:int,url:string|null,
+     *   resourceId:string|null,error:string
+     * }>
+     */
+    public function failures(string $runId): array;
 }

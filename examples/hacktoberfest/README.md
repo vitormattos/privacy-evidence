@@ -28,3 +28,14 @@ The synthetic examples are part of this repository and covered by the repository
 This is an experimental evidence-classification demonstration. It does not make a legal-compliance determination and it does not replace human review.
 
 The real-user story required by the Weekend Challenge is documented in `docs/challenge/hacktoberfest-real-user-use-case.md`. It comes from the actual research workflow that motivated Privacy Evidence.
+
+
+## Real-site validation
+
+For a second, live demonstration using a small curated sample of public IPB websites, see `IPB_LIVE_DEMO.md` and run:
+
+```bash
+examples/hacktoberfest/run-ipb-live-demo.sh
+```
+
+This live sample exercises an external organization-specific dataset producer followed by generic Privacy Evidence ingestion, acquisition, evidence detection, regulatory-profile analysis and report generation. The IPB extraction logic is intentionally outside the core package. The sample is non-representative and must not be interpreted as a legal-compliance ranking of the listed churches.

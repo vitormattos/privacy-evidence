@@ -47,6 +47,13 @@ interface ObservationStore
         array $result,
     ): void;
 
+    public function clearProfileResults(
+        string $runId,
+        string $resourceId,
+        string $profile,
+        string $profileVersion,
+    ): void;
+
     /**
      * @return list<array<string,mixed>>
      */

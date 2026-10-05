@@ -7,6 +7,7 @@ namespace PrivacyEvidence\Queue;
 use PDO;
 use PDOException;
 use PrivacyEvidence\Core\Value;
+use PrivacyEvidence\Storage\SqliteRetry;
 
 final class SqliteJobQueue implements JobQueue
 {
@@ -22,7 +23,7 @@ final class SqliteJobQueue implements JobQueue
         $this->migrate();
     }
 
-    public function enqueue(Job $job): void
+    public function enqueue(Job $job): bool
     {
         $existing = $this->pdo->prepare(
             'SELECT 1 FROM jobs
@@ -31,13 +32,13 @@ final class SqliteJobQueue implements JobQueue
                AND deduplication_key = :deduplication_key
              LIMIT 1',
         );
-        $existing->execute([
+        SqliteRetry::execute($existing, [
             'run_id' => $job->runId,
             'stage' => $job->stage,
             'deduplication_key' => $job->deduplicationKey,
         ]);
         if ($existing->fetchColumn() !== false) {
-            return;
+            return false;
         }
 
         $countStatement = $this->pdo->query(
@@ -60,7 +61,7 @@ final class SqliteJobQueue implements JobQueue
              VALUES (:id, :run_id, :stage, :deduplication_key, :payload, :status, :attempts,
                      :priority, :host, :enqueued_at_ms, :available_at_ms, NULL)',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'id' => $job->id,
             'run_id' => $job->runId,
             'stage' => $job->stage,
@@ -73,6 +74,8 @@ final class SqliteJobQueue implements JobQueue
             'enqueued_at_ms' => $enqueuedAtMs,
             'available_at_ms' => $enqueuedAtMs,
         ]);
+
+        return $stmt->rowCount() === 1;
     }
 
     public function reserve(
@@ -86,29 +89,33 @@ final class SqliteJobQueue implements JobQueue
         }
 
         $now = self::nowMs();
-        $this->pdo->exec('BEGIN IMMEDIATE');
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM jobs
+             WHERE run_id = :run_id
+               AND stage = :stage
+               AND status = "pending"
+               AND available_at_ms <= :now
+             ORDER BY priority DESC, enqueued_at_ms ASC, id ASC
+             LIMIT 100',
+        );
+        SqliteRetry::execute($stmt, [
+            'run_id' => $runId,
+            'stage' => $stage,
+            'now' => $now,
+        ]);
 
-        try {
-            $stmt = $this->pdo->prepare(
-                'SELECT * FROM jobs
-                 WHERE run_id = :run_id
-                   AND stage = :stage
-                   AND status = "pending"
-                   AND available_at_ms <= :now
-                 ORDER BY priority DESC, enqueued_at_ms ASC, id ASC
-                 LIMIT 100',
-            );
-            $stmt->execute([
-                'run_id' => $runId,
-                'stage' => $stage,
-                'now' => $now,
-            ]);
+        /** @var list<array<string,mixed>> $candidates */
+        $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
-                $host = $row['host'] === null
-                    ? null
-                    : Value::string($row['host'], 'host');
+        foreach ($candidates as $row) {
+            $host = ($row['host'] ?? null) === null
+                ? null
+                : Value::string($row['host'], 'host');
+            $id = Value::string($row['id'] ?? null, 'id');
 
+            $this->beginImmediateWithRetry();
+
+            try {
                 if (
                     $host !== null
                     && !$this->hostEligible(
@@ -120,23 +127,27 @@ final class SqliteJobQueue implements JobQueue
                         $now,
                     )
                 ) {
+                    $this->pdo->commit();
                     continue;
                 }
 
-                $id = Value::string($row['id'] ?? null, 'id');
                 $update = $this->pdo->prepare(
                     'UPDATE jobs
                      SET status = "running",
                          attempts = attempts + 1,
                          reserved_at_ms = :reserved_at
-                     WHERE id = :id AND status = "pending"',
+                     WHERE id = :id
+                       AND status = "pending"
+                       AND available_at_ms <= :now',
                 );
-                $update->execute([
+                SqliteRetry::execute($update, [
                     'reserved_at' => $now,
                     'id' => $id,
+                    'now' => $now,
                 ]);
 
                 if ($update->rowCount() !== 1) {
+                    $this->pdo->commit();
                     continue;
                 }
 
@@ -148,13 +159,19 @@ final class SqliteJobQueue implements JobQueue
                          ON CONFLICT(run_id, stage, host)
                          DO UPDATE SET last_started_at_ms = excluded.last_started_at_ms',
                     );
-                    $limit->execute([
+                    SqliteRetry::execute($limit, [
                         'run_id' => $runId,
                         'stage' => $stage,
                         'host' => $host,
                         'started' => $now,
                     ]);
                 }
+
+                $attemptsStatement = $this->pdo->prepare(
+                    'SELECT attempts FROM jobs WHERE id = :id',
+                );
+                SqliteRetry::execute($attemptsStatement, ['id' => $id]);
+                $attempts = Value::int($attemptsStatement->fetchColumn(), 'attempts');
 
                 $this->pdo->commit();
 
@@ -175,24 +192,22 @@ final class SqliteJobQueue implements JobQueue
                     ),
                     payload: Value::scalarMap($decoded, 'payload_json'),
                     status: JobStatus::Running,
-                    attempts: Value::int($row['attempts'] ?? null, 'attempts') + 1,
+                    attempts: $attempts,
                     priority: Value::int($row['priority'] ?? 0, 'priority'),
                     host: $host,
                     enqueuedAtMs: Value::int($row['enqueued_at_ms'] ?? 0, 'enqueued_at_ms'),
                     reservedAtMs: $now,
                 );
+            } catch (\Throwable $e) {
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
+
+                throw $e;
             }
-
-            $this->pdo->commit();
-
-            return null;
-        } catch (\Throwable $e) {
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
-            }
-
-            throw $e;
         }
+
+        return null;
     }
 
     public function complete(string $jobId): void
@@ -200,25 +215,36 @@ final class SqliteJobQueue implements JobQueue
         $stmt = $this->pdo->prepare(
             'UPDATE jobs SET status = "completed", last_error = NULL WHERE id = :id',
         );
-        $stmt->execute(['id' => $jobId]);
+        SqliteRetry::execute($stmt, ['id' => $jobId]);
     }
 
-    public function fail(string $jobId, string $error, int $maxAttempts = 3): JobStatus
-    {
+    public function fail(
+        string $jobId,
+        string $error,
+        int $maxAttempts = 3,
+        JobStatus $terminalStatus = JobStatus::Dead,
+        ?int $retryDelayMs = null,
+    ): JobStatus {
         if ($maxAttempts <= 0) {
             throw new \InvalidArgumentException('maxAttempts must be positive.');
+        }
+        if (!in_array($terminalStatus, [JobStatus::Failed, JobStatus::Dead], true)) {
+            throw new \InvalidArgumentException('Terminal failure status must be failed or dead.');
+        }
+        if ($retryDelayMs !== null && $retryDelayMs < 0) {
+            throw new \InvalidArgumentException('Retry delay cannot be negative.');
         }
 
         $stmt = $this->pdo->prepare(
             'SELECT attempts FROM jobs WHERE id = :id',
         );
-        $stmt->execute(['id' => $jobId]);
+        SqliteRetry::execute($stmt, ['id' => $jobId]);
         $attempts = Value::int($stmt->fetchColumn(), 'attempts');
-        $status = $attempts >= $maxAttempts ? JobStatus::Dead : JobStatus::Pending;
+        $status = $attempts >= $maxAttempts ? $terminalStatus : JobStatus::Pending;
         $exponent = min(max($attempts - 1, 0), 16);
         $retryMultiplier = 1 << $exponent;
         $delayMs = $status === JobStatus::Pending
-            ? min(30_000, $this->retryBaseDelayMs * $retryMultiplier)
+            ? ($retryDelayMs ?? min(30_000, $this->retryBaseDelayMs * $retryMultiplier))
             : 0;
 
         $update = $this->pdo->prepare(
@@ -229,7 +255,7 @@ final class SqliteJobQueue implements JobQueue
                  reserved_at_ms = NULL
              WHERE id = :id',
         );
-        $update->execute([
+        SqliteRetry::execute($update, [
             'status' => $status->value,
             'error' => $error,
             'available_at' => self::nowMs() + $delayMs,
@@ -239,6 +265,29 @@ final class SqliteJobQueue implements JobQueue
         return $status;
     }
 
+    public function deferHost(string $runId, string $stage, string $host, int $delayMs): void
+    {
+        if ($delayMs < 0) {
+            throw new \InvalidArgumentException('Host defer delay cannot be negative.');
+        }
+
+        $until = self::nowMs() + $delayMs;
+        $stmt = $this->pdo->prepare(
+            'UPDATE jobs
+             SET available_at_ms = MAX(available_at_ms, :until)
+             WHERE run_id = :run_id
+               AND stage = :stage
+               AND host = :host
+               AND status = "pending"',
+        );
+        SqliteRetry::execute($stmt, [
+            'until' => $until,
+            'run_id' => $runId,
+            'stage' => $stage,
+            'host' => $host,
+        ]);
+    }
+
     public function requeueRunning(string $runId): int
     {
         $stmt = $this->pdo->prepare(
@@ -246,7 +295,7 @@ final class SqliteJobQueue implements JobQueue
              SET status = "pending", reserved_at_ms = NULL, available_at_ms = :now
              WHERE run_id = :run_id AND status = "running"',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'now' => self::nowMs(),
             'run_id' => $runId,
         ]);
@@ -287,13 +336,53 @@ final class SqliteJobQueue implements JobQueue
                AND stage = :stage
                AND deduplication_key LIKE :prefix',
         );
-        $stmt->execute([
+        SqliteRetry::execute($stmt, [
             'run_id' => $runId,
             'stage' => $stage,
             'prefix' => $deduplicationPrefix . '%',
         ]);
 
         return Value::int($stmt->fetchColumn(), 'scheduled_count');
+    }
+
+    public function failures(string $runId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT id, stage, status, attempts, payload_json, last_error
+             FROM jobs
+             WHERE run_id = :run_id
+               AND last_error IS NOT NULL
+             ORDER BY stage, id',
+        );
+        SqliteRetry::execute($stmt, ['run_id' => $runId]);
+
+        $failures = [];
+        while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
+            /** @psalm-suppress MixedAssignment */
+            $payload = json_decode(
+                Value::string($row['payload_json'] ?? null, 'payload_json'),
+                true,
+                flags: JSON_THROW_ON_ERROR,
+            );
+            /** @psalm-suppress MixedAssignment */
+            $urlValue = is_array($payload) ? ($payload['url'] ?? null) : null;
+            $url = is_string($urlValue) ? $urlValue : null;
+            /** @psalm-suppress MixedAssignment */
+            $resourceIdValue = is_array($payload) ? ($payload['resource_id'] ?? null) : null;
+            $resourceId = is_string($resourceIdValue) ? $resourceIdValue : null;
+
+            $failures[] = [
+                'id' => Value::string($row['id'] ?? null, 'id'),
+                'stage' => Value::string($row['stage'] ?? null, 'stage'),
+                'status' => Value::string($row['status'] ?? null, 'status'),
+                'attempts' => Value::int($row['attempts'] ?? null, 'attempts'),
+                'url' => $url,
+                'resourceId' => $resourceId,
+                'error' => Value::string($row['last_error'] ?? null, 'last_error'),
+            ];
+        }
+
+        return $failures;
     }
 
     /**
@@ -303,7 +392,7 @@ final class SqliteJobQueue implements JobQueue
     private function countQuery(string $sql, array $parameters): array
     {
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($parameters);
+        SqliteRetry::execute($stmt, $parameters);
 
         $result = [];
         while (($row = $stmt->fetch(PDO::FETCH_ASSOC)) !== false) {
@@ -331,7 +420,7 @@ final class SqliteJobQueue implements JobQueue
                AND host = :host
                AND status = "running"',
         );
-        $running->execute([
+        SqliteRetry::execute($running, [
             'run_id' => $runId,
             'stage' => $stage,
             'host' => $host,
@@ -348,7 +437,7 @@ final class SqliteJobQueue implements JobQueue
             'SELECT last_started_at_ms FROM host_limiter
              WHERE run_id = :run_id AND stage = :stage AND host = :host',
         );
-        $last->execute([
+        SqliteRetry::execute($last, [
             'run_id' => $runId,
             'stage' => $stage,
             'host' => $host,
@@ -408,6 +497,10 @@ final class SqliteJobQueue implements JobQueue
              ON jobs(run_id, stage, host, status)',
         );
         $this->pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_jobs_available
+             ON jobs(run_id, stage, status, available_at_ms, priority DESC, enqueued_at_ms)',
+        );
+        $this->pdo->exec(
             'CREATE TABLE IF NOT EXISTS host_limiter (
                 run_id TEXT NOT NULL,
                 stage TEXT NOT NULL,
@@ -416,6 +509,27 @@ final class SqliteJobQueue implements JobQueue
                 PRIMARY KEY (run_id, stage, host)
             )',
         );
+    }
+
+    private function beginImmediateWithRetry(): void
+    {
+        $attempt = 0;
+        $deadline = microtime(true) + 30.0;
+
+        while (true) {
+            try {
+                $this->pdo->exec('BEGIN IMMEDIATE');
+                return;
+            } catch (PDOException $exception) {
+                if (!SqliteRetry::isBusy($exception) || microtime(true) >= $deadline) {
+                    throw $exception;
+                }
+
+                $delayUs = min(250_000, 10_000 * (1 << min($attempt, 5)));
+                usleep($delayUs);
+                $attempt++;
+            }
+        }
     }
 
     private static function nowMs(): int
