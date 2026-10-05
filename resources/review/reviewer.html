@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy Evidence - Independent Human Review</title>
+<style>
+:root { font-family: system-ui, sans-serif; color-scheme: light dark; }
+body { margin: 0; background: Canvas; color: CanvasText; }
+main { max-width: 920px; margin: 0 auto; padding: 24px; }
+header { margin-bottom: 20px; }
+h1 { margin-bottom: 8px; }
+.notice { border: 1px solid ButtonBorder; border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
+.progress-shell { height: 10px; background: color-mix(in srgb, CanvasText 12%, Canvas); border-radius: 6px; overflow: hidden; }
+.progress-bar { height: 100%; width: 0; background: AccentColor; }
+.meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: .92rem; margin-top: 8px; }
+.card { border: 1px solid ButtonBorder; border-radius: 12px; padding: 18px; margin: 18px 0; }
+.label { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; opacity: .72; }
+.excerpt { white-space: pre-wrap; padding: 14px; border-left: 4px solid AccentColor; background: color-mix(in srgb, CanvasText 5%, Canvas); margin: 12px 0; }
+.guidance { font-size: .95rem; }
+.states { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 8px; margin: 12px 0; }
+button { padding: 10px 12px; border: 1px solid ButtonBorder; border-radius: 8px; cursor: pointer; font: inherit; }
+button.selected { outline: 3px solid AccentColor; }
+button.primary { background: AccentColor; color: AccentColorText; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+textarea { width: 100%; min-height: 95px; box-sizing: border-box; padding: 10px; font: inherit; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+kbd { border: 1px solid ButtonBorder; border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; }
+a { color: LinkText; }
+.small { font-size: .88rem; opacity: .8; }
+.complete { font-weight: 600; }
+@media (max-width: 600px) { main { padding: 14px; } .states { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>Independent human review</h1>
+<p>Classify only what the preserved evidence supports. Do not use AI to choose labels and do not compare answers with another reviewer before both reviews are complete.</p>
+<div class="notice">
+<strong>Private and offline:</strong> this page does not send annotations anywhere. Progress is stored only in this browser. When finished, export the JSON file and return it to the researcher.
+</div>
+<div class="progress-shell"><div id="progressBar" class="progress-bar"></div></div>
+<div class="meta">
+<span id="progressText"></span>
+<span id="timeText"></span>
+<span id="categoryText"></span>
+</div>
+</header>
+
+<section class="card">
+<div class="label">Evidence type</div>
+<h2 id="type"></h2>
+<div id="guidance" class="guidance notice"></div>
+<div class="label">Preserved evidence excerpt</div>
+<div id="excerpt" class="excerpt"></div>
+<div class="small">Source context: <a id="sourceUrl" target="_blank" rel="noreferrer"></a>. The live page may have changed; base the decision primarily on the preserved evidence shown here.</div>
+</section>
+
+<section class="card">
+<div class="label">Human state</div>
+<div id="states" class="states"></div>
+<p class="small">Keyboard shortcuts: <kbd>1</kbd> present, <kbd>2</kbd> absent, <kbd>3</kbd> unknown, <kbd>4</kbd> unavailable, <kbd>5</kbd> invalid, <kbd>6</kbd> excluded, <kbd>7</kbd> not applicable.</p>
+<label for="rationale"><strong>Short rationale</strong></label>
+<textarea id="rationale" placeholder="State briefly what in the preserved evidence supports your classification."></textarea>
+<div class="controls">
+<button id="rationaleHelper" type="button">Use concise rationale template</button>
+<span class="small">Edit the template when the specific evidence requires more detail.</span>
+</div>
+</section>
+
+<div class="controls">
+<button id="previous" type="button">Previous</button>
+<button id="nextUnanswered" type="button">Next unanswered</button>
+<button id="next" class="primary" type="button">Save and next</button>
+<button id="export" type="button" disabled>Export completed JSON</button>
+<span id="saveStatus" class="small"></span>
+</div>
+
+<div class="notice small">
+The automated detector state, detector confidence and review flag are intentionally hidden from the normal review view to reduce anchoring bias. They remain unchanged in the exported research package.
+</div>
+</main>
+
+<script>
+const packageData = __PACKAGE_JSON__;
+const states = ['present','absent','unknown','unavailable','invalid','excluded','not-applicable'];
+const stateLabels = {
+  present: 'Present', absent: 'Absent', unknown: 'Unknown', unavailable: 'Unavailable',
+  invalid: 'Invalid', excluded: 'Excluded', 'not-applicable': 'Not applicable'
+};
+const rationaleTemplates = {
+  present: 'The preserved evidence explicitly supports this evidence category.',
+  absent: 'The preserved evidence was reviewed and does not satisfy the handbook criteria for this category.',
+  unknown: 'The preserved evidence is ambiguous or insufficient for a reliable classification.',
+  unavailable: 'The evidence required for this classification was not observable in the preserved material.',
+  invalid: 'The preserved material is not valid evidence for this classification.',
+  excluded: 'This case should be excluded under the handbook rules.',
+  'not-applicable': 'This evidence category is not applicable to the preserved case.'
+};
+const guidanceByType = {
+  privacy_notice: 'Present only when the page or document primarily explains personal-data or privacy processing. Generic terms of use are not automatically privacy notices.',
+  privacy_law_reference: 'Look for an explicit reference to a privacy or data-protection regime such as LGPD or GDPR. A legal reference alone does not imply compliance.',
+  privacy_contact: 'Distinguish a privacy-specific contact from a generic organization contact.',
+  dpo_role: 'Require an explicit DPO or encarregado role. Do not infer the role from a person name or generic email.',
+  dpo_identity: 'Require a named person explicitly identified as DPO or encarregado.',
+  dpo_contact: 'Require a contact channel explicitly associated with the DPO or encarregado role.',
+  rights_disclosure: 'Look for an explicit description of data-subject rights, not merely a generic privacy statement.',
+  rights_channel: 'Require a channel that can actually be used to exercise data-subject rights; distinguish it from a generic contact form.',
+  cookie_notice: 'Classify the observable cookie notice or banner separately from its behavioral effects.',
+  cookie_accept_control: 'Look specifically for an observable accept control.',
+  cookie_reject_control: 'Look specifically for an observable reject control.',
+  cookie_preferences_control: 'Look specifically for a preferences or granular-settings control.',
+  cookie_categories_disclosure: 'Look for explicit disclosure of cookie or storage categories.',
+  cookie_third_parties_disclosure: 'Look for explicit disclosure of third parties associated with cookies or storage.',
+  nonessential_storage_before_consent: 'This is behavioral evidence. Use only the preserved observation of storage before consent.',
+  third_party_requests_before_consent: 'This is behavioral evidence. Use only the preserved network observation before consent.'
+};
+const defaultGuidance = 'Label only what the preserved evidence supports. Do not infer organization-wide practice or legal compliance from a website statement. Use unknown when evidence is insufficient or ambiguous.';
+
+const cases = packageData.cases;
+const order = cases.map((_, i) => i).sort((a, b) => {
+  const type = String(cases[a].evidenceType).localeCompare(String(cases[b].evidenceType));
+  return type !== 0 ? type : String(cases[a].evidenceId).localeCompare(String(cases[b].evidenceId));
+});
+const storageKey = 'privacy-evidence-review:' + packageData.runId + ':' + packageData.seed + ':' + location.pathname;
+let position = 0;
+let timing = { started: Date.now(), durations: [], caseStarted: Date.now() };
+
+function loadProgress() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+    if (!saved || !Array.isArray(saved.cases)) return;
+    const byId = new Map(saved.cases.map(c => [c.evidenceId, c]));
+    cases.forEach(c => {
+      const s = byId.get(c.evidenceId);
+      if (!s) return;
+      c.humanState = s.humanState || null;
+      c.rationale = s.rationale || null;
+      c.reviewedAt = s.reviewedAt || null;
+    });
+    if (saved.timing) timing = saved.timing;
+  } catch (_) {}
+}
+
+function persist() {
+  localStorage.setItem(storageKey, JSON.stringify({ cases, timing }));
+  document.getElementById('saveStatus').textContent = 'Saved locally';
+}
+
+function currentCase() { return cases[order[position]]; }
+function isComplete(c) { return Boolean(c.humanState && c.rationale && c.rationale.trim()); }
+function completedCount() { return cases.filter(isComplete).length; }
+
+function guidanceFor(type) {
+  if (guidanceByType[type]) return guidanceByType[type];
+  if (String(type).startsWith('cookie_')) return 'Classify only the specific cookie-interface or disclosure signal named by this evidence type.';
+  return defaultGuidance;
+}
+
+function render() {
+  const c = currentCase();
+  document.getElementById('type').textContent = String(c.evidenceType).replaceAll('_', ' ');
+  document.getElementById('guidance').textContent = guidanceFor(c.evidenceType);
+  document.getElementById('excerpt').textContent = c.excerpt || '[No excerpt was preserved for this case.]';
+  const link = document.getElementById('sourceUrl');
+  link.href = c.sourceUrl || '#';
+  link.textContent = c.sourceUrl || 'No source URL';
+  document.getElementById('rationale').value = c.rationale || '';
+
+  const statesBox = document.getElementById('states');
+  statesBox.innerHTML = '';
+  states.forEach((state, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = (i + 1) + '. ' + stateLabels[state];
+    if (c.humanState === state) b.classList.add('selected');
+    b.addEventListener('click', () => chooseState(state));
+    statesBox.appendChild(b);
+  });
+
+  const done = completedCount();
+  const pct = cases.length ? (done / cases.length) * 100 : 0;
+  document.getElementById('progressBar').style.width = pct.toFixed(1) + '%';
+  document.getElementById('progressText').textContent = done + ' / ' + cases.length + ' completed';
+  document.getElementById('categoryText').textContent = 'Case ' + (position + 1) + ' / ' + cases.length;
+
+  const validDurations = (timing.durations || []).filter(v => v > 2 && v < 600);
+  if (validDurations.length) {
+    const avg = validDurations.reduce((a, b) => a + b, 0) / validDurations.length;
+    const minutes = Math.max(1, Math.round(((cases.length - done) * avg) / 60));
+    document.getElementById('timeText').textContent = 'Estimated remaining: about ' + minutes + ' min at your current pace';
+  } else {
+    document.getElementById('timeText').textContent = 'Estimated workload: ' + cases.length + ' cases';
+  }
+
+  document.getElementById('previous').disabled = position === 0;
+  document.getElementById('next').textContent = position === cases.length - 1 ? 'Save' : 'Save and next';
+  document.getElementById('export').disabled = done !== cases.length;
+  timing.caseStarted = Date.now();
+}
+
+function chooseState(state) {
+  currentCase().humanState = state;
+  persist();
+  render();
+  document.getElementById('rationale').focus();
+}
+
+function saveCurrent(advance) {
+  const c = currentCase();
+  c.rationale = document.getElementById('rationale').value.trim();
+  if (!c.humanState || !c.rationale) {
+    alert('Choose a human state and add a short rationale before continuing.');
+    return false;
+  }
+  if (!c.reviewedAt) c.reviewedAt = new Date().toISOString();
+  const seconds = Math.round((Date.now() - timing.caseStarted) / 1000);
+  if (seconds > 0) timing.durations.push(seconds);
+  persist();
+  if (advance && position < cases.length - 1) position++;
+  render();
+  return true;
+}
+
+function jumpToNextUnanswered() {
+  saveDraftRationale();
+  for (let step = 1; step <= order.length; step++) {
+    const candidate = (position + step) % order.length;
+    if (!isComplete(cases[order[candidate]])) {
+      position = candidate;
+      render();
+      return;
+    }
+  }
+}
+
+function saveDraftRationale() {
+  currentCase().rationale = document.getElementById('rationale').value;
+  persist();
+}
+
+function exportPackage() {
+  if (completedCount() !== cases.length) return;
+  saveDraftRationale();
+  const blob = new Blob([JSON.stringify(packageData, null, 2) + '\n'], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'privacy-evidence-review-completed.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('rationale').addEventListener('input', saveDraftRationale);
+document.getElementById('rationaleHelper').addEventListener('click', () => {
+  const state = currentCase().humanState;
+  if (!state) {
+    alert('Choose a human state first.');
+    return;
+  }
+  const area = document.getElementById('rationale');
+  if (!area.value.trim()) area.value = rationaleTemplates[state];
+  area.focus();
+  saveDraftRationale();
+});
+document.getElementById('previous').addEventListener('click', () => {
+  saveDraftRationale();
+  if (position > 0) position--;
+  render();
+});
+document.getElementById('next').addEventListener('click', () => saveCurrent(true));
+document.getElementById('nextUnanswered').addEventListener('click', jumpToNextUnanswered);
+document.getElementById('export').addEventListener('click', exportPackage);
+document.addEventListener('keydown', event => {
+  if (event.target && event.target.tagName === 'TEXTAREA') {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault();
+      saveCurrent(true);
+    }
+    return;
+  }
+  const number = Number(event.key);
+  if (number >= 1 && number <= states.length) chooseState(states[number - 1]);
+});
+
+loadProgress();
+render();
+</script>
+</body>
+</html>
