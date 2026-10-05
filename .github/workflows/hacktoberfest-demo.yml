@@ -1,0 +1,43 @@
+name: Hacktoberfest public demo
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/hacktoberfest-demo.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Run PHP-native ML demo
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p hacktoberfest-demo-output
+          {
+            echo '# Privacy Evidence Hacktoberfest PHP-native ML demo'
+            echo
+            echo 'Command: examples/hacktoberfest/run-demo.sh'
+            echo
+            examples/hacktoberfest/run-demo.sh
+          } | tee hacktoberfest-demo-output/demo-output.txt
+      - name: Upload demo evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: hacktoberfest-demo-output
+          path: hacktoberfest-demo-output/demo-output.txt
+          retention-days: 30
