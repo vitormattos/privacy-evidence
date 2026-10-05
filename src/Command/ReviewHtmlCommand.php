@@ -29,13 +29,19 @@ final class ReviewHtmlCommand extends Command
         $packagePath = $input->getArgument('package');
         $outputPath = $input->getArgument('output');
 
-        if (
-            !is_string($packagePath)
-            || $packagePath === ''
-            || !is_file($packagePath)
-            || !is_string($outputPath)
-            || $outputPath === ''
-        ) {
+        if (!is_string($packagePath) || $packagePath === '') {
+            $output->writeln('<error>Annotation package path is required.</error>');
+
+            return Command::INVALID;
+        }
+        if (!is_file($packagePath)) {
+            $output->writeln(sprintf('<error>Annotation package not found: %s</error>', $packagePath));
+
+            return Command::INVALID;
+        }
+        if (!is_string($outputPath) || $outputPath === '') {
+            $output->writeln('<error>Output HTML path is required.</error>');
+
             return Command::INVALID;
         }
 
