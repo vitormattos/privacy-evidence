@@ -84,6 +84,10 @@ final readonly class RunExporter
         $this->json($directory . '/population-summary.json', $populationSummary);
         $this->json($directory . '/attrition-results.json', $attritionResults);
         $this->json($directory . '/attrition-summary.json', $attritionSummary);
+        $attritionFlow = $this->attritionFlowMarkdown($attritionSummary);
+        if (file_put_contents($directory . '/attrition-flow.md', $attritionFlow, LOCK_EX) === false) {
+            throw new \\RuntimeException('Unable to write attrition flow.');
+        }
 
         $this->csv(
             $directory . '/resources.csv',
@@ -1571,6 +1575,64 @@ final readonly class RunExporter
         }
     }
 
+    /**
+     * @param array<string,mixed> $summary
+     */
+    private function attritionFlowMarkdown(array $summary): string
+    {
+        $count = static fn (string $key): int => is_int($summary[$key] ?? null)
+            ? $summary[$key]
+            : 0;
+        /** @var mixed $terminalValue */
+        $terminalValue = $summary['terminalStages'] ?? [];
+        /** @var array<string,int> $terminal */
+        $terminal = is_array($terminalValue) ? $terminalValue : [];
+
+        $source = $count('sourcePopulation');
+        $normalized = $count('normalizedResources');
+        $eligible = $count('websiteEligibleResources');
+        $canonical = $count('canonicalWebsiteUnits');
+        $observed = $count('observedUnits');
+        $fully = $count('fullyMeasuredUnits');
+        $partial = $count('partiallyMeasuredUnits');
+        $notMeasurable = $count('notMeasurableUnits');
+        $missing = $count('missingOutcomeUnits');
+
+        $normalizationUnavailable = is_int($terminal['normalization_unavailable'] ?? null)
+            ? $terminal['normalization_unavailable']
+            : 0;
+        $excluded = is_int($terminal['protocol_excluded'] ?? null)
+            ? $terminal['protocol_excluded']
+            : 0;
+        $duplicates = is_int($terminal['duplicate_eligible_reference'] ?? null)
+            ? $terminal['duplicate_eligible_reference']
+            : 0;
+
+        return implode(PHP_EOL, [
+            '# Measurement attrition flow',
+            '',
+            'Generated deterministically from `attrition-summary.json`.',
+            '',
+            '```mermaid',
+            'flowchart TD',
+            sprintf('  S["Source population: %d"] --> N["Normalized resources: %d"]', $source, $normalized),
+            sprintf('  S --> NU["Normalization unavailable: %d"]', $normalizationUnavailable),
+            sprintf('  N --> E["Website-eligible resources: %d"]', $eligible),
+            sprintf('  N --> X["Protocol excluded: %d"]', $excluded),
+            sprintf('  E --> C["Canonical website units: %d"]', $canonical),
+            sprintf('  E --> D["Duplicate eligible references: %d"]', $duplicates),
+            sprintf('  C --> O["Observed units: %d"]', $observed),
+            sprintf('  C --> L["Not measurable: %d"]', $notMeasurable),
+            sprintf('  C --> M["Missing outcome: %d"]', $missing),
+            sprintf('  O --> F["Fully measured: %d"]', $fully),
+            sprintf('  O --> P["Partially measured: %d"]', $partial),
+            '```',
+            '',
+            'Protocol exclusions and duplicate references are population transformations, not measurement failures.',
+            'Observed units are canonical website units with `measured` or `partially_measured` status.',
+            '',
+        ]);
+    }
     private function json(string $path, mixed $value): void
     {
         $json = json_encode(
