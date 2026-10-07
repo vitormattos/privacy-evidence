@@ -25,6 +25,7 @@ path = [
   "data/**",
   "docs/**",
   "infection.json5",
+  "paper/**",
   "phpcs.xml",
   "phpstan.neon",
   "phpunit.xml",
