@@ -1,0 +1,14 @@
+stage,count,denominator,rate
+source_population,2993,2993,1
+normalized_resources,658,2993,0.21984630805212161
+normalization_unavailable,2335,2993,0.7801536919478784
+website_eligible_resources,589,2993,0.19679251587036417
+protocol_excluded,69,658,0.10486322188449848
+canonical_website_units,566,589,0.9609507640067912
+duplicate_eligible_reference,23,589,0.03904923599320883
+fully_measured,193,566,0.3409893992932862
+partially_measured,12,566,0.02120141342756184
+observed_units,205,566,0.3621908127208481
+not_measurable,361,566,0.6378091872791519
+missing_outcome,0,566,0
+measurement_loss,361,566,0.6378091872791519
