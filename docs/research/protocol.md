@@ -16,26 +16,31 @@ Analyze public digital resources for the purpose of characterizing observable pr
 
 ## Research questions
 
-### RQ1 — Resource availability
-What proportion of declared digital resources are technically observable under the acquisition protocol?
+The project distinguishes **research-program questions** from the focused RQs of an individual publication. The canonical mapping from every paper RQ to constructs, variables, metrics, commands, artifacts and analyses is maintained in `docs/research/research-model.md`.
 
-### RQ2 — Resource type
-What types of public digital resources are declared or discovered?
+### Research-program questions
 
-### RQ3 — Privacy evidence
-Which defined privacy-evidence signals are publicly observable?
+- **PRQ1 — Population observability:** What proportion of declared digital resources becomes technically observable under a versioned acquisition protocol, and where is measurement lost?
+- **PRQ2 — Resource characterization:** What types of public digital resources are declared, discovered or excluded, and how do those types relate to observability?
+- **PRQ3 — Observable privacy evidence:** Which defined privacy-evidence signals are publicly observable under the protocol?
+- **PRQ4 — Evidence intensity and uncertainty:** How complete, specific and review-dependent are the observed signals?
+- **PRQ5 — Regulatory-profile interpretation:** How do reviewed generic evidence items map to versioned LGPD, GDPR and cookie/ePrivacy profiles under explicit applicability rules?
+- **PRQ6 — Measurement-instrument validity:** How accurately and reliably do automated detectors reproduce independently adjudicated human reference labels?
+- **PRQ7 — Acquisition/resource cost:** What HTTP/browser/resource cost is required to produce observations under bounded crawl budgets?
+- **PRQ8 — Reproducibility:** To what extent can deterministic analytical outputs be independently regenerated from preserved source data, artifacts, code, protocol and configuration?
+- **PRQ9 — Transferability:** To what extent can core measurement semantics be applied to a meaningfully different web population without redefining the constructs being measured?
+- **PRQ10 — Longitudinal change:** When comparable ResearchRuns exist, which observed changes represent content/evidence change rather than acquisition or protocol noise?
 
-### RQ4 — Evidence intensity and uncertainty
-How complete, specific and review-dependent are the observed signals?
+### First-manuscript RQs
 
-### RQ5 — Regulatory-profile mapping
-How do reviewed generic evidence items map to versioned LGPD, GDPR and cookie/ePrivacy profiles under explicit applicability rules?
+The initial scientific manuscript focuses on:
+1. **measurement attrition** from declared to effectively measurable population;
+2. **analytical impact of missingness** under alternative denominator/state treatments;
+3. **reproducibility through provenance**;
+4. **measurement validity** of automated detectors against independently adjudicated human labels;
+5. **transferability**, only if the second-population study is complete before manuscript freeze.
 
-### RQ6 — Detector performance
-How accurately do automated detectors reproduce reviewed labels on the designated evaluation dataset?
-
-### RQ7 — Acquisition cost
-What HTTP/browser/resource cost is required to produce the observations under bounded crawl budgets?
+The exact question text and evidence traceability are versioned in `docs/research/research-model.md`.
 
 ## Units
 
