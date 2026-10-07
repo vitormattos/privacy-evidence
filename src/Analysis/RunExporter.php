@@ -86,7 +86,7 @@ final readonly class RunExporter
         $this->json($directory . '/attrition-summary.json', $attritionSummary);
         $attritionFlow = $this->attritionFlowMarkdown($attritionSummary);
         if (file_put_contents($directory . '/attrition-flow.md', $attritionFlow, LOCK_EX) === false) {
-            throw new \\RuntimeException('Unable to write attrition flow.');
+            throw new \RuntimeException('Unable to write attrition flow.');
         }
 
         $this->csv(
@@ -1580,9 +1580,11 @@ final readonly class RunExporter
      */
     private function attritionFlowMarkdown(array $summary): string
     {
-        $count = static fn (string $key): int => is_int($summary[$key] ?? null)
-            ? $summary[$key]
-            : 0;
+        $count = static function (string $key) use ($summary): int {
+            $value = $summary[$key] ?? null;
+
+            return is_int($value) ? $value : 0;
+        };
         /** @var mixed $terminalValue */
         $terminalValue = $summary['terminalStages'] ?? [];
         /** @var array<string,int> $terminal */
