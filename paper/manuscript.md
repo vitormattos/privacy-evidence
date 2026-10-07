@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: 2026 Vitor Mattos -->
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+
 # Beyond the Measurable Web: Preserving Measurement Attrition and Evidence Provenance in Empirical Privacy Research
 
 > Working manuscript. Results remain placeholders until the corresponding frozen analyses are complete.
