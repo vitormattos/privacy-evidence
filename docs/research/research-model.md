@@ -103,9 +103,9 @@ RQ5 is included in the first manuscript only if issue #201 completes with suffic
 | Existing data producers | source import/normalization; ResearchRun persistence; acquisition workers; report/export pipeline |
 | Existing commands | `source:import`, `source:stats`, `source:select`, `run`, `workers`, `status`, `report` |
 | Existing artifacts | run manifest; resources/documents/evidence exports; `population-summary.json`; `population-results.json`; status/failure outputs where present |
-| Required analysis | reconcile every transition from source row to terminal analytical state; quantify losses by stage/reason |
+| Required analysis | reconcile every transition from source row to terminal analytical state; quantify losses by stage/reason; test whether canonical measurability is associated with predeclared pre-outcome resource characteristics |
 | Implementation gap | dedicated stage-transition/attrition export and regenerated flow visualization |
-| Governing issue | #192 |
+| Governing issues | #192 and selectivity analysis #194 |
 | Planned outputs | transition table/JSON; attrition taxonomy; flow figure; reconciled denominators |
 | Manuscript section | Results — RQ1 |
 | Main validity threats | source coverage; deduplication semantics; temporal/network failures; construct boundary |
