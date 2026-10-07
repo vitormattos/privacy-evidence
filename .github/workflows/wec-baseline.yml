@@ -1,0 +1,200 @@
+name: Controlled WEC baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: 'Freeze dependencies first; execute only after WEC SHA-256 is committed'
+        required: true
+        type: choice
+        default: freeze
+        options:
+          - freeze
+          - execute
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wec-baseline-v1
+  cancel-in-progress: false
+
+jobs:
+  baseline:
+    name: WEC baseline (${{ inputs.phase }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+
+      - uses: shivammathur/setup-php@v2
+        if: inputs.phase == 'execute'
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - name: Freeze sample and WEC distribution identity
+        id: freeze
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          CONFIG='config/experiments/wec-baseline-v1.json'
+          SAMPLE="$(jq -r '.sample.path' "$CONFIG")"
+          EXPECTED_SAMPLE_SHA="$(jq -r '.sample.sha256' "$CONFIG")"
+          EXPECTED_WEC_SHA="$(jq -r '.wec.distributionSha256 // empty' "$CONFIG")"
+          WEC_URL="$(jq -r '.wec.distribution' "$CONFIG")"
+
+          SAMPLE_SHA="$(sha256sum "$SAMPLE" | awk '{print $1}')"
+          if [ "$SAMPLE_SHA" != "$EXPECTED_SAMPLE_SHA" ]; then
+            echo "Sample hash mismatch: expected $EXPECTED_SAMPLE_SHA, got $SAMPLE_SHA" >&2
+            exit 1
+          fi
+
+          curl --fail --location --retry 3 --retry-delay 2             "$WEC_URL" --output /tmp/website-evidence-collector.tgz
+          WEC_SHA="$(sha256sum /tmp/website-evidence-collector.tgz | awk '{print $1}')"
+
+          if [ "${{ inputs.phase }}" = "execute" ]; then
+            if [ -z "$EXPECTED_WEC_SHA" ]; then
+              echo 'Execution refused: commit the WEC distribution SHA-256 produced by a freeze run first.' >&2
+              exit 1
+            fi
+            if [ "$WEC_SHA" != "$EXPECTED_WEC_SHA" ]; then
+              echo "WEC package hash mismatch: expected $EXPECTED_WEC_SHA, got $WEC_SHA" >&2
+              exit 1
+            fi
+          fi
+
+          mkdir -p data/experiments/wec-baseline-v1
+          jq -n             --arg phase '${{ inputs.phase }}'             --arg protocol "$(jq -r '.protocolVersion' "$CONFIG")"             --arg seed "$(jq -r '.seed' "$CONFIG")"             --arg sample "$SAMPLE"             --arg sampleSha256 "$SAMPLE_SHA"             --arg wecVersion "$(jq -r '.wec.version' "$CONFIG")"             --arg wecDistribution "$WEC_URL"             --arg wecSha256 "$WEC_SHA"             --arg privacyEvidenceCommit "$GITHUB_SHA"             --arg nodeVersion "$(node --version)"             --arg npmVersion "$(npm --version)"             --arg runnerOs "$RUNNER_OS"             '{
+              phase: $phase,
+              protocolVersion: $protocol,
+              seed: $seed,
+              sample: {path: $sample, sha256: $sampleSha256},
+              wec: {version: $wecVersion, distribution: $wecDistribution, sha256: $wecSha256},
+              privacyEvidence: {gitCommit: $privacyEvidenceCommit},
+              environment: {runnerOs: $runnerOs, node: $nodeVersion, npm: $npmVersion}
+            }' > data/experiments/wec-baseline-v1/freeze-manifest.json
+
+          echo "wec_sha256=$WEC_SHA" >> "$GITHUB_OUTPUT"
+          echo "sample_sha256=$SAMPLE_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Publish freeze manifest
+        uses: actions/upload-artifact@v6
+        with:
+          name: wec-baseline-v1-freeze-${{ github.run_id }}
+          path: data/experiments/wec-baseline-v1/freeze-manifest.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Stop after freeze
+        if: inputs.phase == 'freeze'
+        run: |
+          echo "Freeze complete."
+          echo "Commit WEC SHA-256 ${{ steps.freeze.outputs.wec_sha256 }} to config/experiments/wec-baseline-v1.json before execution."
+
+      - name: Install WEC and Privacy Evidence dependencies
+        if: inputs.phase == 'execute'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --global /tmp/website-evidence-collector.tgz
+          website-evidence-collector --version || true
+          composer install --no-interaction --prefer-dist --no-progress
+          npm ci --prefix browser
+          npx --prefix browser playwright install --with-deps chromium
+
+      - name: Capture execution environment
+        if: inputs.phase == 'execute'
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT='data/experiments/wec-baseline-v1'
+          cp composer.lock "$OUT/composer.lock"
+          sha256sum composer.lock > "$OUT/composer-lock.sha256"
+          php --version > "$OUT/php-version.txt"
+          node --version > "$OUT/node-version.txt"
+          npm --version > "$OUT/npm-version.txt"
+          website-evidence-collector --help > "$OUT/wec-help.txt" 2>&1 || true
+
+      - name: Execute both tool blocks in deterministic order
+        if: inputs.phase == 'execute'
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT='data/experiments/wec-baseline-v1'
+          mkdir -p "$OUT/wec" "$OUT/privacy-evidence"
+
+          run_privacy_evidence() {
+            local started finished run_id
+            started="$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
+            run_id="$(php bin/privacy-evidence run examples/poc/sites.csv --max-jobs=1 | tail -n 1)"
+            test -n "$run_id"
+            php bin/privacy-evidence run:resume "$run_id"
+            php bin/privacy-evidence analyze "$run_id"
+            php bin/privacy-evidence report "$run_id"
+            finished="$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
+            printf '%s\n' "$run_id" > "$OUT/privacy-evidence/run-id.txt"
+            printf '%s\n' "$started" > "$OUT/privacy-evidence/started-at.txt"
+            printf '%s\n' "$finished" > "$OUT/privacy-evidence/finished-at.txt"
+            cp -R "data/exports/$run_id" "$OUT/privacy-evidence/exports"
+            cp "data/derived/runs/$run_id/manifest.json" "$OUT/privacy-evidence/research-run-manifest.json"
+          }
+
+          run_wec() {
+            local started finished
+            started="$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
+            tail -n +2 examples/poc/sites.csv | while IFS=, read -r id name url; do
+              target_dir="$OUT/wec/$id"
+              mkdir -p "$target_dir"
+              printf '%s\n' "$url" > "$target_dir/declared-url.txt"
+              date --utc +%Y-%m-%dT%H:%M:%SZ > "$target_dir/started-at.txt"
+              set +e
+              website-evidence-collector "$url"                 --output "$target_dir/output"                 --overwrite                 --json                 > "$target_dir/stdout.log"                 2> "$target_dir/stderr.log"
+              status=$?
+              set -e
+              printf '%s\n' "$status" > "$target_dir/exit-code.txt"
+              date --utc +%Y-%m-%dT%H:%M:%SZ > "$target_dir/finished-at.txt"
+              find "$target_dir" -type f -print0 | sort -z | xargs -0 sha256sum > "$target_dir/files.sha256"
+            done
+            finished="$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
+            printf '%s\n' "$started" > "$OUT/wec/started-at.txt"
+            printf '%s\n' "$finished" > "$OUT/wec/finished-at.txt"
+          }
+
+          seed_hash="$(printf '%s' 'wec-baseline-v1' | sha256sum | cut -c1)"
+          case "$seed_hash" in
+            0|2|4|6|8|a|c|e)
+              printf '%s\n' 'privacy-evidence,wec' > "$OUT/tool-block-order.txt"
+              run_privacy_evidence
+              run_wec
+              ;;
+            *)
+              printf '%s\n' 'wec,privacy-evidence' > "$OUT/tool-block-order.txt"
+              run_wec
+              run_privacy_evidence
+              ;;
+          esac
+
+          cat > "$OUT/deviations.md" <<'EOF'
+          # Execution deviations
+
+          The protocol prefers per-target deterministic alternation. This first reproducible harness uses deterministic complete-tool blocks instead, which the protocol explicitly permits when safe alternation is not implemented. The block order is derived from the frozen seed and recorded in `tool-block-order.txt`.
+
+          No failing target is replaced. WEC non-zero exits are preserved per target and do not abort the remaining declared targets.
+          EOF
+
+      - name: Publish restricted execution state
+        if: inputs.phase == 'execute'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wec-baseline-v1-execution-${{ github.run_id }}
+          path: data/experiments/wec-baseline-v1/
+          if-no-files-found: error
+          retention-days: 14
