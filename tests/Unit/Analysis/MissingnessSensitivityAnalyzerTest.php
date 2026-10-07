@@ -29,7 +29,7 @@ final class MissingnessSensitivityAnalyzerTest extends TestCase
         $result = (new MissingnessSensitivityAnalyzer())->analyze($attrition, $evidence);
         $privacyNotice = null;
         foreach ($result['outcomes'] as $outcome) {
-            if (($outcome['evidenceType'] ?? null) === 'privacy_notice') {
+            if ($outcome['evidenceType'] === 'privacy_notice') {
                 $privacyNotice = $outcome;
                 break;
             }
@@ -41,16 +41,13 @@ final class MissingnessSensitivityAnalyzerTest extends TestCase
         self::assertSame(1, $privacyNotice['absent']);
         self::assertSame(2, $privacyNotice['unresolved']);
 
-        self::assertIsArray($privacyNotice['completeCase']);
         self::assertSame(2, $privacyNotice['completeCase']['denominator']);
         self::assertEqualsWithDelta(0.5, $privacyNotice['completeCase']['prevalence'], 0.000001);
         self::assertEqualsWithDelta(0.5, $privacyNotice['completeCase']['coverage'], 0.000001);
 
-        self::assertIsArray($privacyNotice['naiveNegative']);
         self::assertSame(4, $privacyNotice['naiveNegative']['denominator']);
         self::assertEqualsWithDelta(0.25, $privacyNotice['naiveNegative']['prevalence'], 0.000001);
 
-        self::assertIsArray($privacyNotice['provenanceAware']);
         self::assertEqualsWithDelta(0.25, $privacyNotice['provenanceAware']['lowerBound'], 0.000001);
         self::assertEqualsWithDelta(0.75, $privacyNotice['provenanceAware']['upperBound'], 0.000001);
         self::assertEqualsWithDelta(-0.25, $privacyNotice['absoluteNaiveVsCompleteCase'], 0.000001);
@@ -74,7 +71,7 @@ final class MissingnessSensitivityAnalyzerTest extends TestCase
         $result = $analysis->analyze($attrition, $evidence);
         $privacyNotice = null;
         foreach ($result['outcomes'] as $outcome) {
-            if (($outcome['evidenceType'] ?? null) === 'privacy_notice') {
+            if ($outcome['evidenceType'] === 'privacy_notice') {
                 $privacyNotice = $outcome;
                 break;
             }
@@ -100,7 +97,7 @@ final class MissingnessSensitivityAnalyzerTest extends TestCase
         $result = (new MissingnessSensitivityAnalyzer())->analyze($attrition, $evidence);
         $cookieNotice = null;
         foreach ($result['outcomes'] as $outcome) {
-            if (($outcome['evidenceType'] ?? null) === 'cookie_notice') {
+            if ($outcome['evidenceType'] === 'cookie_notice') {
                 $cookieNotice = $outcome;
                 break;
             }
