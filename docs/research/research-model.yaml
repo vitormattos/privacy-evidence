@@ -5,19 +5,20 @@ paper_rqs:
     title: Measurement attrition
     proposition: P1
     governing_issue: 192
-    status: partial
+    status: analyzed
     artifacts:
       - population-summary.json
       - population-results.json
       - ResearchRun manifest
-    planned_outputs:
-      - attrition-transitions.json
-      - population-flow figure
+      - results/ipb-2026-10-05-attrition-summary.json
+      - results/ipb-2026-10-05-attrition-flow.csv
+      - results/ipb-2026-10-05-attrition.md
+    reconstruction_note: preserved full-run artifact predates native attrition export; result is deterministically reconstructed from frozen population-results.json
   rq2:
     title: Analytical impact of missingness
     proposition: P2
     governing_issue: 193
-    status: not_analyzed
+    status: analyzed
     conditions:
       - complete_case
       - naive_missing_as_negative_counterfactual
