@@ -47,7 +47,7 @@ Legend:
 | Proposed artifact described in adequate detail | Complete | README, architecture docs, ADRs, source/tests | keep paper description concise |
 | Need/usefulness/relevance justified | Complete | 2025 reconstruction problem + contribution statement | related-work gap still under #190 |
 | Conceptual strengths/weaknesses/limitations evaluated | Partial | validity threats, design boundaries, ADRs | synthesize in manuscript |
-| Artifact empirically evaluated in relevant context | Partial | IPB runs/PoC exist | finish human review + attrition analyses |
+| Artifact empirically evaluated in relevant context | Partial | frozen IPB attrition/missingness/selectivity results exist | finish human-reference validation and reproduction |
 | Artifact/source available | Complete | public repository | publication release/DOI still pending |
 | Evaluation data/package available where permitted | Partial | exports/workflows exist | #199 publication package |
 | Theory/methodological basis explicit | Complete | GQM + Engineering Research/Design Science + measurement/reproducibility model | cite primary literature in paper |
@@ -59,11 +59,11 @@ Legend:
 | Expected attribute | Status | Repository evidence | Gap / action |
 |---|---|---|---|
 | Sampling/population goal explained | Complete | source population + research model | none |
-| Sampling/filtering strategy described | Complete | source adapter, legacy mapping, protocol | #192 must make transitions explicit |
+| Sampling/filtering strategy described | Complete | source adapter, legacy mapping, protocol + frozen #192 transition result | none for the current IPB run |
 | Selection rationale stated | Complete | IPB historical origin/context | discuss frame limitations |
 | Population/sample size reported | Complete for PoC/current runs | workflow/report outputs | final manuscript must pin exact run |
 | Stratification rationale for human sample | Partial | `gold-dataset.md`, sampler | #196 publication-grade sizing |
-| Filtering/exclusions traceable | Partial | explicit states exist | #192 reconciliation/flow analysis |
+| Filtering/exclusions traceable | Complete for frozen IPB run | #192 reconciled source-to-terminal flow + preserved source artifact hashes | maintain exact provenance in manuscript/package |
 | Representativeness not assumed from randomness | Complete | methodology/validity docs | maintain in manuscript |
 | Potential frame/selection bias evaluated | Partial | frozen #194 selectivity analysis | available predictors do not show compelling selection, but predictor coverage and subgroup support are limited |
 
@@ -111,7 +111,7 @@ This section is project-specific and supports the General/Engineering Research e
 
 | Paper RQ | Current standard-readiness | Main blockers |
 |---|---|---|
-| RQ1 measurement attrition | Partial/analyzed | #194 is frozen; historical full-run attrition still relies on reconstruction from preserved exports |
+| RQ1 measurement attrition | Analyzed for frozen IPB run | historical full-run attrition is a deterministic reconstruction because native export was added later; limitation is documented |
 | RQ2 missingness impact | Analyzed for frozen IPB run | detector-validity caveat remains under RQ4 |
 | RQ3 reproducibility | Partial | #86/#87/#199/#200 |
 | RQ4 detector validity | Human-gated | #195/#178/#196/#32/#33/#84 |
@@ -124,7 +124,7 @@ This section is project-specific and supports the General/Engineering Research e
 3. Complete clean and independent reproduction (#87/#200).
 4. Complete novelty baseline #191 and keep novelty claims bounded by #190.
 5. Freeze publication package and scholarly metadata (#198/#199).
-6. Decide whether the manuscript requires a newly generated native attrition export or whether the preserved full-run reconstruction is sufficient for RQ1 provenance.
+6. Keep the historical-reconstruction limitation explicit; a new live-Web run is not required merely to replace a preserved, hash-bound RQ1 result unless the study intentionally adds a new observation.
 
 ## Review rule
 
