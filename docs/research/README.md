@@ -24,7 +24,8 @@ Privacy Evidence treats software behavior as part of the research instrument. Th
 - [variables.md](variables.md) — variable definitions and measurement semantics.
 - [data-dictionary.md](data-dictionary.md) — persisted/exported field semantics.
 - [metrics.md](metrics.md) — denominator and derived-metric rules.
-- [measurement-attrition.md](measurement-attrition.md) — stage-by-stage population accounting (available after #192 merges).
+- [measurement-attrition.md](measurement-attrition.md) — stage-by-stage population accounting.
+- [missingness-sensitivity.md](missingness-sensitivity.md) — predeclared complete-case, naive-negative and provenance-aware sensitivity analysis for RQ2.
 - [evaluation.md](evaluation.md) — detector evaluation and final reference design.
 - [validity-threats.md](validity-threats.md) — construct, external, temporal, measurement and conclusion threats.
 - [longitudinal-comparison.md](longitudinal-comparison.md) — versioned longitudinal-comparison rules.

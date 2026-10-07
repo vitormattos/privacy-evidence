@@ -129,7 +129,7 @@ RQ1 is answerable only when:
 | Existing data producers | evidence store; reviewed evidence; report/export pipeline |
 | Canonical semantics | present/absent/unknown/unavailable/invalid/excluded/not-applicable are distinct |
 | Required conditions | A: complete-case; B: intentionally naive missing/unavailable-as-negative counterfactual; C: canonical provenance-aware |
-| Implementation gap | reproducible sensitivity-analysis command/output |
+| Implementation status | deterministic sensitivity-analysis export is implemented by `report`; empirical execution/freeze on the designated case-study run remains pending |
 | Governing issue | #193 |
 | Planned outputs | per-signal estimates under A/B/C; denominator/coverage differences; robust/unstable conclusion table |
 | Manuscript section | Results — RQ2 |
@@ -244,7 +244,7 @@ The existence of code is not equivalent to an answered RQ.
 | RQ | Implemented | Collected | Human-gated | Analyzed | Manuscript-ready |
 |---|---:|---:|---:|---:|---:|
 | RQ1 | partial | yes (IPB PoC/full runs exist) | no | partial | no |
-| RQ2 | partial | partial | depends on reviewed outcomes selected | no | no |
+| RQ2 | implemented analysis path | partial | depends on reviewed outcomes selected | no final run | no |
 | RQ3 | strong | yes | independent non-implementer later | partial | no |
 | RQ4 | strong machine workflow | PoC candidate set yes | **yes** | no final evaluation | no |
 | RQ5 | generic engine exists | no designated second study | possibly | no | no |
