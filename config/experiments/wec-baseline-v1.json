@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0.0",
+  "protocolVersion": "0.1.0",
+  "governingIssue": 191,
+  "seed": "wec-baseline-v1",
+  "sample": {
+    "path": "examples/poc/sites.csv",
+    "expectedTargets": 12,
+    "purpose": "diagnostic_heterogeneous_common_sample",
+    "probabilitySample": false
+  },
+  "wec": {
+    "version": "3.3.0",
+    "source": "https://code.europa.eu/EDPS/website-evidence-collector",
+    "distribution": "https://code.europa.eu/EDPS/website-evidence-collector/-/releases/v3.3.0/downloads/website-evidence-collector.tgz",
+    "distributionSha256": null,
+    "nodeMajor": 20
+  },
+  "privacyEvidence": {
+    "gitCommit": null,
+    "freezeAtExecution": true
+  },
+  "primaryCondition": {
+    "authenticated": false,
+    "manualConsentInteraction": false,
+    "bypassBotProtection": false,
+    "tlsVerification": true,
+    "freshSessionPerTarget": true
+  },
+  "sharedEvidenceDimensions": [
+    "cookies",
+    "third_party_requests"
+  ],
+  "metrics": [
+    "declared_input_accounting",
+    "successful_collection_coverage",
+    "explicit_failure_state_coverage",
+    "shared_evidence_observability",
+    "provenance_field_coverage",
+    "reproducibility_metadata_coverage",
+    "wall_clock_duration"
+  ]
+}
