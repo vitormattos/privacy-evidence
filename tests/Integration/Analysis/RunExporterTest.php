@@ -147,10 +147,9 @@ final class RunExporterTest extends TestCase
             self::assertSame(1, $attritionSummary['canonicalWebsiteUnits'] ?? null);
             self::assertSame(0, $attritionSummary['observedUnits'] ?? null);
             self::assertSame(1, $attritionSummary['notMeasurableUnits'] ?? null);
-            self::assertSame(
-                1,
-                $attritionSummary['terminalStages']['protocol_excluded'] ?? null,
-            );
+            self::assertIsArray($attritionSummary['terminalStages']);
+            $terminalStages = $attritionSummary['terminalStages'];
+            self::assertSame(1, $terminalStages['protocol_excluded'] ?? null);
         } finally {
             $this->removeDirectory($directory);
         }
