@@ -72,8 +72,11 @@ final class SelectiveMeasurabilityAnalyzerTest extends TestCase
             self::assertSame(1, $duplicate['support']);
             self::assertSame(1, $duplicate['measurable']);
         } finally {
-            foreach (glob($directory . '/*') ?: [] as $path) {
-                unlink($path);
+            $paths = glob($directory . '/*');
+            if ($paths !== false) {
+                foreach ($paths as $path) {
+                    unlink($path);
+                }
             }
             rmdir($directory);
         }
@@ -115,8 +118,11 @@ final class SelectiveMeasurabilityAnalyzerTest extends TestCase
                 self::assertGreaterThanOrEqual($row['fisherPValue'], $row['holmAdjustedPValue']);
             }
         } finally {
-            foreach (glob($directory . '/*') ?: [] as $path) {
-                unlink($path);
+            $paths = glob($directory . '/*');
+            if ($paths !== false) {
+                foreach ($paths as $path) {
+                    unlink($path);
+                }
             }
             rmdir($directory);
         }
