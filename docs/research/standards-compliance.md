@@ -33,7 +33,7 @@ Legend:
 | Methodologies named | Complete | `methodology.md` | none |
 | Methodology appropriate to questions | Partial | method-to-RQ map | empirical results still pending |
 | Data collection described in detail | Partial | protocol, acquisition architecture, ResearchRun | manuscript must bind exact run/config |
-| Data analysis described in detail | Partial | metrics/evaluation/research-model | #192/#193/#194 analyses not executed yet |
+| Data analysis described in detail | Partial | metrics/evaluation/research-model + frozen #193 result | #194 and remaining RQ analyses still pending |
 | Results directly address RQs | Missing | — | execute analyses + human gate |
 | Statistical assumptions validated | Conditional | not yet applicable/frozen | required for #194/inferential analyses |
 | Implications discussed | Missing | — | manuscript discussion after results |
@@ -112,7 +112,7 @@ This section is project-specific and supports the General/Engineering Research e
 | Paper RQ | Current standard-readiness | Main blockers |
 |---|---|---|
 | RQ1 measurement attrition | Partial | #192 |
-| RQ2 missingness impact | Missing analysis | #192 -> #193 |
+| RQ2 missingness impact | Analyzed for frozen IPB run | detector-validity caveat remains under RQ4 |
 | RQ3 reproducibility | Partial | #86/#87/#199/#200 |
 | RQ4 detector validity | Human-gated | #195/#178/#196/#32/#33/#84 |
 | RQ5 transferability | Conditional/not started | #201 |
@@ -122,7 +122,7 @@ This section is project-specific and supports the General/Engineering Research e
 1. Complete #192 so population/filtering/attrition transitions are fully reportable.
 2. Complete #195 and genuine human annotation before making detector-validity claims.
 3. Complete #196 so final evaluation support matches intended performance claims.
-4. Execute #193/#194 with predeclared analysis choices and statistical-assumption checks where applicable.
+4. Execute #194 with predeclared analysis choices and statistical-assumption checks; #193 is frozen for the 2026-10-05 IPB run.
 5. Complete clean and independent reproduction (#87/#200).
 6. Complete novelty audit/baseline (#190/#191).
 7. Freeze publication package and scholarly metadata (#198/#199).
