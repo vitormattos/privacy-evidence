@@ -104,9 +104,9 @@ RQ5 is included in the first manuscript only if issue #201 completes with suffic
 | Existing commands | `source:import`, `source:stats`, `source:select`, `run`, `workers`, `status`, `report` |
 | Existing artifacts | run manifest; resources/documents/evidence exports; `population-summary.json`; `population-results.json`; status/failure outputs where present |
 | Required analysis | reconcile every transition from source row to terminal analytical state; quantify losses by stage/reason; test whether canonical measurability is associated with predeclared pre-outcome resource characteristics |
-| Implementation gap | dedicated stage-transition/attrition export and regenerated flow visualization |
+| Implementation status | native stage-transition/attrition export is implemented; the preserved 2026-10-05 full run predates that export, so its RQ1 result is reconstructed deterministically from frozen `population-results.json` |
 | Governing issues | #192 and selectivity analysis #194 |
-| Outputs | transition/attrition exports plus frozen selectivity result `results/ipb-2026-10-05-selective-measurability.{json,csv,md}` |
+| Frozen outputs | `results/ipb-2026-10-05-attrition.{md}` + `results/ipb-2026-10-05-attrition-summary.json` + `results/ipb-2026-10-05-attrition-flow.csv`; selectivity result `results/ipb-2026-10-05-selective-measurability.{json,csv,md}` |
 | Manuscript section | Results — RQ1 |
 | Main validity threats | source coverage; deduplication semantics; temporal/network failures; construct boundary |
 
@@ -243,7 +243,7 @@ The existence of code is not equivalent to an answered RQ.
 
 | RQ | Implemented | Collected | Human-gated | Analyzed | Manuscript-ready |
 |---|---:|---:|---:|---:|---:|
-| RQ1 | implemented analysis paths | yes (frozen full IPB run) | no | partial — selectivity analysis frozen; historical full-run attrition is reconstructed from preserved exports | partial |
+| RQ1 | implemented | yes (frozen full IPB run) | no | yes — attrition and selectivity analyses are frozen; attrition is a deterministic reconstruction because the historical artifact predates the native export | partial — empirical RQ1 is traceable; external comparison/reproduction remain supporting gaps |
 | RQ2 | implemented | yes (frozen full IPB run) | detector validity remains a separate RQ4 gate | yes | partial — methodological missingness conclusion is traceable; detector-validity claims remain blocked |
 | RQ3 | strong | yes | independent non-implementer later | partial | no |
 | RQ4 | strong machine workflow | PoC candidate set yes | **yes** | no final evaluation | no |

@@ -1,0 +1,67 @@
+{
+  "analysisVersion": "measurement-attrition/1.0.0-reconstruction",
+  "researchRun": "01a10a29-cf8d-7711-8e6d-ec954e592cc2",
+  "workflowRun": 37260583969,
+  "workflowArtifactId": 11324489250,
+  "workflowArtifactDigest": "sha256:fec211aa0a9ab0898123e1c4f7018810d116e0a572784a5abbcfd925736620a2",
+  "sourceGitCommit": "fa276f203ba6d95bfb0270b7fdfd71047d1c47f1",
+  "datasetHash": "094e991b22293d78a11bc18ec2fb191d612b66ecad65145466d22108db4bf022",
+  "populationResultsSha256": "b5e5e438aae281c764ddb469b3089efb81e3d3aa7816676c7df9ba44789fe23e",
+  "derivedAttritionCanonicalJsonSha256": "3f99fa50061acd478e0d6347d8440f0c7522dd6d8f63694e992345b996fefaf3",
+  "protocolVersion": "0.1.0-draft",
+  "summary": {
+    "schemaVersion": "1.0.0",
+    "sourcePopulation": 2993,
+    "normalizedResources": 658,
+    "websiteEligibleResources": 589,
+    "canonicalWebsiteUnits": 566,
+    "fullyMeasuredUnits": 193,
+    "partiallyMeasuredUnits": 12,
+    "observedUnits": 205,
+    "notMeasurableUnits": 361,
+    "missingOutcomeUnits": 0,
+    "measurementLossUnits": 361,
+    "canonicalToObservedRate": 0.3621908127208481,
+    "canonicalToFullyMeasuredRate": 0.3409893992932862,
+    "terminalStages": {
+      "normalization_unavailable": 2335,
+      "protocol_excluded": 69,
+      "duplicate_eligible_reference": 23,
+      "fully_measured": 193,
+      "partially_measured": 12,
+      "not_measurable": 361
+    },
+    "canonicalFailureReasons": {
+      "anti_bot_challenge": 47,
+      "dns_failure": 228,
+      "empty_html_content": 1,
+      "http_401": 1,
+      "http_403": 5,
+      "http_404": 13,
+      "http_410": 1,
+      "http_429": 34,
+      "http_500": 4,
+      "no_successful_document": 7,
+      "private_network": 2,
+      "redirected_to_link_aggregator": 1,
+      "redirected_to_social_network": 1,
+      "redirected_to_video_platform": 1,
+      "timeout": 4,
+      "tls_failure": 11
+    }
+  },
+  "reconciliation": {
+    "terminalStagesEqualSourcePopulation": true,
+    "canonicalOutcomesEqualCanonicalWebsiteUnits": true,
+    "observedPlusMeasurementLossEqualCanonicalWebsiteUnits": true,
+    "canonicalFailureReasonsEqualNotMeasurableUnits": true
+  },
+  "reconstruction": {
+    "reason": "The preserved workflow artifact predates the dedicated attrition export introduced by #215.",
+    "source": "export/population-results.json from workflow artifact 11324489250",
+    "rule": "Apply the current RunExporter attrition semantics to each preserved population row without recollecting the live Web.",
+    "perSourceDerivedRows": 2993,
+    "perSourceDerivedRowsCommitted": false,
+    "perSourceDerivedRowsHashOnly": true
+  }
+}

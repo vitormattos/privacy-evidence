@@ -20,8 +20,8 @@ Legend:
 | methodological stack | all | #187 | `methodology.md`, `standards-compliance.md` | READY |
 | existing privacy tools overlap | related work | #189/#190 | `tool-landscape-review.md`, `novelty-audit.md` | READY |
 | WEC comparative result | supporting | #191 | frozen comparison protocol/results | BLOCKED |
-| source-to-measurement attrition counts | RQ1 | #192 | `attrition-results.json`, `attrition-summary.json` | PARTIAL |
-| attrition flow figure | RQ1 | #192 | `attrition-flow.md` | PARTIAL |
+| source-to-measurement attrition counts | RQ1 | #192 | `docs/research/results/ipb-2026-10-05-attrition-summary.json`, preserved full-run `population-results.json` + hashes | READY |
+| attrition flow figure | RQ1 | #192 | `docs/research/results/ipb-2026-10-05-attrition.md`, `ipb-2026-10-05-attrition-flow.csv` | READY |
 | missingness changes estimates | RQ2 | #193 | `docs/research/results/ipb-2026-10-05-missingness-sensitivity.{json,csv,md}` | READY |
 | measurability is/is not selective | RQ1/discussion | #194 | `docs/research/results/ipb-2026-10-05-selective-measurability.{json,csv,md}` | READY |
 | reviewer UI is usable/equivalent | RQ4 method | #195 | real pilot record + frozen UI version | BLOCKED |
