@@ -6,6 +6,7 @@ namespace PrivacyEvidence\Command;
 
 use PrivacyEvidence\Analysis\MissingnessSensitivityAnalyzer;
 use PrivacyEvidence\Analysis\RunExporter;
+use PrivacyEvidence\Analysis\SelectiveMeasurabilityAnalyzer;
 use PrivacyEvidence\Runtime\RuntimeFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -35,6 +36,7 @@ final class ReportCommand extends Command
         $directory = $this->projectRoot . '/data/exports/' . $value;
         (new RunExporter(RuntimeFactory::create($this->projectRoot)))->export($value, $directory);
         (new MissingnessSensitivityAnalyzer())->export($directory);
+        (new SelectiveMeasurabilityAnalyzer())->export($directory);
         $output->writeln($directory);
 
         return Command::SUCCESS;
