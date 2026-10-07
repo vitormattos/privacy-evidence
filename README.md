@@ -10,7 +10,7 @@ Manual privacy reviews do not scale well, are difficult to reproduce and often m
 
 ## What it does
 
-Privacy Evidence is being designed to:
+Privacy Evidence can:
 
 - ingest canonical website datasets produced by any external extraction workflow;
 - acquire public web content using HTTP first and browser automation only when necessary;
@@ -45,9 +45,15 @@ This separation is a core methodological requirement.
 
 ## Project status
 
-Privacy Evidence is in its initial architecture and research-protocol phase.
+Privacy Evidence is an active empirical-research software project. The core pipeline for source import, bounded HTTP/browser acquisition, evidence detection, regulatory mapping, provenance, resumable execution, reporting and human-review preparation is implemented and has been exercised on real-world populations.
 
-The project originates from a 2025 academic case study of websites declared by churches of the Igreja Presbiteriana do Brasil. That historical implementation remains preserved in the separate `webscraping-anuario-igrejas-ipb` repository and is treated as a legacy research artifact, not as this project's codebase.
+The current research program focuses on **measurement attrition and evidence provenance in empirical web research**: how a declared web population becomes an effectively measurable analytical population, what is lost along that path, and how provenance affects reproducibility and interpretation.
+
+The main unresolved empirical gate is **independent human validation** of the evidence detectors. The reviewer workflow is implemented, but publication-grade detector claims remain blocked until real independent reviewers complete the frozen evaluation procedure. Related-work comparison, attrition analysis, clean-room reproduction and a scientific manuscript are tracked as explicit research work rather than being implied complete by the software implementation.
+
+The project originates from a 2025 academic case study of websites declared by churches of the Igreja Presbiteriana do Brasil (IPB). That historical implementation remains preserved in the separate `webscraping-anuario-igrejas-ipb` repository and is treated as a legacy research artifact, not as this project's codebase. The IPB study is the origin and first empirical context of the research problem, not a claim that the scientific contribution is specific to religious organizations.
+
+For the current execution state and dependency graph, see GitHub issue **#88 — Master execution roadmap and phase gates**.
 
 ## Hacktoberfest Weekend Challenge 2026
 
@@ -79,7 +85,11 @@ analysis and reproducible reports
 
 Detailed material lives outside the README:
 
-- Research protocol: `docs/research/`
+- Research model and protocol: `docs/research/`
+  - scientific contribution: `docs/research/research-contribution.md`
+  - RQ/evidence traceability: `docs/research/research-model.md`
+  - methodology: `docs/research/methodology.md`
+  - empirical-standards checklist: `docs/research/standards-compliance.md`
 - Architecture: `docs/architecture/`
 - Regulatory profiles: `docs/regulatory/`
 - Development: `docs/development/`
