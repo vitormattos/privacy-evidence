@@ -106,7 +106,7 @@ RQ5 is included in the first manuscript only if issue #201 completes with suffic
 | Required analysis | reconcile every transition from source row to terminal analytical state; quantify losses by stage/reason; test whether canonical measurability is associated with predeclared pre-outcome resource characteristics |
 | Implementation gap | dedicated stage-transition/attrition export and regenerated flow visualization |
 | Governing issues | #192 and selectivity analysis #194 |
-| Planned outputs | transition table/JSON; attrition taxonomy; flow figure; reconciled denominators |
+| Outputs | transition/attrition exports plus frozen selectivity result `results/ipb-2026-10-05-selective-measurability.{json,csv,md}` |
 | Manuscript section | Results — RQ1 |
 | Main validity threats | source coverage; deduplication semantics; temporal/network failures; construct boundary |
 
@@ -243,7 +243,7 @@ The existence of code is not equivalent to an answered RQ.
 
 | RQ | Implemented | Collected | Human-gated | Analyzed | Manuscript-ready |
 |---|---:|---:|---:|---:|---:|
-| RQ1 | partial | yes (IPB PoC/full runs exist) | no | partial | no |
+| RQ1 | implemented analysis paths | yes (frozen full IPB run) | no | partial — selectivity analysis frozen; historical full-run attrition is reconstructed from preserved exports | partial |
 | RQ2 | implemented | yes (frozen full IPB run) | detector validity remains a separate RQ4 gate | yes | partial — methodological missingness conclusion is traceable; detector-validity claims remain blocked |
 | RQ3 | strong | yes | independent non-implementer later | partial | no |
 | RQ4 | strong machine workflow | PoC candidate set yes | **yes** | no final evaluation | no |

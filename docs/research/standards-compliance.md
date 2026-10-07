@@ -33,9 +33,9 @@ Legend:
 | Methodologies named | Complete | `methodology.md` | none |
 | Methodology appropriate to questions | Partial | method-to-RQ map | empirical results still pending |
 | Data collection described in detail | Partial | protocol, acquisition architecture, ResearchRun | manuscript must bind exact run/config |
-| Data analysis described in detail | Partial | metrics/evaluation/research-model + frozen #193 result | #194 and remaining RQ analyses still pending |
+| Data analysis described in detail | Partial | metrics/evaluation/research-model + frozen #193/#194 results | human-reference and reproducibility analyses still pending |
 | Results directly address RQs | Missing | — | execute analyses + human gate |
-| Statistical assumptions validated | Conditional | not yet applicable/frozen | required for #194/inferential analyses |
+| Statistical assumptions validated | Partial | #194 uses sparse-table Fisher tests, explicit support counts and Holm correction | predictor coverage/support limitations remain explicit |
 | Implications discussed | Missing | — | manuscript discussion after results |
 | Major limitations disclosed | Partial | `validity-threats.md` | update after analyses/replication |
 | Conclusions linked to explicit evidence | Missing | — | manuscript result/evidence map #197 |
@@ -65,7 +65,7 @@ Legend:
 | Stratification rationale for human sample | Partial | `gold-dataset.md`, sampler | #196 publication-grade sizing |
 | Filtering/exclusions traceable | Partial | explicit states exist | #192 reconciliation/flow analysis |
 | Representativeness not assumed from randomness | Complete | methodology/validity docs | maintain in manuscript |
-| Potential frame/selection bias evaluated | Partial | validity threat identified | #194 analysis |
+| Potential frame/selection bias evaluated | Partial | frozen #194 selectivity analysis | available predictors do not show compelling selection, but predictor coverage and subgroup support are limited |
 
 ## Human-reference / annotation quality
 
@@ -111,7 +111,7 @@ This section is project-specific and supports the General/Engineering Research e
 
 | Paper RQ | Current standard-readiness | Main blockers |
 |---|---|---|
-| RQ1 measurement attrition | Partial | #192 |
+| RQ1 measurement attrition | Partial/analyzed | #194 is frozen; historical full-run attrition still relies on reconstruction from preserved exports |
 | RQ2 missingness impact | Analyzed for frozen IPB run | detector-validity caveat remains under RQ4 |
 | RQ3 reproducibility | Partial | #86/#87/#199/#200 |
 | RQ4 detector validity | Human-gated | #195/#178/#196/#32/#33/#84 |
@@ -119,13 +119,12 @@ This section is project-specific and supports the General/Engineering Research e
 
 ## Current highest-priority standard gaps
 
-1. Complete #192 so population/filtering/attrition transitions are fully reportable.
-2. Complete #195 and genuine human annotation before making detector-validity claims.
-3. Complete #196 so final evaluation support matches intended performance claims.
-4. Execute #194 with predeclared analysis choices and statistical-assumption checks; #193 is frozen for the 2026-10-05 IPB run.
-5. Complete clean and independent reproduction (#87/#200).
-6. Complete novelty audit/baseline (#190/#191).
-7. Freeze publication package and scholarly metadata (#198/#199).
+1. Complete the genuine human-review path (#195/#178/#196/#32/#33/#84) before detector-validity claims.
+2. Complete #196 so final evaluation support matches intended performance claims.
+3. Complete clean and independent reproduction (#87/#200).
+4. Complete novelty baseline #191 and keep novelty claims bounded by #190.
+5. Freeze publication package and scholarly metadata (#198/#199).
+6. Decide whether the manuscript requires a newly generated native attrition export or whether the preserved full-run reconstruction is sufficient for RQ1 provenance.
 
 ## Review rule
 
