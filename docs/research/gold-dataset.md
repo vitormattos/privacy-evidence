@@ -157,6 +157,8 @@ The suite never visits public source URLs or produces research labels. CI runs t
 
 ### Reviewer-instrument pilot gate
 
+The executable pilot procedure is defined in [reviewer-pilot-protocol.md](reviewer-pilot-protocol.md).
+
 Before freezing a publication-grade independent-review package, run a small human usability pilot on cases outside the final evaluation partition. The pilot evaluates the annotation instrument, not detector accuracy. At minimum verify that reviewers can distinguish present, not-observed-in-material, unknown and exceptional states; that deferred cases are understood; that no undocumented instructions are required; and that reviewers do not need the live website as evidence.
 
 Record participant feedback and any resulting UI/handbook changes, then freeze the exact reviewer UI, handbook, package schema and packet hash used for real annotation. AI agents may prepare and test the pilot materials but must not fabricate human usability observations.
