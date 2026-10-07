@@ -63,7 +63,7 @@ a { color: LinkText; overflow-wrap: anywhere; }
 
 <section class="card" id="evidenceCard">
 <h2 id="sampleSite"></h2><p id="sampleUrl" class="small"></p>
-<div class="notice"><strong id="sourceContextLabel"></strong> <a id="sourceUrl" target="_blank" rel="noopener noreferrer"></a><p class="small" id="sourceContextHelp"></p></div>
+<div class="notice"><strong id="sourceContextLabel"></strong> <span id="sourceUrl" class="small"></span><p class="small" id="sourceContextHelp"></p></div>
 <div class="label" id="evidenceTypeLabel"></div>
 <h2 id="type"></h2>
 <details><summary id="criteriaLabel">Critério de avaliação</summary><div id="guidance" class="guidance notice"></div></details>
@@ -142,7 +142,7 @@ const i18n = {
     pendingExport: 'Exportar pacote com pendências',
     storageError: 'Não foi possível salvar no navegador. Mantenha esta página aberta e exporte ao terminar.',
     finished: 'Revisão concluída. Exporte o JSON; os casos para investigação continuam no pacote sem rótulo humano.',
-    sourceHelp: 'A página ao vivo pode ter mudado. Use-a apenas como contexto e baseie a classificação na página preservada abaixo.',
+    sourceHelp: 'A URL é exibida apenas como proveniência. Não abra o site ao vivo durante a revisão: conteúdo atual seria uma nova observação e quebraria a equivalência entre revisores.',
     humanState: 'Classificação humana',
     more: 'Mais opções',
     fewer: 'Menos opções',
@@ -165,11 +165,11 @@ const i18n = {
     minutes: 'min',
     validation: 'Escolha uma classificação e escreva uma justificativa curta antes de avançar.',
     chooseStateFirst: 'Escolha uma classificação antes de gerar uma sugestão de justificativa.',
-    shortcuts: 'Atalhos: 1 Presente, 2 Ausente, 3 Não é possível concluir. Mais opções: 4–7.',
+    shortcuts: 'Atalhos: 1 Presente, 2 Não observado no material, 3 Não é possível concluir. Mais opções: 4–7.',
     bias: 'O estado produzido pelo detector, a confiança e o indicador de revisão ficam ocultos para reduzir viés de ancoragem. Esses dados permanecem inalterados no pacote de pesquisa exportado.',
     states: {
       present: 'Presente',
-      absent: 'Ausente',
+      absent: 'Não observado no material',
       unknown: 'Não é possível concluir',
       unavailable: 'Indisponível',
       invalid: 'Inválido',
@@ -201,7 +201,7 @@ const i18n = {
     pendingExport: 'Export pending packet',
     storageError: 'Browser storage is unavailable. Keep this page open and export when finished.',
     finished: 'Review complete. Export JSON; cases requiring investigation remain in the packet without human labels.',
-    sourceHelp: 'The live page may have changed. Use it only as context and base the classification on the preserved page below.',
+    sourceHelp: 'The URL is shown for provenance only. Do not open the live website during review: current content would be a new observation and would break equivalence between reviewers.',
     humanState: 'Human classification',
     more: 'More options',
     fewer: 'Fewer options',
@@ -224,11 +224,11 @@ const i18n = {
     minutes: 'min',
     validation: 'Choose a human state and add a short rationale before continuing.',
     chooseStateFirst: 'Choose a human state before generating a rationale suggestion.',
-    shortcuts: 'Shortcuts: 1 Present, 2 Absent, 3 Unknown, 4 Unavailable, 5 Invalid, 6 Excluded, 7 Not applicable.',
+    shortcuts: 'Shortcuts: 1 Present, 2 Not observed in preserved material, 3 Unknown, 4 Unavailable, 5 Invalid, 6 Excluded, 7 Not applicable.',
     bias: 'The automated detector state, detector confidence and review flag are hidden to reduce anchoring bias. They remain unchanged in the exported research package.',
     states: {
       present: 'Present',
-      absent: 'Absent',
+      absent: 'Not observed in preserved material',
       unknown: 'Unknown',
       unavailable: 'Unavailable',
       invalid: 'Invalid',
@@ -539,13 +539,8 @@ function render() {
   const reason = contextReasons[locale][context.reason] || text.noExcerpt;
   missing.textContent = reason + ' ' + (locale === 'pt' ? 'Caso mantido para investigação, sem exigir uma resposta. O site ao vivo não substitui a coleta original.' : 'Case retained for investigation without requiring an answer. A live website does not replace the original collection.');
 
-  const link = document.getElementById('sourceUrl');
-  link.removeAttribute('href');
-  try {
-    const url = new URL(c.sourceUrl);
-    if (url.protocol === 'https:' || url.protocol === 'http:') link.href = url.href;
-  } catch (_) {}
-  link.textContent = c.sourceUrl || (locale === 'pt' ? 'Sem URL de origem' : 'No source URL');
+  const sourceUrl = document.getElementById('sourceUrl');
+  sourceUrl.textContent = c.sourceUrl || (locale === 'pt' ? 'Sem URL de origem' : 'No source URL');
   document.getElementById('artifactContext').textContent = 'Artifact SHA-256: ' + (c.artifactHash || '—') + ' · Evidence ID: ' + c.evidenceId;
   document.getElementById('rationale').value = c.rationale || '';
   document.getElementById('validation').textContent = '';
