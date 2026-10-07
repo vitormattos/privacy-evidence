@@ -35,11 +35,13 @@ final class MeasurementAttritionExporter
         $this->json($directory . '/attrition-summary.json', $summary);
         $this->csv($directory . '/attrition-results.csv', $results);
 
-        if (file_put_contents(
-            $directory . '/attrition-flow.md',
-            $this->flowMarkdown($summary),
-            LOCK_EX,
-        ) === false) {
+        if (
+            file_put_contents(
+                $directory . '/attrition-flow.md',
+                $this->flowMarkdown($summary),
+                LOCK_EX,
+            ) === false
+        ) {
             throw new \RuntimeException('Unable to write attrition flow.');
         }
     }
@@ -211,9 +213,11 @@ final class MeasurementAttritionExporter
     public function flowMarkdown(array $summary): string
     {
         $count = static function (string $key) use ($summary): int {
-            $value = $summary[$key] ?? null;
+            if (!isset($summary[$key]) || !is_int($summary[$key])) {
+                return 0;
+            }
 
-            return is_int($value) ? $value : 0;
+            return $summary[$key];
         };
 
         /** @var mixed $stageValue */
@@ -222,9 +226,11 @@ final class MeasurementAttritionExporter
         $stages = is_array($stageValue) ? $stageValue : [];
 
         $stage = static function (string $key) use ($stages): int {
-            $value = $stages[$key] ?? null;
+            if (!isset($stages[$key]) || !is_int($stages[$key])) {
+                return 0;
+            }
 
-            return is_int($value) ? $value : 0;
+            return $stages[$key];
         };
 
         return implode(PHP_EOL, [
@@ -295,16 +301,16 @@ final class MeasurementAttritionExporter
 
         foreach ($rows as $row) {
             fputcsv($handle, [
-                $row['resourceId'] ?? '',
-                $row['sourceValue'] ?? '',
-                $row['normalizedUrl'] ?? '',
-                $row['classificationType'] ?? '',
+                Value::string($row['resourceId'] ?? null, 'attrition.resourceId'),
+                Value::string($row['sourceValue'] ?? null, 'attrition.sourceValue'),
+                Value::nullableString($row['normalizedUrl'] ?? null, 'attrition.normalizedUrl') ?? '',
+                Value::string($row['classificationType'] ?? null, 'attrition.classificationType'),
                 !empty($row['normalized']) ? '1' : '0',
                 !empty($row['websiteEligible']) ? '1' : '0',
                 !empty($row['canonicalWebsiteUnit']) ? '1' : '0',
-                $row['measurementStatus'] ?? '',
-                $row['primaryReason'] ?? '',
-                $row['terminalStage'] ?? '',
+                Value::string($row['measurementStatus'] ?? null, 'attrition.measurementStatus'),
+                Value::string($row['primaryReason'] ?? null, 'attrition.primaryReason'),
+                Value::string($row['terminalStage'] ?? null, 'attrition.terminalStage'),
                 !empty($row['analyticallyObserved']) ? '1' : '0',
             ]);
         }
