@@ -124,6 +124,33 @@ final class RunExporterTest extends TestCase
             self::assertFalse($byId['social-1']['duplicateNormalizedUrl'] ?? true);
             self::assertArrayHasKey('site-1', $byId);
             self::assertArrayHasKey('lgpdPublicEvidenceState', $byId['site-1']);
+
+            /** @var mixed $attrition */
+            $attrition = json_decode(
+                (string) file_get_contents($directory . '/attrition-results.json'),
+                true,
+                flags: JSON_THROW_ON_ERROR,
+            );
+            self::assertIsArray($attrition);
+            self::assertCount(2, $attrition);
+
+            /** @var mixed $attritionSummary */
+            $attritionSummary = json_decode(
+                (string) file_get_contents($directory . '/attrition-summary.json'),
+                true,
+                flags: JSON_THROW_ON_ERROR,
+            );
+            self::assertIsArray($attritionSummary);
+            self::assertSame(2, $attritionSummary['sourcePopulation'] ?? null);
+            self::assertSame(2, $attritionSummary['normalizedResources'] ?? null);
+            self::assertSame(1, $attritionSummary['websiteEligibleResources'] ?? null);
+            self::assertSame(1, $attritionSummary['canonicalWebsiteUnits'] ?? null);
+            self::assertSame(0, $attritionSummary['observedUnits'] ?? null);
+            self::assertSame(1, $attritionSummary['notMeasurableUnits'] ?? null);
+            self::assertSame(
+                1,
+                $attritionSummary['terminalStages']['protocol_excluded'] ?? null,
+            );
         } finally {
             $this->removeDirectory($directory);
         }
@@ -413,6 +440,9 @@ final class RunExporterTest extends TestCase
         self::assertFileExists($directory . '/population-results.json');
         self::assertFileExists($directory . '/population-results.csv');
         self::assertFileExists($directory . '/population-summary.json');
+        self::assertFileExists($directory . '/attrition-results.json');
+        self::assertFileExists($directory . '/attrition-results.csv');
+        self::assertFileExists($directory . '/attrition-summary.json');
         self::assertFileExists($directory . '/resources.csv');
         self::assertFileExists($directory . '/documents.csv');
         self::assertFileExists($directory . '/evidence.csv');
