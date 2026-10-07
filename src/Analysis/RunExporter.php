@@ -1581,9 +1581,11 @@ final readonly class RunExporter
     private function attritionFlowMarkdown(array $summary): string
     {
         $count = static function (string $key) use ($summary): int {
-            $value = $summary[$key] ?? null;
+            if (!isset($summary[$key]) || !is_int($summary[$key])) {
+                return 0;
+            }
 
-            return is_int($value) ? $value : 0;
+            return $summary[$key];
         };
         /** @var mixed $terminalValue */
         $terminalValue = $summary['terminalStages'] ?? [];
