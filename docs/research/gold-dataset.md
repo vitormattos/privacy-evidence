@@ -90,6 +90,7 @@ bin/privacy-evidence review:html reviewer-b.json reviewer-b.html
 
 The generated page:
 - sends no annotation data to a server;
+- renders the collected-page URL as non-clickable provenance text in research mode; reviewers must not use the live Web as evidence during the independent pass;
 - autosaves progress locally in the reviewer's browser;
 - groups cases by evidence type to reduce cognitive switching;
 - hides automated state/confidence from the normal decision view to reduce anchoring bias;
@@ -152,3 +153,10 @@ node --test tests/Browser/reviewer.test.mjs
 ```
 
 The suite never visits public source URLs or produces research labels. CI runs this suite and captures synthetic form screenshots as a review artifact.
+
+
+### Reviewer-instrument pilot gate
+
+Before freezing a publication-grade independent-review package, run a small human usability pilot on cases outside the final evaluation partition. The pilot evaluates the annotation instrument, not detector accuracy. At minimum verify that reviewers can distinguish present, not-observed-in-material, unknown and exceptional states; that deferred cases are understood; that no undocumented instructions are required; and that reviewers do not need the live website as evidence.
+
+Record participant feedback and any resulting UI/handbook changes, then freeze the exact reviewer UI, handbook, package schema and packet hash used for real annotation. AI agents may prepare and test the pilot materials but must not fabricate human usability observations.

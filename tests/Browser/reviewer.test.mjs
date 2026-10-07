@@ -128,13 +128,16 @@ test('research mode separates triage without discarding sites or creating forced
   try {
     assert.match(await page.locator('#queueNotice').innerText(), /85.*56.*29/);
     assert.equal(await page.locator('#testNotice').isVisible(), false);
+    assert.match(await page.locator('[data-state="absent"]').innerText(), /Não observado no material/);
+    assert.match(await page.locator('#sourceContextHelp').innerText(), /Não abra o site ao vivo/);
     await screenshot(page, 'research-desktop');
     await page.locator('#queueToggle').click();
     assert.equal(await page.locator('#decisionCard').isVisible(), false);
     assert.equal(await page.locator('#sourceUrl').getAttribute('href'), null);
     assert.match(await page.locator('#sourceUrl').innerText(), /javascript:/);
     await page.locator('#next').click();
-    assert.match(await page.locator('#sourceUrl').getAttribute('href'), /^https:\/\/example.test/);
+    assert.equal(await page.locator('#sourceUrl').getAttribute('href'), null);
+    assert.match(await page.locator('#sourceUrl').innerText(), /^https:\/\/example.test/);
     await screenshot(page, 'investigation-desktop');
     for (let i = 1; i < 28; i++) await page.locator('#next').click();
     assert.equal(await page.locator('#next').isDisabled(), true);

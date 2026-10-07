@@ -12,7 +12,7 @@ Give `reviewer-a.html` and `reviewer-b.html` to two different human reviewers. T
 
 The HTML reviewer is self-contained and offline. Reviewers open it directly in a browser, classify one case at a time, and export the completed JSON at the end. It stores progress only in browser `localStorage`; no survey service or server is involved.
 
-The current PoC package contains **85 cases**. The UI groups cases by evidence type, supports keyboard shortcuts and provides concise rationale templates to reduce repetitive work. It also estimates remaining time from the reviewer's actual pace.
+The current canonical PoC review observation is ResearchRun `01a10d65-a2ec-7279-b51f-f16990e95313` from workflow run `37358645153`. Its frozen review package contains **94 cases: 78 reviewable and 16 deferred for investigation/recollection**. The UI groups cases by evidence type, supports keyboard shortcuts and estimates remaining time from the reviewer's actual pace.
 
 ## What each reviewer edits
 
@@ -22,7 +22,7 @@ Inside every entry under `cases`, fill:
 - `rationale`;
 - optionally `reviewedAt`.
 
-Do not alter evidence identifiers, automated state, source URL, artifact hash, detector metadata, seed or package version. The UI preserves these fields automatically and intentionally hides automated state/confidence from the normal decision view to reduce anchoring bias.
+Do not alter evidence identifiers, automated state, source URL, artifact hash, detector metadata, seed or package version. The UI preserves these fields automatically and intentionally hides automated state/confidence from the normal decision view to reduce anchoring bias. It also displays the collected-page URL as non-clickable provenance text: reviewers must not open the live site during the independent pass because current content is a new observation and would make reviewer conditions non-equivalent.
 
 Do not share completed packages between reviewers before both independent passes are finished.
 
@@ -53,7 +53,7 @@ AI suggestions may assist navigation or constitute a separate experiment, but th
 
 ## Reviewer UX safeguards
 
-The reviewer page defaults to Portuguese and can switch to English. It separates common states (`present`, `absent`, `unknown`) from exceptional states to reduce cognitive load.
+The reviewer page defaults to Portuguese and can switch to English. It separates common states (`present`, `absent`, `unknown`) from exceptional states to reduce cognitive load. The stored state remains `absent`, but the visible label is **“Não observado no material” / “Not observed in preserved material”** to avoid implying organization-wide absence.
 
 The time estimate is intentionally withheld until at least five completed cases and then uses the median observed duration per completed case.
 
