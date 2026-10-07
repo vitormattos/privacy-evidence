@@ -23,7 +23,7 @@ Legend:
 | source-to-measurement attrition counts | RQ1 | #192 | `attrition-results.json`, `attrition-summary.json` | PARTIAL |
 | attrition flow figure | RQ1 | #192 | `attrition-flow.md` | PARTIAL |
 | missingness changes estimates | RQ2 | #193 | `docs/research/results/ipb-2026-10-05-missingness-sensitivity.{json,csv,md}` | READY |
-| measurability is/is not selective | RQ1/discussion | #194 | predeclared selectivity analysis | BLOCKED |
+| measurability is/is not selective | RQ1/discussion | #194 | `docs/research/results/ipb-2026-10-05-selective-measurability.{json,csv,md}` | READY |
 | reviewer UI is usable/equivalent | RQ4 method | #195 | real pilot record + frozen UI version | BLOCKED |
 | final detector evaluation sample supports claims | RQ4 | #196 | sample-size rationale + frozen hashes | BLOCKED |
 | two independent human reviews | RQ4 | #32/#33/#84/#178 | imported reviewer A/B packages | BLOCKED |
