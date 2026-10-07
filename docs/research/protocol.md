@@ -1,10 +1,14 @@
 # Privacy Evidence Research Protocol
 
-Protocol version: **0.1.0-draft**
+Protocol version: **0.2.0-draft**
 
 ## Research object
 
 Privacy Evidence studies **publicly observable privacy evidence exposed by digital resources**. The object is not organization-wide legal compliance.
+
+The research program's central phenomenon is **measurement attrition and evidence provenance in empirical web research**: how an intended web population becomes an effectively measurable analytical population, which observations are lost or transformed, and whether those losses affect reproducibility or interpretation.
+
+The canonical contribution statement, propositions and claim boundaries are defined in `docs/research/research-contribution.md`.
 
 ## Goal (GQM)
 
@@ -60,7 +64,7 @@ At minimum: present, absent, unknown, unavailable, invalid, excluded and not-app
 
 ## Claims permitted
 
-The protocol may support claims about evidence observable under the specified acquisition and review procedure.
+The protocol may support claims about evidence observable under the specified acquisition and review procedure and, where the required analyses have been executed, about measurement attrition, reproducibility, detector validity and transferability as defined in `docs/research/research-contribution.md`.
 
 ## Claims not permitted
 
@@ -74,7 +78,9 @@ Website observations alone do not establish:
 
 ## Methodological basis
 
-The project uses Goal–Question–Metric operationalization and follows empirical-software-engineering practices. The ACM SIGSOFT Empirical Standards are used as a reporting/design checklist, especially the Engineering Research and Sampling standards.
+The project uses Goal–Question–Metric operationalization and follows empirical-software-engineering practices. GQM is the operationalization mechanism, not the entire research design. The broader methodological stack is being formalized under the research-model work and includes Engineering Research / Design Science, observational empirical evaluation, independent human-reference validation and reproduction/replication where applicable.
+
+The ACM SIGSOFT Empirical Standards are used as a reporting/design checklist, especially the Engineering Research and Sampling standards.
 
 References:
 - Basili, Caldiera & Rombach, Goal Question Metric paradigm.
