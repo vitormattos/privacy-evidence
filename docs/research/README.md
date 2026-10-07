@@ -28,6 +28,7 @@ Privacy Evidence treats software behavior as part of the research instrument. Th
 - [missingness-sensitivity.md](missingness-sensitivity.md) — predeclared complete-case, naive-negative and provenance-aware sensitivity analysis for RQ2.
 - [results/ipb-2026-10-05-missingness-sensitivity.md](results/ipb-2026-10-05-missingness-sensitivity.md) — frozen RQ2 result for the 2026-10-05 full IPB ResearchRun.
 - [selective-measurability.md](selective-measurability.md) — predeclared association analysis for whether measurable units are a selective subset.
+- [results/ipb-2026-10-05-selective-measurability.md](results/ipb-2026-10-05-selective-measurability.md) — frozen #194 result for the 2026-10-05 full IPB ResearchRun.
 - [evaluation.md](evaluation.md) — detector evaluation and final reference design.
 - [validity-threats.md](validity-threats.md) — construct, external, temporal, measurement and conclusion threats.
 - [longitudinal-comparison.md](longitudinal-comparison.md) — versioned longitudinal-comparison rules.
