@@ -194,7 +194,8 @@ final readonly class SelectiveMeasurabilityAnalyzer
         }
 
         if ($a === 0 || $b === 0 || $c === 0 || $d === 0) {
-            return (($a + 0.5) * ($d + 0.5)) / (($b + 0.5) * ($c + 0.5));
+            return (((float) $a + 0.5) * ((float) $d + 0.5))
+                / (((float) $b + 0.5) * ((float) $c + 0.5));
         }
 
         return ($a * $d) / ($b * $c);
@@ -207,41 +208,75 @@ final readonly class SelectiveMeasurabilityAnalyzer
         $col1 = $a + $c;
         $total = $row1 + $row2;
 
-        $logFactorials = [0.0];
+        /** @var array<int,float> $logFactorials */
+        $logFactorials = [0 => 0.0];
         for ($i = 1; $i <= $total; $i++) {
-            $logFactorials[$i] = $logFactorials[$i - 1] + log((float) $i);
+            $previous = $logFactorials[$i - 1] ?? 0.0;
+            $logFactorials[$i] = $previous + log((float) $i);
         }
 
-        $probability = static function (int $x) use ($row1, $row2, $col1, $total, $logFactorials): float {
-            $y = $col1 - $x;
-            if ($x < 0 || $x > $row1 || $y < 0 || $y > $row2) {
-                return 0.0;
-            }
-
-            $logCombination = static function (int $n, int $k) use ($logFactorials): float {
-                return $logFactorials[$n] - $logFactorials[$k] - $logFactorials[$n - $k];
-            };
-
-            return exp(
-                $logCombination($row1, $x)
-                + $logCombination($row2, $y)
-                - $logCombination($total, $col1),
-            );
-        };
-
-        $observed = $probability($a);
+        $observed = $this->hypergeometricProbability(
+            $a,
+            $row1,
+            $row2,
+            $col1,
+            $total,
+            $logFactorials,
+        );
         $min = max(0, $col1 - $row2);
         $max = min($row1, $col1);
         $p = 0.0;
 
         for ($x = $min; $x <= $max; $x++) {
-            $candidate = $probability($x);
+            $candidate = $this->hypergeometricProbability(
+                $x,
+                $row1,
+                $row2,
+                $col1,
+                $total,
+                $logFactorials,
+            );
             if ($candidate <= $observed + 1e-12) {
                 $p += $candidate;
             }
         }
 
         return min(1.0, $p);
+    }
+
+    /**
+     * @param array<int,float> $logFactorials
+     */
+    private function hypergeometricProbability(
+        int $x,
+        int $row1,
+        int $row2,
+        int $col1,
+        int $total,
+        array $logFactorials,
+    ): float {
+        $y = $col1 - $x;
+        if ($x < 0 || $x > $row1 || $y < 0 || $y > $row2) {
+            return 0.0;
+        }
+
+        return exp(
+            $this->logCombination($row1, $x, $logFactorials)
+            + $this->logCombination($row2, $y, $logFactorials)
+            - $this->logCombination($total, $col1, $logFactorials),
+        );
+    }
+
+    /**
+     * @param array<int,float> $logFactorials
+     */
+    private function logCombination(int $n, int $k, array $logFactorials): float
+    {
+        $nValue = $logFactorials[$n] ?? 0.0;
+        $kValue = $logFactorials[$k] ?? 0.0;
+        $remainderValue = $logFactorials[$n - $k] ?? 0.0;
+
+        return $nValue - $kValue - $remainderValue;
     }
 
     /**
@@ -280,6 +315,7 @@ final readonly class SelectiveMeasurabilityAnalyzer
      */
     private function applyHolmCorrection(array $rows): array
     {
+        /** @var list<array{index:int,p:float}> $indexed */
         $indexed = [];
         foreach ($rows as $index => $row) {
             if ($row['fisherPValue'] !== null) {
@@ -287,18 +323,29 @@ final readonly class SelectiveMeasurabilityAnalyzer
             }
         }
 
-        usort($indexed, static fn (array $left, array $right): int => $left['p'] <=> $right['p']);
+        usort(
+            $indexed,
+            static fn (array $left, array $right): int => $left['p'] <=> $right['p'],
+        );
 
+        /** @var array<int,float> $adjustedByIndex */
+        $adjustedByIndex = [];
         $m = count($indexed);
         $previous = 0.0;
         foreach ($indexed as $rank => $item) {
-            $adjusted = min(1.0, ($m - $rank) * $item['p']);
+            $adjusted = min(1.0, (float) ($m - $rank) * $item['p']);
             $adjusted = max($previous, $adjusted);
-            $rows[$item['index']]['holmAdjustedPValue'] = $adjusted;
+            $adjustedByIndex[$item['index']] = $adjusted;
             $previous = $adjusted;
         }
 
-        return $rows;
+        $corrected = [];
+        foreach ($rows as $index => $row) {
+            $row['holmAdjustedPValue'] = $adjustedByIndex[$index] ?? null;
+            $corrected[] = $row;
+        }
+
+        return $corrected;
     }
 
     /**
