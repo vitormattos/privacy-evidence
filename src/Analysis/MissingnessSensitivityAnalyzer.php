@@ -31,8 +31,8 @@ final readonly class MissingnessSensitivityAnalyzer
     }
 
     /**
-     * @param list<array<string,mixed>> $attrition
-     * @param list<array<string,mixed>> $evidence
+     * @param list<array<array-key,mixed>> $attrition
+     * @param list<array<array-key,mixed>> $evidence
      * @return array{
      *   schemaVersion:string,
      *   primaryOutcomes:list<string>,
@@ -209,7 +209,7 @@ final readonly class MissingnessSensitivityAnalyzer
     }
 
     /**
-     * @return list<array<string,mixed>>
+     * @return list<array<array-key,mixed>>
      */
     private function decodeList(string $path): array
     {
@@ -223,6 +223,7 @@ final readonly class MissingnessSensitivityAnalyzer
             throw new \RuntimeException(sprintf('%s must contain a JSON array.', $path));
         }
 
+        /** @var list<array<array-key,mixed>> $rows */
         $rows = [];
         foreach ($decoded as $row) {
             if (!is_array($row)) {
@@ -235,7 +236,29 @@ final readonly class MissingnessSensitivityAnalyzer
     }
 
     /**
-     * @param list<array<string,mixed>> $outcomes
+     * @param list<array{
+     *   evidenceType:string,
+     *   primaryOutcome:bool,
+     *   canonicalUnits:int,
+     *   excludedOrNotApplicable:int,
+     *   applicableUnits:int,
+     *   present:int,
+     *   absent:int,
+     *   unresolved:int,
+     *   completeCase:array{numerator:int,denominator:int,prevalence:float|null,coverage:float|null},
+     *   naiveNegative:array{numerator:int,denominator:int,prevalence:float|null,coverage:float},
+     *   provenanceAware:array{
+     *     numerator:int,
+     *     resolvedDenominator:int,
+     *     applicableDenominator:int,
+     *     observedPrevalence:float|null,
+     *     coverage:float|null,
+     *     lowerBound:float|null,
+     *     upperBound:float|null
+     *   },
+     *   absoluteNaiveVsCompleteCase:float|null,
+     *   relativeNaiveVsCompleteCase:float|null
+     * }> $outcomes
      */
     private function csv(string $path, array $outcomes): void
     {
@@ -266,12 +289,12 @@ final readonly class MissingnessSensitivityAnalyzer
             ], ',', '"', '');
 
             foreach ($outcomes as $row) {
-                $completeCase = is_array($row['completeCase'] ?? null) ? $row['completeCase'] : [];
-                $naive = is_array($row['naiveNegative'] ?? null) ? $row['naiveNegative'] : [];
-                $provenance = is_array($row['provenanceAware'] ?? null) ? $row['provenanceAware'] : [];
+                $completeCase = $row['completeCase'];
+                $naive = $row['naiveNegative'];
+                $provenance = $row['provenanceAware'];
 
                 fputcsv($handle, [
-                    Value::string($row['evidenceType'] ?? null, 'missingness.csv.evidenceType'),
+                    Value::string($row['evidenceType'], 'missingness.csv.evidenceType'),
                     !empty($row['primaryOutcome']) ? '1' : '0',
                     Value::int($row['canonicalUnits'] ?? null, 'missingness.csv.canonicalUnits'),
                     Value::int($row['excludedOrNotApplicable'] ?? null, 'missingness.csv.excluded'),
