@@ -22,7 +22,7 @@ Legend:
 | WEC comparative result | supporting | #191 | frozen comparison protocol/results | BLOCKED |
 | source-to-measurement attrition counts | RQ1 | #192 | `attrition-results.json`, `attrition-summary.json` | PARTIAL |
 | attrition flow figure | RQ1 | #192 | `attrition-flow.md` | PARTIAL |
-| missingness changes estimates | RQ2 | #193 | frozen sensitivity output | BLOCKED |
+| missingness changes estimates | RQ2 | #193 | `docs/research/results/ipb-2026-10-05-missingness-sensitivity.{json,csv,md}` | READY |
 | measurability is/is not selective | RQ1/discussion | #194 | predeclared selectivity analysis | BLOCKED |
 | reviewer UI is usable/equivalent | RQ4 method | #195 | real pilot record + frozen UI version | BLOCKED |
 | final detector evaluation sample supports claims | RQ4 | #196 | sample-size rationale + frozen hashes | BLOCKED |
