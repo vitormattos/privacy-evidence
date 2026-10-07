@@ -50,6 +50,8 @@ final readonly class RunExporter
         $resourceOutcomes = $this->resourceOutcomes($resources, $documents, $events);
         $populationResults = $this->populationResults($resources, $resourceOutcomes, $profileSummary);
         $populationSummary = $this->populationSummary($populationResults);
+        $attritionResults = $this->attritionResults($populationResults);
+        $attritionSummary = $this->attritionSummary($attritionResults);
 
         $analysis = $this->analysis(
             runId: $runId,
@@ -80,6 +82,8 @@ final readonly class RunExporter
         $this->json($directory . '/resource-outcomes.json', $resourceOutcomes);
         $this->json($directory . '/population-results.json', $populationResults);
         $this->json($directory . '/population-summary.json', $populationSummary);
+        $this->json($directory . '/attrition-results.json', $attritionResults);
+        $this->json($directory . '/attrition-summary.json', $attritionSummary);
 
         $this->csv(
             $directory . '/resources.csv',
@@ -127,6 +131,23 @@ final readonly class RunExporter
                 'lgpdAnyObservedSupportRate',
             ],
             $this->populationResultRows($populationResults),
+        );
+        $this->csv(
+            $directory . '/attrition-results.csv',
+            [
+                'resourceId',
+                'sourceValue',
+                'normalizedUrl',
+                'classificationType',
+                'normalized',
+                'websiteEligible',
+                'canonicalWebsiteUnit',
+                'measurementStatus',
+                'primaryReason',
+                'terminalStage',
+                'analyticallyObserved',
+            ],
+            $this->attritionResultRows($attritionResults),
         );
         $this->csv(
             $directory . '/documents.csv',
@@ -987,6 +1008,191 @@ final readonly class RunExporter
             'lgpdPublicEvidenceStates' => $lgpdStates,
             'lgpdUniqueWebsiteStates' => $lgpdUniqueWebsiteStates,
         ];
+    }
+
+    /**
+     * @param list<array<string,mixed>> $results
+     * @return list<array<string,mixed>>
+     */
+    private function attritionResults(array $results): array
+    {
+        $attrition = [];
+
+        foreach ($results as $result) {
+            $resourceId = Value::string($result['resourceId'] ?? null, 'attrition.resourceId');
+            $sourceValue = Value::string($result['sourceValue'] ?? null, 'attrition.sourceValue');
+            $normalizedUrl = Value::nullableString($result['normalizedUrl'] ?? null, 'attrition.normalizedUrl');
+            $classificationType = Value::string(
+                $result['classificationType'] ?? null,
+                'attrition.classificationType',
+            );
+            $measurementStatus = Value::string(
+                $result['measurementStatus'] ?? null,
+                'attrition.measurementStatus',
+            );
+            $primaryReason = Value::string($result['primaryReason'] ?? null, 'attrition.primaryReason');
+            $normalized = $normalizedUrl !== null;
+            $websiteEligible = !empty($result['eligibleForWebsiteMeasurement']);
+            $canonicalResourceId = Value::nullableString(
+                $result['websiteMeasurementCanonicalResourceId'] ?? null,
+                'attrition.websiteMeasurementCanonicalResourceId',
+            );
+            $canonicalWebsiteUnit = $websiteEligible && $canonicalResourceId === $resourceId;
+
+            if (!$normalized) {
+                $terminalStage = 'normalization_unavailable';
+            } elseif (!$websiteEligible) {
+                $terminalStage = 'protocol_excluded';
+            } elseif (!$canonicalWebsiteUnit) {
+                $terminalStage = 'duplicate_eligible_reference';
+            } elseif ($measurementStatus === 'measured') {
+                $terminalStage = 'fully_measured';
+            } elseif ($measurementStatus === 'partially_measured') {
+                $terminalStage = 'partially_measured';
+            } elseif ($measurementStatus === 'not_measurable') {
+                $terminalStage = 'not_measurable';
+            } elseif ($measurementStatus === 'missing_outcome') {
+                $terminalStage = 'missing_outcome';
+            } else {
+                $terminalStage = 'other_measurement_status';
+            }
+
+            $attrition[] = [
+                'resourceId' => $resourceId,
+                'sourceValue' => $sourceValue,
+                'normalizedUrl' => $normalizedUrl,
+                'classificationType' => $classificationType,
+                'normalized' => $normalized,
+                'websiteEligible' => $websiteEligible,
+                'canonicalWebsiteUnit' => $canonicalWebsiteUnit,
+                'measurementStatus' => $measurementStatus,
+                'primaryReason' => $primaryReason,
+                'terminalStage' => $terminalStage,
+                'analyticallyObserved' => $canonicalWebsiteUnit
+                    && in_array($measurementStatus, ['measured', 'partially_measured'], true),
+            ];
+        }
+
+        return $attrition;
+    }
+
+    /**
+     * @param list<array<string,mixed>> $results
+     * @return array<string,mixed>
+     */
+    private function attritionSummary(array $results): array
+    {
+        $sourcePopulation = count($results);
+        $normalizedResources = 0;
+        $websiteEligibleResources = 0;
+        $canonicalWebsiteUnits = 0;
+        $fullyMeasuredUnits = 0;
+        $partiallyMeasuredUnits = 0;
+        $notMeasurableUnits = 0;
+        $missingOutcomeUnits = 0;
+        $terminalStages = [];
+        $canonicalFailureReasons = [];
+
+        foreach ($results as $result) {
+            if (!empty($result['normalized'])) {
+                $normalizedResources++;
+            }
+            if (!empty($result['websiteEligible'])) {
+                $websiteEligibleResources++;
+            }
+
+            $terminalStage = Value::string(
+                $result['terminalStage'] ?? null,
+                'attritionSummary.terminalStage',
+            );
+            $terminalStages[$terminalStage] = ($terminalStages[$terminalStage] ?? 0) + 1;
+
+            if (empty($result['canonicalWebsiteUnit'])) {
+                continue;
+            }
+
+            $canonicalWebsiteUnits++;
+            $measurementStatus = Value::string(
+                $result['measurementStatus'] ?? null,
+                'attritionSummary.measurementStatus',
+            );
+
+            if ($measurementStatus === 'measured') {
+                $fullyMeasuredUnits++;
+            } elseif ($measurementStatus === 'partially_measured') {
+                $partiallyMeasuredUnits++;
+            } elseif ($measurementStatus === 'not_measurable') {
+                $notMeasurableUnits++;
+                $reason = Value::string(
+                    $result['primaryReason'] ?? null,
+                    'attritionSummary.primaryReason',
+                );
+                $canonicalFailureReasons[$reason] = ($canonicalFailureReasons[$reason] ?? 0) + 1;
+            } elseif ($measurementStatus === 'missing_outcome') {
+                $missingOutcomeUnits++;
+            }
+        }
+
+        ksort($terminalStages);
+        ksort($canonicalFailureReasons);
+
+        $observedUnits = $fullyMeasuredUnits + $partiallyMeasuredUnits;
+        $measurementLossUnits = $notMeasurableUnits + $missingOutcomeUnits;
+
+        return [
+            'schemaVersion' => '1.0.0',
+            'sourcePopulation' => $sourcePopulation,
+            'normalizedResources' => $normalizedResources,
+            'websiteEligibleResources' => $websiteEligibleResources,
+            'canonicalWebsiteUnits' => $canonicalWebsiteUnits,
+            'fullyMeasuredUnits' => $fullyMeasuredUnits,
+            'partiallyMeasuredUnits' => $partiallyMeasuredUnits,
+            'observedUnits' => $observedUnits,
+            'notMeasurableUnits' => $notMeasurableUnits,
+            'missingOutcomeUnits' => $missingOutcomeUnits,
+            'measurementLossUnits' => $measurementLossUnits,
+            'canonicalToObservedRate' => $canonicalWebsiteUnits === 0
+                ? null
+                : $observedUnits / $canonicalWebsiteUnits,
+            'canonicalToFullyMeasuredRate' => $canonicalWebsiteUnits === 0
+                ? null
+                : $fullyMeasuredUnits / $canonicalWebsiteUnits,
+            'terminalStages' => $terminalStages,
+            'canonicalFailureReasons' => $canonicalFailureReasons,
+            'semantics' => [
+                'observedUnits' => 'canonical website units with measured or partially_measured status',
+                'measurementLossUnits' => 'canonical website units with not_measurable or missing_outcome status',
+                'protocolExcluded' => 'source resources intentionally ineligible for website measurement',
+                'duplicateEligibleReference' => 'eligible source resources represented by another canonical website unit',
+            ],
+        ];
+    }
+
+    /**
+     * @param list<array<string,mixed>> $results
+     * @return list<list<scalar|null>>
+     */
+    private function attritionResultRows(array $results): array
+    {
+        $rows = [];
+
+        foreach ($results as $result) {
+            $rows[] = [
+                Value::string($result['resourceId'] ?? null, 'attrition.resourceId'),
+                Value::string($result['sourceValue'] ?? null, 'attrition.sourceValue'),
+                Value::nullableString($result['normalizedUrl'] ?? null, 'attrition.normalizedUrl'),
+                Value::string($result['classificationType'] ?? null, 'attrition.classificationType'),
+                !empty($result['normalized']) ? '1' : '0',
+                !empty($result['websiteEligible']) ? '1' : '0',
+                !empty($result['canonicalWebsiteUnit']) ? '1' : '0',
+                Value::string($result['measurementStatus'] ?? null, 'attrition.measurementStatus'),
+                Value::string($result['primaryReason'] ?? null, 'attrition.primaryReason'),
+                Value::string($result['terminalStage'] ?? null, 'attrition.terminalStage'),
+                !empty($result['analyticallyObserved']) ? '1' : '0',
+            ];
+        }
+
+        return $rows;
     }
 
     /**
