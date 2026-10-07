@@ -443,6 +443,7 @@ final class RunExporterTest extends TestCase
         self::assertFileExists($directory . '/attrition-results.json');
         self::assertFileExists($directory . '/attrition-results.csv');
         self::assertFileExists($directory . '/attrition-summary.json');
+        self::assertFileExists($directory . '/attrition-flow.md');
         self::assertFileExists($directory . '/resources.csv');
         self::assertFileExists($directory . '/documents.csv');
         self::assertFileExists($directory . '/evidence.csv');
