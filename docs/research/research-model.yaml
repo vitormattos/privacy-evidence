@@ -1,0 +1,58 @@
+version: 0.1.0
+central_phenomenon: measurement attrition and evidence provenance in empirical web research
+paper_rqs:
+  rq1:
+    title: Measurement attrition
+    proposition: P1
+    governing_issue: 192
+    status: partial
+    artifacts:
+      - population-summary.json
+      - population-results.json
+      - ResearchRun manifest
+    planned_outputs:
+      - attrition-transitions.json
+      - population-flow figure
+  rq2:
+    title: Analytical impact of missingness
+    proposition: P2
+    governing_issue: 193
+    status: not_analyzed
+    conditions:
+      - complete_case
+      - naive_missing_as_negative_counterfactual
+      - provenance_aware
+    planned_outputs:
+      - missingness-sensitivity.json
+      - denominator-impact table
+  rq3:
+    title: Reproducibility through provenance
+    proposition: P3
+    governing_issues: [86, 87, 199, 200]
+    status: partial
+    planned_outputs:
+      - acceptance report
+      - publication replication package
+      - independent reproduction report
+  rq4:
+    title: Measurement validity
+    proposition: P4
+    governing_issues: [195, 178, 196, 32, 33, 84]
+    status: human_gated
+    commands:
+      - review:sample
+      - review:html
+      - review:import
+      - review:agreement
+      - review:evaluate
+    planned_outputs:
+      - frozen human-reference package
+      - agreement report
+      - adjudicated reference labels
+      - detector evaluation
+  rq5:
+    title: Transferability
+    proposition: P5
+    governing_issue: 201
+    status: conditional
+    include_in_first_manuscript_if: second-population study completes before manuscript freeze
