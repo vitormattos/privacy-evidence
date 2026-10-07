@@ -26,6 +26,7 @@ Privacy Evidence treats software behavior as part of the research instrument. Th
 - [metrics.md](metrics.md) — denominator and derived-metric rules.
 - [measurement-attrition.md](measurement-attrition.md) — stage-by-stage population accounting.
 - [missingness-sensitivity.md](missingness-sensitivity.md) — predeclared complete-case, naive-negative and provenance-aware sensitivity analysis for RQ2.
+- [results/ipb-2026-10-05-missingness-sensitivity.md](results/ipb-2026-10-05-missingness-sensitivity.md) — frozen RQ2 result for the 2026-10-05 full IPB ResearchRun.
 - [evaluation.md](evaluation.md) — detector evaluation and final reference design.
 - [validity-threats.md](validity-threats.md) — construct, external, temporal, measurement and conclusion threats.
 - [longitudinal-comparison.md](longitudinal-comparison.md) — versioned longitudinal-comparison rules.
