@@ -129,9 +129,9 @@ RQ1 is answerable only when:
 | Existing data producers | evidence store; reviewed evidence; report/export pipeline |
 | Canonical semantics | present/absent/unknown/unavailable/invalid/excluded/not-applicable are distinct |
 | Required conditions | A: complete-case; B: intentionally naive missing/unavailable-as-negative counterfactual; C: canonical provenance-aware |
-| Implementation status | deterministic sensitivity-analysis export is implemented by `report`; empirical execution/freeze on the designated case-study run remains pending |
+| Implementation status | deterministic sensitivity-analysis export is implemented by `report`; the frozen 2026-10-05 full IPB ResearchRun has been analyzed in `results/ipb-2026-10-05-missingness-sensitivity.md` |
 | Governing issue | #193 |
-| Planned outputs | per-signal estimates under A/B/C; denominator/coverage differences; robust/unstable conclusion table |
+| Frozen outputs | `results/ipb-2026-10-05-missingness-sensitivity.json/csv/md`; per-signal A/B/C estimates, denominator/coverage differences and robust/unstable conclusions |
 | Manuscript section | Results — RQ2 |
 | Main validity threats | arbitrary outcome selection; rare signals; treating counterfactual B as endorsed method |
 
@@ -244,7 +244,7 @@ The existence of code is not equivalent to an answered RQ.
 | RQ | Implemented | Collected | Human-gated | Analyzed | Manuscript-ready |
 |---|---:|---:|---:|---:|---:|
 | RQ1 | partial | yes (IPB PoC/full runs exist) | no | partial | no |
-| RQ2 | implemented analysis path | partial | depends on reviewed outcomes selected | no final run | no |
+| RQ2 | implemented | yes (frozen full IPB run) | detector validity remains a separate RQ4 gate | yes | partial — methodological missingness conclusion is traceable; detector-validity claims remain blocked |
 | RQ3 | strong | yes | independent non-implementer later | partial | no |
 | RQ4 | strong machine workflow | PoC candidate set yes | **yes** | no final evaluation | no |
 | RQ5 | generic engine exists | no designated second study | possibly | no | no |
