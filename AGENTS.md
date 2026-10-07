@@ -60,10 +60,12 @@ The durable execution runbook is issue #88. At the start of an autonomous work s
 
 1. read this file;
 2. read #88;
-3. inspect all open issues and native blocker relationships;
-4. work from the dependency graph, never by issue number alone;
-5. prioritize unblocked prerequisites that unlock the largest downstream set;
-6. after closing an issue, recompute the graph and record the handoff in the issue completion comment.
+3. inspect all open pull requests before starting overlapping work;
+4. inspect all open issues, native blocker relationships and textual `Blocked by:` gates defined by #88;
+5. read `docs/research/research-contribution.md` and `docs/research/research-model.md` before changing research semantics;
+6. work from the dependency graph, never by issue number alone;
+7. prioritize unblocked prerequisites that unlock the largest downstream set;
+8. after closing an issue, recompute the graph and record the handoff in the issue completion comment.
 
 A human gate in one branch must not stop unrelated unblocked work.
 
