@@ -83,11 +83,12 @@ final readonly class SelectiveMeasurabilityAnalyzer
         }
 
         $rows = [];
-        foreach ([
+        $predictorFields = [
             'scheme' => 'scheme',
             'resource_type' => 'resourceType',
             'duplicate_group' => 'duplicateGroup',
-        ] as $predictor => $field) {
+        ];
+        foreach ($predictorFields as $predictor => $field) {
             /** @var array<string,array{measurable:int,nonMeasurable:int}> $categories */
             $categories = [];
             foreach ($units as $unit) {
