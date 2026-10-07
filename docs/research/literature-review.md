@@ -80,3 +80,8 @@ NLP/ML is a later experiment. Adoption requires measurable improvement on the pr
 3. Evaluate discovery and behavioral evidence separately from natural-language policy classification.
 4. Keep browser instrumentation as an acquisition capability, not as the evidence model itself.
 5. Report per-signal precision, recall, F1 and support before aggregate scores.
+
+
+## Comparative tool landscape
+
+A broader focused review of WEC/WEC Online, OpenWPM, Blacklight/Blacklight Query, PrivacyScore, Webbkoll, GDPR Observer and commercial scanners is maintained in `docs/research/tool-landscape-review.md`. That review constrains novelty claims and identifies WEC as the primary external baseline candidate.
