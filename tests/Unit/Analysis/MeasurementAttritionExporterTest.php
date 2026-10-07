@@ -77,9 +77,14 @@ final class MeasurementAttritionExporterTest extends TestCase
         self::assertSame(2, $summary['observedUnits']);
         self::assertSame(1, $summary['notMeasurableUnits']);
         self::assertSame(1, $summary['measurementLossUnits']);
-        self::assertSame(1, $summary['terminalStages']['protocol_excluded']);
-        self::assertSame(1, $summary['terminalStages']['duplicate_eligible_reference']);
-        self::assertSame(1, $summary['canonicalFailureReasons']['anti_bot_challenge']);
+        self::assertIsArray($summary['terminalStages']);
+        $terminalStages = $summary['terminalStages'];
+        self::assertSame(1, $terminalStages['protocol_excluded']);
+        self::assertSame(1, $terminalStages['duplicate_eligible_reference']);
+
+        self::assertIsArray($summary['canonicalFailureReasons']);
+        $canonicalFailureReasons = $summary['canonicalFailureReasons'];
+        self::assertSame(1, $canonicalFailureReasons['anti_bot_challenge']);
         self::assertTrue($summary['completeCanonicalAccounting']);
         self::assertEqualsWithDelta(2 / 3, $summary['canonicalToObservedRate'], 0.000001);
     }
@@ -103,7 +108,9 @@ final class MeasurementAttritionExporterTest extends TestCase
         $summary = $analysis->summary($results);
         self::assertSame(1, $summary['sourcePopulation']);
         self::assertSame(0, $summary['normalizedResources']);
-        self::assertSame(1, $summary['terminalStages']['normalization_unavailable']);
+        self::assertIsArray($summary['terminalStages']);
+        $terminalStages = $summary['terminalStages'];
+        self::assertSame(1, $terminalStages['normalization_unavailable']);
     }
 
     public function testFlowIsDeterministicAndUsesSummaryOnly(): void
