@@ -266,3 +266,8 @@ Production implementation remains blocked by:
 - #204 commercial/cost hypotheses;
 - #206 technology-transfer/research-data boundary;
 - #207 staged go/no-go approval.
+
+
+## Technology-transfer research boundary
+
+Future service telemetry remains operational data by default. The protocol for promoting a deliberately minimized subset into a separately approved research study is defined in [technology-transfer-evaluation.md](technology-transfer-evaluation.md). Product use must not retroactively alter or contaminate frozen research runs.
