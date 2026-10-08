@@ -1,0 +1,132 @@
+{
+  "schemaVersion": "0.1.0",
+  "packetId": "conversational-review-synthetic-v0.1",
+  "sourceKind": "fully_synthetic_public_fixture",
+  "purpose": "prompt_and_conversational_usability_testing_only; not #195 archival human pilot; not detector gold reference",
+  "language": "pt-BR",
+  "reviewableCaseCount": 10,
+  "deferredCaseCount": 1,
+  "cases": [
+    {
+      "caseId": "SYN-01",
+      "evidenceType": "privacy_notice",
+      "resourceName": "Organização fictícia 1",
+      "sourceUrl": "https://case-1.example.invalid/",
+      "collectedAt": "2026-10-08T00:00:00Z",
+      "materialScope": "full-text page content",
+      "reviewable": true,
+      "preservedMaterial": "A página preservada tem como título 'Política de privacidade'. Seu texto explica quais informações são coletadas, para que são utilizadas e como entrar em contato.",
+      "deferredReason": null
+    },
+    {
+      "caseId": "SYN-02",
+      "evidenceType": "privacy_law_reference",
+      "resourceName": "Organização fictícia 2",
+      "sourceUrl": "https://case-2.example.invalid/",
+      "collectedAt": "2026-10-08T00:00:00Z",
+      "materialScope": "full-text page content",
+      "reviewable": true,
+      "preservedMaterial": "Página integral preservada: 'Termos de acesso. Este portal permite consultar notícias e horários. Ao navegar, você aceita as condições de uso.'",
+      "deferredReason": null
+    },
+    {
+      "caseId": "SYN-03",
+      "evidenceType": "dpo_role_mention",
+      "resourceName": "Organização fictícia 3",
+      "sourceUrl": "https://case-3.example.invalid/",
+      "collectedAt": "2026-10-08T00:00:00Z",
+      "materialScope": "full-text page content",
+      "reviewable": true,
+      "preservedMaterial": "Página de proteção de dados preservada: 'A pessoa encarregada pelo tratamento de dados pode ser contatada pelo canal de privacidade indicado nesta página.'",
+      "deferredReason": null
+    },
+    {
+      "caseId": "SYN-04",
+      "evidenceType": "privacy_contact",
+      "resourceName": "Organização fictícia 4",
+      "sourceUrl": "https://case-4.example.invalid/",
+      "collectedAt": "2026-10-08T00:00:00Z",
+      "materialScope": "partial-page excerpt",
+      "reviewable": true,
+      "preservedMaterial": "Trecho preservado da página inicial: 'Contato geral: contato@exemplo.invalid. Atendimento de segunda a sexta.' Não foi preservado o restante do site.",
+      "deferredReason": null
+    },
+    {
+      "caseId": "SYN-05",
+      "evidenceType": "data_subject_rights",
+      "resourceName": "Organização fictícia 5",
+      "sourceUrl": "https://case-5.example.invalid/",
+      "collectedAt": "2026-10-08T00:00:00Z",
+      "materialScope": "full-text page content",
+      "reviewable": true,
+      "preservedMaterial": "Texto preservado: 'O titular pode solicitar acesso, correção, portabilidade e exclusão de dados pessoais, conforme regras aplicáveis.'",
+      "deferredReason": null
+    },
+    {
+      "caseId": "SYN-06",
+      "evidenceType": "rights_request_channel",
+      "resourceName": "Organização fictícia 6",
+      "sourceUrl": "https://case-6.example.invalid/",
+      "collectedAt": "2026-10-08T00:00:00Z",
+      "materialScope": "full-text page content",
+      "reviewable": true,
+      "preservedMaterial": "Página completa preservada: 'Os titulares possuem direitos de acesso e correção. Nossa sede fica na Rua Exemplo, 10. Atualizado em 2026.'",
+      "deferredReason": null
+    },
+    {
+      "caseId": "SYN-07",
+      "evidenceType": "cookie_accept_control",
+      "resourceName": "Organização fictícia 7",
+      "sourceUrl": "https://case-7.example.invalid/",
+      "collectedAt": "2026-10-08T00:00:00Z",
+      "materialScope": "preserved static interface text",
+      "reviewable": true,
+      "preservedMaterial": "Texto preservado de uma janela: 'Utilizamos cookies. [Aceitar todos] [Configurar preferências]'. Trata-se do texto extraído de um elemento da interface, sem rastros de cliques.",
+      "deferredReason": null
+    },
+    {
+      "caseId": "SYN-08",
+      "evidenceType": "cookie_reject_control",
+      "resourceName": "Organização fictícia 8",
+      "sourceUrl": "https://case-8.example.invalid/",
+      "collectedAt": "2026-10-08T00:00:00Z",
+      "materialScope": "partial interface excerpt",
+      "reviewable": true,
+      "preservedMaterial": "Trecho de uma janela: 'Este site usa cookies. [Aceitar todos] [Personalizar]'. A extração não incluiu toda a árvore DOM.",
+      "deferredReason": null
+    },
+    {
+      "caseId": "SYN-09",
+      "evidenceType": "controller_identity",
+      "resourceName": "Organização fictícia 9",
+      "sourceUrl": "https://case-9.example.invalid/",
+      "collectedAt": "2026-10-08T00:00:00Z",
+      "materialScope": "partial-page excerpt",
+      "reviewable": true,
+      "preservedMaterial": "Texto preservado: 'O controle dos dados depende da empresa responsável pelo serviço, cujas informações constam no contrato de cada cliente.' Não há contrato no pacote.",
+      "deferredReason": null
+    },
+    {
+      "caseId": "SYN-10",
+      "evidenceType": "privacy_notice",
+      "resourceName": "Organização fictícia 10",
+      "sourceUrl": "https://case-10.example.invalid/",
+      "collectedAt": "2026-10-08T00:00:00Z",
+      "materialScope": "full-text page content",
+      "reviewable": true,
+      "preservedMaterial": "Página integral preservada com título 'Termos de uso': 'Este site reúne comunicados. Não se responsabiliza pelo conteúdo de sites externos. Reprodução proibida sem autorização.'",
+      "deferredReason": null
+    },
+    {
+      "caseId": "SYN-11",
+      "evidenceType": "pre_consent_cookie_activity",
+      "resourceName": "Organização fictícia 11",
+      "sourceUrl": "https://case-11.example.invalid/",
+      "collectedAt": "2026-10-08T00:00:00Z",
+      "materialScope": "behavioral trace is not included",
+      "reviewable": false,
+      "preservedMaterial": null,
+      "deferredReason": "missing_network_or_storage_trace"
+    }
+  ]
+}
