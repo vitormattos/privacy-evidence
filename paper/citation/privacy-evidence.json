@@ -1,0 +1,19 @@
+{
+  "id": "mattos-privacy-evidence-2026",
+  "type": "software",
+  "title": "Privacy Evidence",
+  "author": [
+    {
+      "given": "Vitor",
+      "family": "Mattos"
+    }
+  ],
+  "issued": {
+    "date-parts": [
+      [2026]
+    ]
+  },
+  "URL": "https://github.com/vitormattos/privacy-evidence",
+  "abstract": "Research software for reproducible, large-scale collection and analysis of publicly observable web privacy evidence.",
+  "keyword": "privacy; web measurement; reproducible research; measurement attrition; provenance"
+}

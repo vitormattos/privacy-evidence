@@ -105,7 +105,7 @@ See [SECURITY.md](SECURITY.md). The crawler processes untrusted URLs, HTML and p
 
 ## Citation
 
-Citation metadata is available in [CITATION.cff](CITATION.cff).
+Citation metadata is available in [CITATION.cff](CITATION.cff), with BibTeX, CSL JSON and RIS exports under [`paper/citation/`](paper/citation/) and machine-readable manuscript metadata in [`paper/scholarly-metadata.json`](paper/scholarly-metadata.json).
 
 ## License
 
