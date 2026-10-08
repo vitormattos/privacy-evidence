@@ -3,7 +3,7 @@
 
 # Beyond the Measurable Web: Preserving Measurement Attrition and Evidence Provenance in Empirical Privacy Research
 
-> Working manuscript. Results remain placeholders until the corresponding frozen analyses are complete.
+> Working manuscript. RQ1 and RQ2 results below are populated from frozen repository evidence. RQ3 and RQ4 remain incomplete and must not be inferred from implementation status.
 
 ## Abstract
 
@@ -17,10 +17,10 @@ This study evaluates whether explicitly preserving population transformations, m
 We use Privacy Evidence, an open-source research instrument, in a real-world case derived from public digital resources declared by churches of the Igreja Presbiteriana do Brasil. The study follows an Engineering Research / Design Science framing, uses Goal–Question–Metric for operationalization, treats automated detectors as measurement instruments validated against independent human reference labels, and distinguishes deterministic reproduction from live-Web replication.
 
 ### Results
-**Pending.** Populate only from the frozen outputs linked in `evidence-map.md`.
+The frozen IPB case contains 2,993 declared source records. Of these, 658 normalize to a URL, 589 are website-measurement eligible references, and deduplication yields 566 canonical website measurement units. Among canonical units, 193 are fully measured, 12 partially measured, and 361 not measurable; therefore 205/566 (36.22%) are analytically observable. Across five predeclared privacy-evidence outcomes, only 264/566 canonical units (46.64%) are resolved. Treating unresolved observations as negative reduces each selected prevalence estimate by 53.36% relative to complete-case analysis. A predeclared selective-measurability analysis found a 9.33 percentage-point descriptive difference between institutional websites and third-party hosted pages, but no inferential support after Holm correction (adjusted p = 0.7373).
 
 ### Conclusions
-**Pending.** Do not infer conclusions from implementation completeness.
+For the frozen IPB observation, population attrition is large enough that intended, normalized, eligible, canonical and analytically observed populations are materially different denominators. Missingness semantics materially change the selected estimates, supporting the rule that non-observation must not be silently interpreted as absence. These findings support P1 and P2 for this case. Claims about deterministic independent reproduction (RQ3), detector validity against human reference labels (RQ4), and transferability beyond the IPB context remain pending.
 
 ## Keywords
 
@@ -95,22 +95,30 @@ These are intended contributions, not completed findings. Their final wording mu
 ## 2. Background and related work
 
 ### 2.1 Empirical web measurement
-Discuss large-scale browser/web measurement and OpenWPM.
+Privacy-oriented web measurement is already supported by mature research frameworks. OpenWPM provides Firefox/Selenium-based browser instrumentation, structured collection of network and JavaScript telemetry, multi-browser orchestration, command/status logging, versioned releases and containerized execution. Its existence rules out broad novelty claims based on large-scale automated browser measurement, structured privacy telemetry, process orchestration or research-oriented versioning alone.
 
 ### 2.2 Privacy evidence collection
-Discuss WEC/WEC Online and the distinction between evidence collection and legal compliance.
+The European Data Protection Supervisor's Website Evidence Collector (WEC) is particularly close to the evidence-acquisition domain of this work. WEC uses Chromium with a fresh browser profile and records screenshots, links, local storage, cookies and third-party requests in human- and machine-readable forms. WEC therefore constitutes prior art for reproducible browser-based privacy evidence collection and is the primary external baseline selected for issue #191.
+
+Privacy Evidence does not treat browser-observable evidence as a legal-compliance verdict. Its construct is narrower: evidence that was observable under a declared, versioned measurement protocol. Regulatory interpretation is kept separate from the generic evidence state.
 
 ### 2.3 Public privacy inspectors and batch platforms
-Discuss Blacklight/Blacklight Query, PrivacyScore, Webbkoll and GDPR Observer.
+Blacklight demonstrates real-time headless-browser privacy inspection, while Blacklight Query extends the collector to URL-list batch operation. PrivacyScore provides list comparison and repeated rescanning. Webbkoll is prior art for public-facing single-site privacy checks. GDPR Observer is especially relevant because it combines WEC with curated website collections, repeated population-level collection and APIs.
+
+These systems rule out novelty claims based merely on URL scanning, headless-browser inspection, batch operation, repeated scans, public privacy reports or open-source implementation.
 
 ### 2.4 Reproducibility in empirical software engineering
-Connect ResearchRun provenance and replication-package design to empirical-SE reproducibility literature.
+The methodological stack follows Engineering Research / Design Science and GQM, with reproducibility treated as an empirical property rather than an implementation attribute. The project distinguishes deterministic reproduction from live-Web replication: deterministic outputs should be regenerable from the same preserved inputs, code, protocol and configuration, while repeated acquisition of live pages is expected to vary over time.
+
+The ResearchRun abstraction records code revision, source-data hash and protocol/configuration identity and links derived outputs to preserved artifacts. Whether this provenance is sufficient for independent clean-environment reproduction remains an empirical question governed by RQ3.
 
 ### 2.5 Human annotation and measurement validity
-Position independent annotation, reliability, adjudication and detector evaluation.
+Automated detectors are treated as measurement instruments rather than unquestioned classifiers. The planned validity procedure uses reviewer-neutral preserved-evidence packets, at least two genuine independent human reviewers, agreement before adjudication, immutable pre-adjudication labels and a separate adjudicated reference. Detector precision, recall, F1, support and abstention/coverage are reported per signal only after this human-reference process is complete.
 
 ### 2.6 Research gap synthesis
-Use the novelty audit. Do not claim undocumented absence in comparison systems.
+The related-work audit does not support claims that Privacy Evidence is the first privacy scanner, the first reproducible web collector, the first batch privacy-analysis tool or the first population-oriented WEC derivative.
+
+The narrower gap investigated here concerns the research semantics around end-to-end population accounting and measurement loss: preserving source-to-measurement transformations, keeping absent/unknown/unavailable/invalid/excluded/not-applicable states distinct, binding evidence and analytical decisions to run-level provenance, and testing how those semantics alter empirical conclusions. Documentation review leaves some of these distinctions unresolved across existing tools; the controlled WEC comparison in #191 is therefore treated as supporting evidence rather than assumed novelty.
 
 ---
 
@@ -127,9 +135,11 @@ Publicly observable privacy evidence exposed by digital resources under the decl
 The study does not measure organization-wide legal compliance.
 
 ### 3.3 Context and source population
-Describe the IPB source, the relationship to the 2025 monograph and the exact frozen dataset/ResearchRun used by the paper.
+The first empirical context is a source population derived from public digital resources declared by churches of the Igreja Presbiteriana do Brasil (IPB). This population is used because it is the historical origin of the research problem, not because it is assumed to represent organizations generally.
 
-**Evidence placeholder:** exact paper ResearchRun and source hash must be frozen before submission.
+The frozen full-population observation used for RQ1/RQ2 is ResearchRun `01a10a29-cf8d-7711-8e6d-ec954e592cc2`, produced by GitHub Actions run `37260583969` from Git commit `fa276f203ba6d95bfb0270b7fdfd71047d1c47f1`. The source dataset SHA-256 is `094e991b22293d78a11bc18ec2fb191d612b66ecad65145466d22108db4bf022`; protocol version is `0.1.0-draft`.
+
+The historical 2025 study remains a distinct artifact. Current protocol semantics are not retroactively projected onto its published results.
 
 ### 3.4 Units of analysis
 Use the protocol definitions:
@@ -159,20 +169,16 @@ State PHP as a deliberate research-software engineering choice, not a language-s
 Document the modern PHP stack, static analysis, tests, ML integration and containerization as evidence that the implemented artifact supports the required workflow. Do not claim parity/superiority to Python without a comparative experiment.
 
 ### 3.7 Population accounting and missingness
-Define stage semantics using `measurement-attrition.md` after issue #192 merges.
+Population accounting preserves the declared source frame and distinguishes source records, normalized resources, website-measurement eligible references, canonical website measurement units and analytically observed units.
+
+For the historical frozen run, the dedicated attrition export did not yet exist. RQ1 is therefore reconstructed deterministically from the preserved complete `population-results.json` using the same rules now implemented by `RunExporter`. The reconstruction is hash-bound and does not recollect the live Web.
+
+Missingness sensitivity is evaluated under three frozen conditions: complete-case analysis, an intentionally naive counterfactual that treats unresolved measurements as negative for analysis only, and the canonical provenance-aware treatment that preserves unresolved state and reports identification bounds.
 
 ### 3.8 Human-reference protocol
-Describe:
-- frozen final evaluation partition;
-- reviewer-neutral packets;
-- preserved evidence only;
-- two independent humans;
-- agreement before adjudication;
-- immutable pre-adjudication labels;
-- adjudicated reference;
-- detector evaluation.
+The detector-validity workflow is designed around a human reference rather than treating automated detector output as self-validating. Reviewer packets contain preserved evidence only, hide detector state/confidence, and are intended to be equivalent across reviewers. Two genuine independent human reviewers must label the designated reliability subset without consulting one another. Agreement is computed and frozen before adjudication; pre-adjudication labels remain immutable; disagreements are then adjudicated into the final reference used for detector evaluation.
 
-Do not call AI instances human reviewers.
+The reviewer instrument and pilot protocol are implemented, but the required non-implementer human pilot and final publication-grade evaluation remain incomplete. Consequently, this subsection describes the frozen procedure, not a completed RQ4 result.
 
 ### 3.9 Analysis procedure by RQ
 
@@ -192,7 +198,9 @@ Report agreement plus per-signal confusion matrices, precision, recall, F1, supp
 Only if #201 is complete.
 
 ### 3.10 Open science and reproducibility
-Describe software release, protocol, hashes, replication package, data restrictions and persistent identifiers.
+The public repository contains the research software, protocol, analysis code, aggregate derived outputs and RQ-to-evidence traceability. ResearchRuns record code revision, dataset hash and protocol/configuration identity. Raw third-party HTML, screenshots, cookies and browser-storage material may contain copyrighted or personal data and are therefore not automatically redistributed in the public repository; hashes and provenance are used where redistribution is restricted.
+
+For the frozen RQ1/RQ2 observation, the source workflow artifact is identified and hash-bound. A publication-grade immutable replication package, release tag and persistent identifiers remain pending under #199, and independent clean-environment reproduction remains pending under RQ3.
 
 ---
 
@@ -200,52 +208,55 @@ Describe software release, protocol, hashes, replication package, data restricti
 
 ### 4.1 RQ1 — Measurement attrition
 
-**Do not fill manually from memory.**
+The frozen source population contains 2,993 records. Of these, 658 normalize to a URL and 2,335 terminate as normalization-unavailable. Among normalized resources, 589 references are website-measurement eligible and 69 are protocol-excluded. Deduplication reduces the 589 eligible references to 566 canonical website measurement units, with 23 eligible references represented as duplicates of another canonical unit.
 
-Required generated inputs:
-- `attrition-results.json`;
-- `attrition-summary.json`;
-- `attrition-flow.md`;
-- failure-reason tables.
+At the canonical-unit level, 193 units are fully measured, 12 partially measured and 361 not measurable. The analytically observed population is therefore 205/566 canonical units (36.22%); the measurement-loss population is 361/566 (63.78%).
 
-Report:
-- source population;
-- normalized resources;
-- eligible resources;
-- canonical web units;
-- fully/partially observed units;
-- non-measurable units;
-- causes of loss.
+The terminal source-record accounting reconciles exactly:
 
-Answer RQ1 explicitly at the end of the subsection.
+```text
+2,335 normalization_unavailable
++ 69 protocol_excluded
++ 23 duplicate_eligible_reference
++ 193 fully_measured
++ 12 partially_measured
++ 361 not_measurable
+= 2,993 source records
+```
+
+The 361 non-measurable canonical units also preserve a primary failure reason. DNS failure is the largest category (228), followed by anti-bot challenges (47), HTTP 429 responses (34), HTTP 404 responses (13), TLS failure (11), no successful document (7), HTTP 403 (5), HTTP 500 (4), timeout (4), private-network classification (2), and six one-case categories.
+
+**RQ1 answer.** The declared population and the analytically measurable population are not interchangeable. In this observation, substantial loss occurs both before acquisition (normalization/protocol transitions) and during measurement. Explicit stage and terminal-state accounting is required to reconstruct which population each result describes. This supports P1 for the frozen IPB run, without implying that the same attrition pattern generalizes to another population or date.
 
 ### 4.2 RQ2 — Analytical impact of missingness
 
-Required output from #193.
+Five outcomes were frozen before this sensitivity result was inspected: privacy notice, privacy-law reference, privacy contact, rights disclosure and cookie notice. For all five outcomes, 264 of 566 canonical units are resolved and 302 remain unresolved, giving 46.64% resolved coverage.
 
-Report each selected evidence signal under the three declared analysis conditions and identify which interpretations change or remain robust.
+| Outcome | Complete-case prevalence | Naive missing-as-negative | Absolute change | Relative change | Provenance-aware bounds |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Privacy notice | 15.53% | 7.24% | -8.29 pp | -53.36% | 7.24%–60.60% |
+| Privacy-law reference | 6.82% | 3.18% | -3.64 pp | -53.36% | 3.18%–56.54% |
+| Privacy contact | 3.79% | 1.77% | -2.02 pp | -53.36% | 1.77%–55.12% |
+| Rights disclosure | 4.17% | 1.94% | -2.22 pp | -53.36% | 1.94%–55.30% |
+| Cookie notice | 15.15% | 7.07% | -8.08 pp | -53.36% | 7.07%–60.42% |
+
+All five predeclared outcomes are unstable across the declared missingness treatments. The identical 53.36% relative reduction is not five independent effects; it follows from the common 264-resolved/302-unresolved denominator split, while the absolute change varies by signal.
+
+**RQ2 answer.** Missingness semantics materially change the selected estimates in this frozen run. Treating unresolved units as negative reduces every selected prevalence estimate by approximately 53.36% relative to complete-case analysis, while provenance-aware bounds remain wide. P2 is therefore supported for this observation. The result does not identify the missingness mechanism, establish true population prevalence or validate the detectors against human reference labels.
+
+A supporting selectivity analysis found institutional websites measurable in 37.11% of cases versus 27.78% for third-party hosted pages, a descriptive difference of 9.33 percentage points (OR 1.53). The association was not supported after Holm correction (adjusted p = 0.7373). Duplicate-group membership showed little difference (37.50% vs 36.20%; adjusted p = 1.0), and URL scheme could not be tested because all canonical normalized URLs used `http`. These results do not justify assuming missingness is random; they only fail to demonstrate selective measurability with the predeclared predictors available in the frozen export.
 
 ### 4.3 RQ3 — Reproducibility through provenance
 
-Required outputs from #87/#199/#200.
+**Pending empirical result.** The repository already records the provenance needed to attempt deterministic reproduction, but RQ3 is not answered by the existence of that metadata. The required clean-checkout acceptance (#87), publication-grade replication package (#199) and independent non-implementer reproduction (#200) are not complete.
 
-Separate:
-- deterministic CI/repository reproducibility;
-- clean-checkout reproduction;
-- independent non-implementer reproduction;
-- expected live-Web non-determinism.
+The final RQ3 result must distinguish deterministic regeneration of derived outputs from a replication that reacquires the live Web, where temporal variation is expected.
 
 ### 4.4 RQ4 — Measurement validity
 
-Required outputs from #195/#196/#32/#33/#84.
+**Human-gated; no result yet.** The reviewer workflow and metric computation are implemented, but publication-grade validity claims require the frozen final sample, two independent human passes, agreement before adjudication and an auditable adjudicated reference.
 
-Report:
-- final sample/support;
-- reviewer agreement before adjudication;
-- disagreement categories;
-- adjudicated reference;
-- detector metrics by signal;
-- representative error classes.
+The final subsection will report sample/support, reviewer agreement, disagreement categories, adjudicated labels, per-signal confusion matrices, precision, recall, F1 and coverage/abstention. Until those artifacts exist, automated evidence counts in RQ2 must not be interpreted as validated estimates of real-world privacy practice.
 
 ### 4.5 Conditional RQ5 — Transferability
 
@@ -256,10 +267,14 @@ Include only if #201 completes before manuscript freeze.
 ## 5. Discussion
 
 ### 5.1 What measurement attrition means for empirical web studies
-Interpret RQ1/RQ2 without claiming causality beyond the design.
+The IPB case shows that population definition is not a one-time sampling decision. The denominator changes through normalization, protocol eligibility, deduplication and acquisition. Reporting only the 205 observed canonical units would hide that they are survivors of a declared 2,993-record source frame and a 566-unit canonical website population.
+
+The methodological implication is not that every source record should be treated as an analyzable website. Rather, each transformation should remain explicit so that readers can distinguish source-frame limitations, protocol exclusions, duplicate references and technical measurement failures. This also prevents acquisition failure from being misreported as absence of privacy evidence.
 
 ### 5.2 Unknown is not zero
-Discuss whether the empirical sensitivity analysis supports, limits or rejects the practical importance of this distinction.
+The sensitivity analysis provides direct evidence that this distinction matters in the frozen case. When the 302 unresolved canonical units are naively treated as negative, every selected prevalence estimate falls by 53.36% relative to the corresponding complete-case estimate.
+
+The provenance-aware bounds are wide because unresolved coverage is large. That uncertainty is itself part of the result: the measurement procedure does not justify collapsing the unresolved portion of the population into a negative category. The analysis therefore supports preserving non-observation as a distinct state rather than manufacturing apparent certainty through denominator choice.
 
 ### 5.3 Artifact design and reproducibility
 Relate ResearchRun provenance to observed reproduction results.
@@ -284,10 +299,12 @@ Keep operational privacy diagnostics separate from legal certification.
 Public website evidence is not organization-wide privacy practice.
 
 ### 6.2 Internal/conclusion validity
-Address detector error, denominator choices, class imbalance, statistical assumptions and analysis choices.
+RQ1 uses exact reconciled population accounting for the frozen export. RQ2 is sensitive to denominator semantics by design; outcomes and comparison conditions were frozen before the reported result was inspected. The selective-measurability analysis uses support counts, Fisher exact tests for sparse tables and Holm adjustment for the reported level tests.
+
+The current conclusions remain limited by detector validity because RQ4 human-reference evaluation is not complete. RQ1/RQ2 therefore support claims about measurement states and sensitivity of the automated evidence outputs, not claims that the underlying detectors are already accurate enough for substantive legal or organizational inference.
 
 ### 6.3 External validity
-The first population is contextual. Generalization depends on analytical reasoning and, if completed, second-population evidence.
+The IPB population is contextual and was selected because it generated the original research problem. The observed attrition rates and missingness effects are empirical properties of this frozen observation, not population-independent constants. The current selective-measurability analysis also has limited predictor coverage and small support for some subgroups. Generalization therefore depends on analytical reasoning and, if completed, a second-population study under the same core semantics.
 
 ### 6.4 Reliability/reproducibility
 Address Web temporal instability, browser environment, provenance completeness and independent reproduction.
@@ -299,16 +316,19 @@ Disclose the researcher's relationship to the IPB context and mitigation through
 
 ## 7. Artifact and data availability
 
-Populate with the exact:
-- repository;
-- tagged release;
-- software DOI;
-- paper replication-package DOI;
-- protocol version;
-- dataset/source identifiers;
-- ResearchRun identifier;
-- restricted-data statement;
-- commands required to reproduce tables/figures.
+The research software is publicly available at `https://github.com/vitormattos/privacy-evidence` under AGPL-3.0-or-later.
+
+The frozen observation currently supporting RQ1/RQ2 is:
+- ResearchRun: `01a10a29-cf8d-7711-8e6d-ec954e592cc2`;
+- source Git commit: `fa276f203ba6d95bfb0270b7fdfd71047d1c47f1`;
+- source dataset SHA-256: `094e991b22293d78a11bc18ec2fb191d612b66ecad65145466d22108db4bf022`;
+- protocol version: `0.1.0-draft`;
+- preserved workflow artifact: `11324489250`;
+- artifact digest: `sha256:fec211aa0a9ab0898123e1c4f7018810d116e0a572784a5abbcfd925736620a2`.
+
+Non-restricted aggregate RQ1/RQ2 results are committed under `docs/research/results/`. Raw acquired website artifacts are not committed publicly because they can contain third-party copyrighted content or personal data; the study records hashes/provenance instead.
+
+A tagged publication release, software DOI and paper replication-package DOI have not yet been assigned. They are publication gates under #199 and must replace this sentence before submission.
 
 ---
 
@@ -322,9 +342,11 @@ Any future service/customer telemetry is outside this study unless separately ap
 
 ## 9. Conclusion
 
-Answer only the frozen RQs supported by completed evidence.
+For the frozen IPB observation, the transformation from declared source population to analytical population is large and auditable: 2,993 declared records yield 566 canonical website measurement units, of which 205 (36.22%) are analytically observable. This supports P1's population-accountability claim for the studied run.
 
-Do not use implementation breadth as a substitute for empirical results.
+The same observation also shows that missingness semantics affect substantive estimates. Across five predeclared evidence outcomes, only 46.64% of canonical units are resolved, and an intentionally naive missing-as-negative treatment reduces the corresponding prevalence estimates by 53.36% relative to complete-case analysis. This supports P2 and provides empirical justification for preserving unknown/unavailable states rather than treating them as negative evidence.
+
+These results establish neither legal compliance nor detector validity, causal missingness mechanisms, independent reproducibility or transferability beyond the IPB case. RQ3 and RQ4 remain open empirical gates, and the WEC comparison remains supporting work rather than a completed superiority claim.
 
 ---
 
@@ -334,4 +356,16 @@ Use only factual acknowledgements appropriate to the final venue. The historical
 
 ## References
 
-Build from the canonical bibliography/primary sources and include persistent identifiers where available.
+Working primary-source list; convert to the target venue's bibliography style before submission.
+
+- ACM SIGSOFT. *Empirical Standards for Software Engineering Research*. https://www2.sigsoft.org/EmpiricalStandards/
+- Wieringa, R. *Design Science Methodology for Information Systems and Software Engineering*. Springer. https://doi.org/10.1007/978-3-662-43839-8
+- Engström et al. Design-science alignment in software engineering. *Empirical Software Engineering*. https://doi.org/10.1007/s10664-020-09818-7
+- European Data Protection Supervisor. *Website Evidence Collector / Data Protection and Privacy Tools*. https://www.edps.europa.eu/data-protection/technology-monitoring/data-protection-and-privacy-tools_en
+- OpenWPM. Project repository and platform architecture documentation. https://github.com/openwpm/OpenWPM ; https://openwpm.readthedocs.io/en/stable/Platform-Architecture.html
+- The Markup. *Blacklight* and *Blacklight Query*. https://themarkup.org/blacklight ; https://themarkup.org/blacklight/2024/10/16/blacklight-query
+- PrivacyScore. Project repository. https://github.com/PrivacyScore/PrivacyScore
+- Webbkoll. Project repository/archive and current upstream pointer. https://github.com/andersju/webbkoll
+- Hermes Center. *GDPR Observer*. https://github.com/hermescenter/gdpr.observer
+
+Commercial scanners reviewed for product/context overlap are documented separately in `docs/research/tool-landscape-review.md` and are not used as substitutes for scholarly prior work.
