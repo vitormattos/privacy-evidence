@@ -1,7 +1,7 @@
 # Proposal: conversational and LLM-assisted evidence-review experiment
 
 Status: **exploratory proposal, not a change to the frozen human-reference protocol**.
-Related: #195 (instrument usability), #196 (sample design), #32/#33/#84 (human-reference evaluation), #191 (independent experimental branch).
+Related: #195 (instrument usability), #196 (sample design), #32/#33/#84 (human-reference evaluation).
 Version: proposal 0.1.0, 2026-10-08.
 
 ## Research question and why this is separate
@@ -13,7 +13,7 @@ These are two distinct questions:
 1. **Interface usability:** do genuine people understand the preserved evidence, labels, limitations and handoff? An LLM's report of its own usability is not a human observation.
 2. **Measurement validity:** do labels match an independently adjudicated human reference? Agreement among models alone cannot establish validity.
 
-The existing #195 pilot is **up to 10 reviewable cases or 20 active minutes**, not an assignment to read ~200 websites. The PoC's 94 evidence cases (78 reviewable, 16 deferred) are not the final #196 publication benchmark, and none of these case counts is necessarily a count of distinct websites.
+The existing #195 pilot is **up to 10 reviewable cases or 20 active minutes**, not an assignment to read ~200 websites. The PoC's 94 evidence cases (78 reviewable, 16 deferred) are not the final #196 publication benchmark. Separately, the frozen full-IPB observation has **205 analytically observed canonical website units** (193 fully and 12 partially measured), but this is a website-level denominator, **not** 205 independent gold-label cases. Different signals/cases can share one site.
 
 The request to replace the current HTML form with a prompt is evidence of a potential usability problem worth studying, not sufficient independent usability evidence for closing #195.
 
@@ -56,6 +56,13 @@ The suggested text/JSON output is **not a drop-in input to `review:import`**. Th
 - Schroeder, Roy & Kabbara (2025), Findings ACL, **Just Put a Human in the Loop?**, https://aclanthology.org/2025.findings-acl.1323/ — AI suggestions can alter human annotation distributions and inflate apparent model accuracy.
 - Gu et al. (2026), Findings ACL, **Large Language Models Are Effective Human Annotation Assistants, But Not Good Independent Annotators**, https://aclanthology.org/2026.findings-acl.4/ — a task-specific example supporting hybrid, not universal AI-only replacement.
 - ACM SIGSOFT Empirical Standards, https://www2.sigsoft.org/EmpiricalStandards/ — transparent sampling, annotation procedure, threats to validity, and reliability.
+
+## Participant prompts
+
+- LLM-generated annotations with a human operator (A0): [conversational-review-v0.1.md](prompts/conversational-review-v0.1.md).
+- Independent human decisions with a neutral AI interviewer (H0 prototype): [human-guided-conversational-review-v0.1.md](prompts/human-guided-conversational-review-v0.1.md).
+
+Both use the same **synthetic** fixture initially; do not combine H0/A0 results as though they have the same origin. Human role and model role must be logged explicitly. Study packet content, including preserved personal data, needs approval before being uploaded to outside tools.
 
 ## Current status
 
