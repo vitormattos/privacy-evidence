@@ -228,7 +228,7 @@ The service must not weaken:
 - browser sandboxing;
 - bounded resource usage.
 
-Detailed future service controls are specified by #203.
+Detailed future service controls are specified in [public-scan-security.md](public-scan-security.md) under #203.
 
 ## Licensing and attribution
 
