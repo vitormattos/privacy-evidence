@@ -129,7 +129,7 @@ jobs:
             exit 1
           fi
           WRAPPER="$RUNNER_TEMP/wec-chromium-wrapper"
-          printf '#!/bin/sh\\nexec "%s" --no-sandbox "$@"\\n' "$CHROME_BINARY" > "$WRAPPER"
+          printf '#!/bin/sh\nexec "%s" --no-sandbox "$@"\n' "$CHROME_BINARY" > "$WRAPPER"
           chmod 700 "$WRAPPER"
           echo "PUPPETEER_EXECUTABLE_PATH=$WRAPPER" >> "$GITHUB_ENV"
 
@@ -143,20 +143,20 @@ jobs:
           set -euo pipefail
           SITE="$RUNNER_TEMP/wec-preflight"
           mkdir -p "$SITE"
-          printf '%s\\n' '<!doctype html><title>WEC runner smoke test</title><p>Synthetic content</p>' > "$SITE/index.html"
+          printf '%s\n' '<!doctype html><title>WEC runner smoke test</title><p>Synthetic content</p>' > "$SITE/index.html"
           python3 -m http.server 18864 --bind 127.0.0.1 --directory "$SITE" > "$RUNNER_TEMP/wec-preflight-http.log" 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           sleep 2
-          if ! timeout 90s website-evidence-collector "http://127.0.0.1:18864/" \\
-            --output "$RUNNER_TEMP/wec-preflight-output" \\
-            --overwrite --json --no-pdf --browser-options=--no-sandbox \\
+          if ! timeout 90s website-evidence-collector "http://127.0.0.1:18864/" \
+            --output "$RUNNER_TEMP/wec-preflight-output" \
+            --overwrite --json --no-pdf --browser-options=--no-sandbox \
             > "$RUNNER_TEMP/wec-preflight.stdout" 2> "$RUNNER_TEMP/wec-preflight.stderr"; then
             echo 'WEC infrastructure preflight failed before visiting study targets.' >&2
             tail -n 35 "$RUNNER_TEMP/wec-preflight.stderr" >&2
             exit 1
           fi
-          jq -e 'type == "object" and has("uri_ins")' \\
+          jq -e 'type == "object" and has("uri_ins")' \
             "$RUNNER_TEMP/wec-preflight-output/inspection.json" > /dev/null
 
       - name: Capture execution environment
@@ -171,7 +171,7 @@ jobs:
           node --version > "$OUT/node-version.txt"
           npm --version > "$OUT/npm-version.txt"
           website-evidence-collector --help > "$OUT/wec-help.txt" 2>&1 || true
-          printf '%s\\n' 'WEC 3.3.0 runner: same --no-sandbox Chromium flag for collection and report conversion; local synthetic preflight passed.' > "$OUT/wec-chromium-setup.txt"
+          printf '%s\n' 'WEC 3.3.0 runner: same --no-sandbox Chromium flag for collection and report conversion; local synthetic preflight passed.' > "$OUT/wec-chromium-setup.txt"
 
       - name: Execute both tool blocks in deterministic order
         if: inputs.phase == 'execute'
