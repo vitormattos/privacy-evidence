@@ -31,14 +31,14 @@ Legend:
 | Motivation/importance | Complete | 2025 legacy origin + contribution model | strengthen related-work gap using #189/#190 |
 | Key concepts defined | Complete | protocol, variables, data dictionary | audit manuscript terminology |
 | Methodologies named | Complete | `methodology.md` | none |
-| Methodology appropriate to questions | Partial | method-to-RQ map | empirical results still pending |
+| Methodology appropriate to questions | Partial | method-to-RQ map + frozen RQ1/RQ2 analyses | RQ3/RQ4 execution still pending |
 | Data collection described in detail | Partial | protocol, acquisition architecture, ResearchRun | manuscript must bind exact run/config |
 | Data analysis described in detail | Partial | metrics/evaluation/research-model + frozen #193/#194 results | human-reference and reproducibility analyses still pending |
-| Results directly address RQs | Missing | — | execute analyses + human gate |
+| Results directly address RQs | Partial | manuscript + frozen RQ1/RQ2 outputs | RQ3/RQ4 remain pending |
 | Statistical assumptions validated | Partial | #194 uses sparse-table Fisher tests, explicit support counts and Holm correction | predictor coverage/support limitations remain explicit |
-| Implications discussed | Missing | — | manuscript discussion after results |
-| Major limitations disclosed | Partial | `validity-threats.md` | update after analyses/replication |
-| Conclusions linked to explicit evidence | Missing | — | manuscript result/evidence map #197 |
+| Implications discussed | Partial | manuscript discussion for RQ1/RQ2 | extend after RQ3/RQ4 and WEC result |
+| Major limitations disclosed | Partial | `validity-threats.md` + manuscript RQ1/RQ2 limitations | update after human validation/reproduction/WEC |
+| Conclusions linked to explicit evidence | Partial | `paper/manuscript.md` + `paper/evidence-map.md` for RQ1/RQ2 | RQ3/RQ4 conclusions remain blocked |
 
 ## Engineering Research / Design Science
 
