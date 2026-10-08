@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "0.1.0",
+  "status": "working-manuscript",
+  "title": "Beyond the Measurable Web: Preserving Measurement Attrition and Evidence Provenance in Empirical Privacy Research",
+  "authors": [
+    {
+      "givenName": "Vitor",
+      "familyName": "Mattos",
+      "orcid": null,
+      "affiliation": null
+    }
+  ],
+  "centralPhenomenon": "measurement attrition and evidence provenance in empirical web research",
+  "contribution": "Explicitly preserving population transformations, measurement losses, uncertainty states, evidence provenance and human/automated decisions can make large-scale web measurement more auditable and reproducible, while exposing measurement attrition that complete-case or missing-as-negative analyses may conceal.",
+  "researchQuestions": [
+    {
+      "id": "RQ1",
+      "title": "Measurement attrition",
+      "status": "analyzed",
+      "proposition": "P1"
+    },
+    {
+      "id": "RQ2",
+      "title": "Analytical impact of missingness",
+      "status": "analyzed",
+      "proposition": "P2"
+    },
+    {
+      "id": "RQ3",
+      "title": "Reproducibility through provenance",
+      "status": "partial",
+      "proposition": "P3"
+    },
+    {
+      "id": "RQ4",
+      "title": "Measurement validity",
+      "status": "human-gated",
+      "proposition": "P4"
+    },
+    {
+      "id": "RQ5",
+      "title": "Transferability",
+      "status": "conditional",
+      "proposition": "P5"
+    }
+  ],
+  "methods": [
+    "Engineering Research / Design Science",
+    "Goal-Question-Metric",
+    "observational empirical study",
+    "population accounting and missingness sensitivity analysis",
+    "human-reference detector validation",
+    "deterministic reproduction and live-Web replication"
+  ],
+  "software": {
+    "name": "Privacy Evidence",
+    "repository": "https://github.com/vitormattos/privacy-evidence",
+    "license": "AGPL-3.0-or-later",
+    "citationFile": "CITATION.cff"
+  },
+  "empiricalContext": {
+    "population": "Public digital resources declared by churches of the Igreja Presbiteriana do Brasil (IPB)",
+    "researchRun": "01a10a29-cf8d-7711-8e6d-ec954e592cc2",
+    "sourceDatasetSha256": "094e991b22293d78a11bc18ec2fb191d612b66ecad65145466d22108db4bf022",
+    "protocolVersion": "0.1.0-draft"
+  },
+  "evidence": {
+    "rq1": "docs/research/results/ipb-2026-10-05-attrition.md",
+    "rq2": "docs/research/results/ipb-2026-10-05-missingness-sensitivity.md",
+    "selectiveMeasurability": "docs/research/results/ipb-2026-10-05-selective-measurability.md",
+    "traceability": "paper/evidence-map.md"
+  },
+  "persistentIdentifiers": {
+    "softwareDoi": null,
+    "replicationPackageDoi": null,
+    "paperDoi": null
+  },
+  "claimBoundary": "Privacy Evidence measures publicly observable evidence under a declared protocol; it does not certify organization-wide legal compliance."
+}
