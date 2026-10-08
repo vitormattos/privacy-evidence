@@ -176,17 +176,9 @@ For the historical frozen run, the dedicated attrition export did not yet exist.
 Missingness sensitivity is evaluated under three frozen conditions: complete-case analysis, an intentionally naive counterfactual that treats unresolved measurements as negative for analysis only, and the canonical provenance-aware treatment that preserves unresolved state and reports identification bounds.
 
 ### 3.8 Human-reference protocol
-Describe:
-- frozen final evaluation partition;
-- reviewer-neutral packets;
-- preserved evidence only;
-- two independent humans;
-- agreement before adjudication;
-- immutable pre-adjudication labels;
-- adjudicated reference;
-- detector evaluation.
+The detector-validity workflow is designed around a human reference rather than treating automated detector output as self-validating. Reviewer packets contain preserved evidence only, hide detector state/confidence, and are intended to be equivalent across reviewers. Two genuine independent human reviewers must label the designated reliability subset without consulting one another. Agreement is computed and frozen before adjudication; pre-adjudication labels remain immutable; disagreements are then adjudicated into the final reference used for detector evaluation.
 
-Do not call AI instances human reviewers.
+The reviewer instrument and pilot protocol are implemented, but the required non-implementer human pilot and final publication-grade evaluation remain incomplete. Consequently, this subsection describes the frozen procedure, not a completed RQ4 result.
 
 ### 3.9 Analysis procedure by RQ
 
@@ -206,7 +198,9 @@ Report agreement plus per-signal confusion matrices, precision, recall, F1, supp
 Only if #201 is complete.
 
 ### 3.10 Open science and reproducibility
-Describe software release, protocol, hashes, replication package, data restrictions and persistent identifiers.
+The public repository contains the research software, protocol, analysis code, aggregate derived outputs and RQ-to-evidence traceability. ResearchRuns record code revision, dataset hash and protocol/configuration identity. Raw third-party HTML, screenshots, cookies and browser-storage material may contain copyrighted or personal data and are therefore not automatically redistributed in the public repository; hashes and provenance are used where redistribution is restricted.
+
+For the frozen RQ1/RQ2 observation, the source workflow artifact is identified and hash-bound. A publication-grade immutable replication package, release tag and persistent identifiers remain pending under #199, and independent clean-environment reproduction remains pending under RQ3.
 
 ---
 
@@ -254,25 +248,15 @@ A supporting selectivity analysis found institutional websites measurable in 37.
 
 ### 4.3 RQ3 — Reproducibility through provenance
 
-Required outputs from #87/#199/#200.
+**Pending empirical result.** The repository already records the provenance needed to attempt deterministic reproduction, but RQ3 is not answered by the existence of that metadata. The required clean-checkout acceptance (#87), publication-grade replication package (#199) and independent non-implementer reproduction (#200) are not complete.
 
-Separate:
-- deterministic CI/repository reproducibility;
-- clean-checkout reproduction;
-- independent non-implementer reproduction;
-- expected live-Web non-determinism.
+The final RQ3 result must distinguish deterministic regeneration of derived outputs from a replication that reacquires the live Web, where temporal variation is expected.
 
 ### 4.4 RQ4 — Measurement validity
 
-Required outputs from #195/#196/#32/#33/#84.
+**Human-gated; no result yet.** The reviewer workflow and metric computation are implemented, but publication-grade validity claims require the frozen final sample, two independent human passes, agreement before adjudication and an auditable adjudicated reference.
 
-Report:
-- final sample/support;
-- reviewer agreement before adjudication;
-- disagreement categories;
-- adjudicated reference;
-- detector metrics by signal;
-- representative error classes.
+The final subsection will report sample/support, reviewer agreement, disagreement categories, adjudicated labels, per-signal confusion matrices, precision, recall, F1 and coverage/abstention. Until those artifacts exist, automated evidence counts in RQ2 must not be interpreted as validated estimates of real-world privacy practice.
 
 ### 4.5 Conditional RQ5 — Transferability
 
@@ -332,16 +316,19 @@ Disclose the researcher's relationship to the IPB context and mitigation through
 
 ## 7. Artifact and data availability
 
-Populate with the exact:
-- repository;
-- tagged release;
-- software DOI;
-- paper replication-package DOI;
-- protocol version;
-- dataset/source identifiers;
-- ResearchRun identifier;
-- restricted-data statement;
-- commands required to reproduce tables/figures.
+The research software is publicly available at `https://github.com/vitormattos/privacy-evidence` under AGPL-3.0-or-later.
+
+The frozen observation currently supporting RQ1/RQ2 is:
+- ResearchRun: `01a10a29-cf8d-7711-8e6d-ec954e592cc2`;
+- source Git commit: `fa276f203ba6d95bfb0270b7fdfd71047d1c47f1`;
+- source dataset SHA-256: `094e991b22293d78a11bc18ec2fb191d612b66ecad65145466d22108db4bf022`;
+- protocol version: `0.1.0-draft`;
+- preserved workflow artifact: `11324489250`;
+- artifact digest: `sha256:fec211aa0a9ab0898123e1c4f7018810d116e0a572784a5abbcfd925736620a2`.
+
+Non-restricted aggregate RQ1/RQ2 results are committed under `docs/research/results/`. Raw acquired website artifacts are not committed publicly because they can contain third-party copyrighted content or personal data; the study records hashes/provenance instead.
+
+A tagged publication release, software DOI and paper replication-package DOI have not yet been assigned. They are publication gates under #199 and must replace this sentence before submission.
 
 ---
 
@@ -369,4 +356,16 @@ Use only factual acknowledgements appropriate to the final venue. The historical
 
 ## References
 
-Build from the canonical bibliography/primary sources and include persistent identifiers where available.
+Working primary-source list; convert to the target venue's bibliography style before submission.
+
+- ACM SIGSOFT. *Empirical Standards for Software Engineering Research*. https://www2.sigsoft.org/EmpiricalStandards/
+- Wieringa, R. *Design Science Methodology for Information Systems and Software Engineering*. Springer. https://doi.org/10.1007/978-3-662-43839-8
+- Engström et al. Design-science alignment in software engineering. *Empirical Software Engineering*. https://doi.org/10.1007/s10664-020-09818-7
+- European Data Protection Supervisor. *Website Evidence Collector / Data Protection and Privacy Tools*. https://www.edps.europa.eu/data-protection/technology-monitoring/data-protection-and-privacy-tools_en
+- OpenWPM. Project repository and platform architecture documentation. https://github.com/openwpm/OpenWPM ; https://openwpm.readthedocs.io/en/stable/Platform-Architecture.html
+- The Markup. *Blacklight* and *Blacklight Query*. https://themarkup.org/blacklight ; https://themarkup.org/blacklight/2024/10/16/blacklight-query
+- PrivacyScore. Project repository. https://github.com/PrivacyScore/PrivacyScore
+- Webbkoll. Project repository/archive and current upstream pointer. https://github.com/andersju/webbkoll
+- Hermes Center. *GDPR Observer*. https://github.com/hermescenter/gdpr.observer
+
+Commercial scanners reviewed for product/context overlap are documented separately in `docs/research/tool-landscape-review.md` and are not used as substitutes for scholarly prior work.
