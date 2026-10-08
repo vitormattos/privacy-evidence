@@ -110,6 +110,55 @@ jobs:
           npm ci --prefix browser
           npx --prefix browser playwright install --with-deps chromium
 
+      # WEC 3.3.0 starts another Puppeteer Chromium while generating reports.
+      # --browser-options affects collection only. Keep both launches consistent
+      # on the ephemeral hosted runner; never weaken target TLS verification.
+      - name: Configure WEC Chromium for the hosted runner
+        if: inputs.phase == 'execute'
+        shell: bash
+        run: |
+          set -euo pipefail
+          WEC_ROOT="$(npm root -g)/website-evidence-collector"
+          CHROME_BINARY="$(WEC_ROOT="$WEC_ROOT" node -e '
+            const {createRequire} = require("node:module");
+            const fromWec = createRequire(process.env.WEC_ROOT + "/package.json");
+            process.stdout.write(fromWec("puppeteer").executablePath());
+          ')"
+          if [ ! -x "$CHROME_BINARY" ]; then
+            echo 'WEC Chromium executable missing; refusing collection.' >&2
+            exit 1
+          fi
+          WRAPPER="$RUNNER_TEMP/wec-chromium-wrapper"
+          printf '#!/bin/sh\\nexec "%s" --no-sandbox "$@"\\n' "$CHROME_BINARY" > "$WRAPPER"
+          chmod 700 "$WRAPPER"
+          echo "PUPPETEER_EXECUTABLE_PATH=$WRAPPER" >> "$GITHUB_ENV"
+
+      # Catch both collection and report-conversion startup failures without
+      # spending the frozen 12-target sample on an invalid infrastructure run.
+      - name: Preflight WEC on a synthetic local page
+        if: inputs.phase == 'execute'
+        shell: bash
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          SITE="$RUNNER_TEMP/wec-preflight"
+          mkdir -p "$SITE"
+          printf '%s\\n' '<!doctype html><title>WEC runner smoke test</title><p>Synthetic content</p>' > "$SITE/index.html"
+          python3 -m http.server 18864 --bind 127.0.0.1 --directory "$SITE" > "$RUNNER_TEMP/wec-preflight-http.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          sleep 2
+          if ! timeout 90s website-evidence-collector "http://127.0.0.1:18864/" \\
+            --output "$RUNNER_TEMP/wec-preflight-output" \\
+            --overwrite --json --no-pdf --browser-options=--no-sandbox \\
+            > "$RUNNER_TEMP/wec-preflight.stdout" 2> "$RUNNER_TEMP/wec-preflight.stderr"; then
+            echo 'WEC infrastructure preflight failed before visiting study targets.' >&2
+            tail -n 35 "$RUNNER_TEMP/wec-preflight.stderr" >&2
+            exit 1
+          fi
+          jq -e 'type == "object" and has("uri_ins")' \\
+            "$RUNNER_TEMP/wec-preflight-output/inspection.json" > /dev/null
+
       - name: Capture execution environment
         if: inputs.phase == 'execute'
         shell: bash
@@ -122,6 +171,7 @@ jobs:
           node --version > "$OUT/node-version.txt"
           npm --version > "$OUT/npm-version.txt"
           website-evidence-collector --help > "$OUT/wec-help.txt" 2>&1 || true
+          printf '%s\\n' 'WEC 3.3.0 runner: same --no-sandbox Chromium flag for collection and report conversion; local synthetic preflight passed.' > "$OUT/wec-chromium-setup.txt"
 
       - name: Execute both tool blocks in deterministic order
         if: inputs.phase == 'execute'
