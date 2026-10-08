@@ -156,7 +156,7 @@ jobs:
               printf '%s\n' "$url" > "$target_dir/declared-url.txt"
               date --utc +%Y-%m-%dT%H:%M:%SZ > "$target_dir/started-at.txt"
               set +e
-              website-evidence-collector "$url"                 --output "$target_dir/output"                 --overwrite                 --json                 --browser-options=--no-sandbox                 > "$target_dir/stdout.log"                 2> "$target_dir/stderr.log"
+              website-evidence-collector "$url"                 --output "$target_dir/output"                 --overwrite                 --json                 --no-pdf                 --browser-options=--no-sandbox                 > "$target_dir/stdout.log"                 2> "$target_dir/stderr.log"
               status=$?
               set -e
               printf '%s\n' "$status" > "$target_dir/exit-code.txt"
