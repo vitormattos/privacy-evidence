@@ -6,6 +6,8 @@ Governing issue: #195
 
 Status: **prepared; human execution required**.
 
+Facilitator/recruitment handoff checklist: [reviewer-pilot-handoff.md](reviewer-pilot-handoff.md).
+
 ## Purpose
 
 This pilot validates whether an actual human can use the frozen review instrument without undocumented help, live-Web evidence or knowledge of detector output.
