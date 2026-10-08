@@ -166,6 +166,16 @@ jobs:
             finished="$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
             printf '%s\n' "$started" > "$OUT/wec/started-at.txt"
             printf '%s\n' "$finished" > "$OUT/wec/finished-at.txt"
+
+            success_count="$(find "$OUT/wec" -mindepth 2 -maxdepth 2 -name exit-code.txt -exec sh -c 'for f do [ "$(cat "$f")" = 0 ] && echo 1; done' sh {} + | wc -l)"
+            failure_count="$(find "$OUT/wec" -mindepth 2 -maxdepth 2 -name exit-code.txt -exec sh -c 'for f do [ "$(cat "$f")" != 0 ] && echo 1; done' sh {} + | wc -l)"
+            printf '%s\n' "$success_count" > "$OUT/wec/success-count.txt"
+            printf '%s\n' "$failure_count" > "$OUT/wec/failure-count.txt"
+
+            if [ "$success_count" -eq 0 ]; then
+              echo 'WEC produced zero successful target collections; treating execution as an infrastructure-invalid experiment.' >&2
+              exit 1
+            fi
           }
 
           seed_hash="$(printf '%s' 'wec-baseline-v1' | sha256sum | cut -c1)"
