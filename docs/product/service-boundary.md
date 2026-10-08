@@ -271,3 +271,8 @@ Production implementation remains blocked by:
 ## Technology-transfer research boundary
 
 Future service telemetry remains operational data by default. The protocol for promoting a deliberately minimized subset into a separately approved research study is defined in [technology-transfer-evaluation.md](technology-transfer-evaluation.md). Product use must not retroactively alter or contaminate frozen research runs.
+
+
+## Staged deployment governance
+
+The future service may progress only through the human-approved stage gates in [go-no-go-plan.md](go-no-go-plan.md). Technical readiness or green CI does not authorize private pilots, public exposure or payment collection.
