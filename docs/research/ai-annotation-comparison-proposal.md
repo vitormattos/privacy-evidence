@@ -62,7 +62,7 @@ The suggested text/JSON output is **not a drop-in input to `review:import`**. Th
 - LLM-generated annotations with a human operator (A0): [conversational-review-v0.1.md](prompts/conversational-review-v0.1.md).
 - Independent human decisions with a neutral AI interviewer (H0 prototype): [human-guided-conversational-review-v0.1.md](prompts/human-guided-conversational-review-v0.1.md).
 
-Both use the same **synthetic** fixture initially; do not combine H0/A0 results as though they have the same origin. Human role and model role must be logged explicitly. Study packet content, including preserved personal data, needs approval before being uploaded to outside tools.
+For minimal-friction group sharing, prefer the **one-paste versions** (which embed the exact same synthetic fixture): [A0: AI classifies](prompts/ai-one-paste-v0.1.txt) and [H0: human classifies](prompts/human-one-paste-v0.1.txt). Participants paste just one file into their chosen AI chat and answer the prompts; no additional attachment is required. Keep the canonical fixture and the distributed snapshot version aligned. Both use the same **synthetic** fixture initially; do not combine H0/A0 results as though they have the same origin. Human role and model role must be logged explicitly. Study packet content, including preserved personal data, needs approval before being uploaded to outside tools.
 
 ## Current status
 
