@@ -14,8 +14,12 @@
     "version": "3.3.0",
     "source": "https://code.europa.eu/EDPS/website-evidence-collector",
     "distribution": "https://code.europa.eu/EDPS/website-evidence-collector/-/releases/v3.3.0/downloads/website-evidence-collector.tgz",
-    "distributionSha256": null,
-    "nodeMajor": 20
+    "distributionSha256": "7d1ae15cdf103108cb669039bbedf155fa92d7f6a649eefede69e4243ecf01c7",
+    "nodeMajor": 20,
+    "freezeWorkflowRun": 37705289585,
+    "freezeArtifactId": 11518779076,
+    "freezeArtifactDigest": "sha256:0e454c952cb5d84e4fd18f456693731ddde39d409a558e24fd1f104eb761ecdc",
+    "freezeCommit": "435660ab4fb575eb1cf0e08ae6131b03e7ea785b"
   },
   "privacyEvidence": {
     "gitCommit": null,
