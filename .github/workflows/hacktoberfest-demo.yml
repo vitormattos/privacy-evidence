@@ -40,7 +40,7 @@ jobs:
             php bin/privacy-evidence experiment:hacktoberfest:demo "$ARTIFACT"
           } | tee hacktoberfest-demo-output/demo-output.txt
       - name: Upload demo evidence
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: hacktoberfest-demo-output
           path: hacktoberfest-demo-output/demo-output.txt
