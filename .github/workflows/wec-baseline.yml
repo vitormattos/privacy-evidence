@@ -86,7 +86,7 @@ jobs:
           echo "sample_sha256=$SAMPLE_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Publish freeze manifest
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: wec-baseline-v1-freeze-${{ github.run_id }}
           path: data/experiments/wec-baseline-v1/freeze-manifest.json
@@ -252,7 +252,7 @@ jobs:
 
       - name: Publish restricted execution state
         if: ${{ always() && inputs.phase == 'execute' }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: wec-baseline-v1-execution-${{ github.run_id }}
           path: data/experiments/wec-baseline-v1/
