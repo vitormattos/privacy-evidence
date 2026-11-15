@@ -41,6 +41,8 @@ Privacy Evidence treats software behavior as part of the research instrument. Th
 
 - [annotation-handbook.md](annotation-handbook.md) — reviewer decision semantics.
 - [gold-dataset.md](gold-dataset.md) — independent review, agreement, adjudication and evaluation workflow.
+- [conversational-review-pilot.md](conversational-review-pilot.md) — versioned one-paste synthetic H0 entrypoint, design rationale, reproducibility, acceptance gates and article-reporting boundaries.
+- [prompts/start-h0-v0.2.md](prompts/start-h0-v0.2.md) — short URL-based invitation to a conversational H0 rehearsal; [self-contained one-paste file](prompts/human-one-paste-v0.2.txt) works without AI browsing.
 
 Human annotation is an explicit gate. Automated agents may prepare packages and compute results, but they must not fabricate independent human labels.
 

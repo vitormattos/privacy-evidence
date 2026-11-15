@@ -6,6 +6,8 @@ Status: **human execution still required**.
 
 This document reduces facilitator ambiguity for the reviewer-instrument pilot defined in `reviewer-pilot-protocol.md`. It does not replace the required human participant.
 
+**Conversational alternative (not yet the official instrument):** see [conversational-review-pilot.md](conversational-review-pilot.md) for a short entrypoint and reproducible **synthetic** H0 one-paste rehearsal. Its output is not the archival #195 pilot and does not authorize uploading restricted source documents to outside models. The HTML protocol below remains in force until a human pilot and explicit methodological approval/versioning justify a change.
+
 ## Participant eligibility
 
 Use at least one actual human who:

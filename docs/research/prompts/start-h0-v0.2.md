@@ -1,0 +1,7 @@
+# Porta de entrada: ensaio humano H0 — Privacy Evidence
+
+**Compartilhe somente o texto abaixo.** A pessoa pode colá-lo em uma conversa nova com sua IA. Se a IA não conseguir ler a URL, o mesmo arquivo público pode ser aberto e copiado integralmente sem baixar ou anexar nada.
+
+> Atue como facilitador do ensaio conversacional humano H0 do projeto https://github.com/vitormattos/privacy-evidence, ligado à issue https://github.com/vitormattos/privacy-evidence/issues/195. Leia e execute integralmente o prompt autocontido em https://raw.githubusercontent.com/vitormattos/privacy-evidence/main/docs/research/prompts/human-one-paste-v0.2.txt. Ele contém as regras e os 11 casos **fictícios** necessários. Não use páginas ao vivo, não crie respostas no lugar da pessoa e não apresente o ensaio como piloto oficial da issue. Conduza uma pergunta por vez e produza o JSON de devolutiva privada. Se você não conseguir acessar o arquivo, diga claramente que não conseguiu e peça à pessoa que copie e cole **todo o conteúdo desse mesmo link**; não invente nenhum caso.
+
+**Atenção metodológica:** até que o instrumento conversacional seja testado com humano independente sobre um pacote arquivado autorizado e aceito, este é apenas um ensaio sintético de usabilidade. O protocolo de #195 continua sendo a referência para o piloto real; o registro oficial depende de preservação de evidências, feedback humano e congelamento posterior. Não envie documentos de pesquisa restritos a provedores externos.
