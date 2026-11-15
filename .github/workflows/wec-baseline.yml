@@ -37,6 +37,7 @@ jobs:
         with:
           php-version: '8.4'
           tools: composer:v2
+          extensions: sodium
           coverage: none
 
       - name: Freeze sample and WEC distribution identity
@@ -250,11 +251,33 @@ jobs:
           php scripts/research/normalize-wec-baseline.php \
             data/experiments/wec-baseline-v1 examples/poc/sites.csv 12 "$GITHUB_RUN_ID"
 
-      - name: Publish restricted execution state
+      # In a public GitHub repository, Actions artifacts are readable by repository
+      # readers. Never upload plaintext raw website research data.
+      - name: Encrypt restricted execution state before artifact upload
+        if: ${{ always() && inputs.phase == 'execute' }}
+        shell: bash
+        env:
+          WEC_BASELINE_ENCRYPTION_KEY: ${{ secrets.WEC_BASELINE_ENCRYPTION_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$WEC_BASELINE_ENCRYPTION_KEY" ]; then
+            echo 'WEC_BASELINE_ENCRYPTION_KEY is unavailable; refusing to upload unencrypted research data.' >&2
+            exit 1
+          fi
+          ARCHIVE="$RUNNER_TEMP/wec-baseline-v1-${GITHUB_RUN_ID}.tar.gz"
+          trap 'rm -f "$ARCHIVE"' EXIT
+          tar -C data/experiments -czf "$ARCHIVE" wec-baseline-v1
+          SEALED="$RUNNER_TEMP/wec-baseline-v1-${GITHUB_RUN_ID}.pewec"
+          php scripts/research/wec-baseline-seal.php encrypt "$ARCHIVE" "$SEALED"
+          sha256sum "$SEALED" | cut -d' ' -f1 > "$SEALED.sha256"
+
+      - name: Publish encrypted execution state
         if: ${{ always() && inputs.phase == 'execute' }}
         uses: actions/upload-artifact@v7
         with:
-          name: wec-baseline-v1-execution-${{ github.run_id }}
-          path: data/experiments/wec-baseline-v1/
+          name: wec-baseline-v1-encrypted-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/wec-baseline-v1-${{ github.run_id }}.pewec
+            ${{ runner.temp }}/wec-baseline-v1-${{ github.run_id }}.pewec.sha256
           if-no-files-found: error
           retention-days: 14
