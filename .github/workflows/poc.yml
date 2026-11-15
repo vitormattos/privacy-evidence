@@ -118,7 +118,7 @@ jobs:
           cp /tmp/privacy-evidence-run-id "$EXPORT_DIR/run-id.txt"
 
       - name: Publish PoC exports
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: privacy-evidence-poc-${{ steps.run.outputs.run_id }}
           path: |
@@ -128,7 +128,7 @@ jobs:
           retention-days: 14
 
       - name: Publish restricted PoC continuation state
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: privacy-evidence-poc-state-${{ steps.run.outputs.run_id }}
           path: |
