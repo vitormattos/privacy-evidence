@@ -86,6 +86,7 @@ analysis and reproducible reports
 Detailed material lives outside the README:
 
 - Research model and protocol: `docs/research/`
+  - [one-paste conversational H0 rehearsal (synthetic only)](docs/research/prompts/human-one-paste-v0.2.txt) and [short AI entrypoint](docs/research/prompts/start-h0-v0.2.md) — official independent-human pilot #195 remains pending
   - scientific contribution: `docs/research/research-contribution.md`
   - RQ/evidence traceability: `docs/research/research-model.md`
   - methodology: `docs/research/methodology.md`

@@ -64,6 +64,8 @@ The suggested text/JSON output is **not a drop-in input to `review:import`**. Th
 
 For minimal-friction group sharing, prefer the **one-paste versions** (which embed the exact same synthetic fixture): [A0: AI classifies](prompts/ai-one-paste-v0.1.txt) and [H0: human classifies](prompts/human-one-paste-v0.1.txt). Participants paste just one file into their chosen AI chat and answer the prompts; no additional attachment is required. Keep the canonical fixture and the distributed snapshot version aligned. Both use the same **synthetic** fixture initially; do not combine H0/A0 results as though they have the same origin. Human role and model role must be logged explicitly. Study packet content, including preserved personal data, needs approval before being uploaded to outside tools.
 
+The lower-friction H0 **v0.2.0** entrypoint is now recorded in [conversational-review-pilot.md](conversational-review-pilot.md), with [a short link-based launch prompt](prompts/start-h0-v0.2.md), [a self-contained synthetic one-paste fallback](prompts/human-one-paste-v0.2.txt) and a deterministic generator/test. This is an additional experimental H0 instrument, not proof of reduced reviewer workload or a change to the official #195 human gate. Earlier v0.1.0 prompts remain available for provenance.
+
 ## Current status
 
 **Prepared:** protocol proposal, synthetic non-sensitive fixture, model-agnostic prompt and group invitation. **Not performed:** any human pilot, real-archive A0/H0 run, comparison with a frozen human gold set, approval to disclose restricted materials, or statistical test of annotator substitution. **#195/#196 remain open.**
