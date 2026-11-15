@@ -96,7 +96,6 @@ final readonly class ReviewMaterial
                             $reason = 'empty_document';
                         }
                     }
-                    }
                 }
                 if (
                     $reason === null && in_array($case['evidenceType'] ?? null, [
