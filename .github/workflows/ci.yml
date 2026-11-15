@@ -141,3 +141,23 @@ jobs:
           name: reviewer-form-screenshots-${{ matrix.browser }}
           path: /tmp/reviewer-screenshots
           if-no-files-found: warn
+
+  wec-baseline-harness:
+    name: WEC baseline harness (synthetic)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - name: Verify WEC exit accounting and artifact hashes
+        run: bash tests/Scripts/wec-baseline-artifacts-test.sh
+      - name: Syntax-check WEC normalization script
+        run: php -l scripts/research/normalize-wec-baseline.php
+      - name: Syntax-check sealed artifact script
+        run: php -l scripts/research/wec-baseline-seal.php
+      - name: Test restricted artifact confidentiality and integrity
+        run: bash tests/Scripts/wec-baseline-seal-test.sh
+      - name: Verify frozen sample normalization without network
+        run: bash tests/Scripts/wec-baseline-normalize-test.sh
