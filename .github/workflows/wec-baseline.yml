@@ -211,21 +211,13 @@ jobs:
               set -e
               printf '%s\n' "$status" > "$target_dir/exit-code.txt"
               date --utc +%Y-%m-%dT%H:%M:%SZ > "$target_dir/finished-at.txt"
-              find "$target_dir" -type f -print0 | sort -z | xargs -0 sha256sum > "$target_dir/files.sha256"
+              bash scripts/research/wec-baseline-artifacts.sh hash "$target_dir"
             done
             finished="$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
             printf '%s\n' "$started" > "$OUT/wec/started-at.txt"
             printf '%s\n' "$finished" > "$OUT/wec/finished-at.txt"
 
-            success_count="$(find "$OUT/wec" -mindepth 2 -maxdepth 2 -name exit-code.txt -exec sh -c 'for f do [ "$(cat "$f")" = 0 ] && echo 1; done' sh {} + | wc -l)"
-            failure_count="$(find "$OUT/wec" -mindepth 2 -maxdepth 2 -name exit-code.txt -exec sh -c 'for f do [ "$(cat "$f")" != 0 ] && echo 1; done' sh {} + | wc -l)"
-            printf '%s\n' "$success_count" > "$OUT/wec/success-count.txt"
-            printf '%s\n' "$failure_count" > "$OUT/wec/failure-count.txt"
-
-            if [ "$success_count" -eq 0 ]; then
-              echo 'WEC produced zero successful target collections; treating execution as an infrastructure-invalid experiment.' >&2
-              exit 1
-            fi
+            bash scripts/research/wec-baseline-artifacts.sh count "$OUT/wec" 12
           }
 
           seed_hash="$(printf '%s' 'wec-baseline-v1' | sha256sum | cut -c1)"
@@ -249,6 +241,14 @@ jobs:
 
           No failing target is replaced. WEC non-zero exits are preserved per target and do not abort the remaining declared targets.
           EOF
+
+      - name: Normalize tool-native outputs into restricted comparison dataset
+        if: inputs.phase == 'execute'
+        shell: bash
+        run: |
+          set -euo pipefail
+          php scripts/research/normalize-wec-baseline.php \
+            data/experiments/wec-baseline-v1 examples/poc/sites.csv 12 "$GITHUB_RUN_ID"
 
       - name: Publish restricted execution state
         if: ${{ always() && inputs.phase == 'execute' }}
