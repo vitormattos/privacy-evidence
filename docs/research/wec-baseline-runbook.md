@@ -82,3 +82,40 @@ The 2026-11-15 failed run remains a diagnostic artifact, not an accepted experim
 A new `phase=execute` on an identified current-main commit, inspection of the
 restricted normalized output, and explicit acceptance/report review are required
 before closing #191.
+
+
+## Artifact confidentiality: public GitHub repository
+
+GitHub Actions artifacts in a **public** repository can be downloaded by users
+with repository read access. Merely naming an artifact "restricted" does not
+protect raw cookies, storage, requests, page captures or unrelated personal data.
+That classification error affected historical artifacts, including run
+`43721090176` / artifact `14164214102`; access and retention of historical
+raw results require a separate security/privacy review.
+
+The controlled execute job therefore **must** have the repository Actions secret
+`WEC_BASELINE_ENCRYPTION_KEY`, a randomly generated 32-byte key encoded as 64
+hexadecimal characters. Preserve its only operator-controlled backup in a
+restricted directory outside any Git worktree and never print or commit the key.
+Only the sealed, authenticated artifact
+`wec-baseline-v1-encrypted-RUNID` is uploaded to the public Actions artifact
+storage; the original archive remains only in runner-local transient storage and
+is removed after sealing. The workflow **fails closed** if the secret or sodium
+extension is missing. Its two upload files are `.pewec` authenticated
+XChaCha20-Poly1305 secretstream ciphertext and its SHA-256 digest. The digest
+verifies transport integrity; the authenticated stream detects any modification
+or truncation during decryption.
+
+Authorized operators may download and decrypt offline using the same pinned
+`scripts/research/wec-baseline-seal.php` script, a matching key supplied through
+the `WEC_BASELINE_ENCRYPTION_KEY` environment variable (never command-line
+arguments), and `php ... decrypt ENCRYPTED.pewec RESTRICTED.tar.gz`.
+Verify the published ciphertext digest first. Extract the tarball only to a
+permission-restricted location; exclude the raw bundle from the public repository.
+
+This is **packaging/security hardening** and does not alter protocol 0.1.0,
+the sample, its acquisition conditions, detector semantics or any metric.
+Public-facing result tables must still receive a separate data-policy
+publication review before any release. If the key is lost, the raw experiment
+cannot be recovered from the public ciphertext; secure operator key custody is
+an explicit operational gate.
