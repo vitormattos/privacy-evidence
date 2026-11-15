@@ -86,8 +86,11 @@ final readonly class ReviewMaterial
                         $material[$hash] = $this->text($body, $document['mediaType'] === 'text/plain');
                     }
                 }
-                if ($reason === null && trim($material[$hash]['text']) === '') {
-                    $reason = 'empty_document';
+                if ($reason === null) {
+                    $reviewDocument = $material[$hash] ?? null;
+                    if ($reviewDocument === null || trim($reviewDocument['text']) === '') {
+                        $reason = 'empty_document';
+                    }
                 }
                 if (
                     $reason === null && in_array($case['evidenceType'] ?? null, [
