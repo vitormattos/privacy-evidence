@@ -87,9 +87,14 @@ final readonly class ReviewMaterial
                     }
                 }
                 if ($reason === null) {
-                    $reviewDocument = $material[$hash] ?? null;
-                    if ($reviewDocument === null || trim($reviewDocument['text']) === '') {
-                        $reason = 'empty_document';
+                    if (!array_key_exists($hash, $material)) {
+                        $reason = 'missing_artifact';
+                    } else {
+                        /** @var array{title: string, text: string} $reviewDocument */
+                        $reviewDocument = $material[$hash];
+                        if (trim($reviewDocument['text']) === '') {
+                            $reason = 'empty_document';
+                        }
                     }
                 }
                 if (
