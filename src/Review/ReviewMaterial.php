@@ -87,8 +87,9 @@ final readonly class ReviewMaterial
                     }
                 }
                 if ($reason === null) {
-                    $reviewDocument = $material[$hash] ?? null;
-                    if ($reviewDocument === null || trim($reviewDocument['text']) === '') {
+                    if (!array_key_exists($hash, $material)) {
+                        $reason = 'missing_artifact';
+                    } elseif (trim($material[$hash]['text']) === '') {
                         $reason = 'empty_document';
                     }
                 }
