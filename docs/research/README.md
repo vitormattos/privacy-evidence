@@ -19,6 +19,9 @@ Privacy Evidence treats software behavior as part of the research instrument. Th
 5. **Empirical-standards checklist** — [standards-compliance.md](standards-compliance.md)  
    Evidence-backed ACM SIGSOFT Empirical Standards readiness and remaining gaps.
 
+6. **UTFPR Tarefa 1 methodological audit** — [utfpr-task1-methodological-audit.md](utfpr-task1-methodological-audit.md)  
+   Six-method syllabus crosswalk, implemented-versus-executed evidence, RQ/issue/artifact traceability, rival explanations and manuscript handoff (supplemental; does not amend frozen methods).
+
 ## Measurement and analysis
 
 - [variables.md](variables.md) — variable definitions and measurement semantics.
