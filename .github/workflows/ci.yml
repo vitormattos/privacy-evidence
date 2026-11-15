@@ -153,5 +153,7 @@ jobs:
           coverage: none
       - name: Verify WEC exit accounting and artifact hashes
         run: bash tests/Scripts/wec-baseline-artifacts-test.sh
+      - name: Syntax-check WEC normalization script
+        run: php -l scripts/research/normalize-wec-baseline.php
       - name: Verify frozen sample normalization without network
-        run: php tests/Scripts/wec-baseline-normalize-test.php
+        run: bash tests/Scripts/wec-baseline-normalize-test.sh
