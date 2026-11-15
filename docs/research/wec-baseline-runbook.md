@@ -33,3 +33,52 @@ Do not reinterpret the invalid 2026-10-08 artifact as successful collection. Re-
 Do not interpret results directly from raw logs. After execution, inspect WEC 3.3.0's actual output schema, build a normalization step that preserves tool-native semantics, keep unknown/non-equivalent fields null rather than false, create the one-row-per-target/tool comparison table, publish only non-restricted normalized/aggregate results, and update #191 with the exact workflow run, hashes, deviations and conclusions.
 
 Raw website artifacts remain outside the public repository under the data-policy boundary.
+
+## 2026-11-15 execution-accounting diagnosis
+
+Actions run [43721090176](https://github.com/vitormattos/privacy-evidence/actions/runs/43721090176)
+on PE commit `36985234008b2da5e390dff3cfccbaab314e3e43` reached both tool blocks.
+The restricted artifact (ID `14164214102`) contains all 12 WEC per-target
+`exit-code.txt` files, each with **0**, and 12 parseable native
+`inspection.json` files. Privacy Evidence also completed its ResearchRun and export.
+
+The workflow failed **after** WEC collection because the shell's failure-count
+`find -exec sh -c` command returned 1 when every exit code was zero.
+With `set -o pipefail`, the assignment itself caused the step to exit before
+writing summary counts or deviations. This is an orchestration accounting defect,
+not a WEC negative scientific finding. A second provenance defect allowed
+`files.sha256` to hash itself while being written; the old per-target manifests
+must not be presented as verified artifact checksums.
+
+The repair uses a dedicated deterministic account/hash script, tests all-pass,
+mixed, all-fail, missing and malformed exit cases, and excludes the hash manifest
+from its own verified input set. It also normalizes both tool-native outputs **only
+after** complete execution, requiring all 12 declared target identities to reconcile.
+
+The restricted normalized comparison package is written under
+`data/experiments/wec-baseline-v1/normalized/` with:
+`comparison.json`, `comparison.csv`, `summary.json`, and `report.md`.
+These contain declared URLs and artifact references and are **not** automatically
+approved for public release. Only separately reviewed non-restricted aggregates
+may be published in the repository.
+
+Operational non-equivalence must remain visible: PE's measured/partially measured/
+not measurable states and successful document counts are not the same measurement
+as WEC's zero process exit with parseable browser inspection. A WEC HTTP error
+in native diagnostics can coexist with a zero exit. Cookie/third-party detector
+signals and browser-jar/request fields are not forced into a false equivalence.
+The existing harness does not provide PE per-target wall times; the normalizer
+records that limitation instead of inventing them.
+
+**Security boundary:** the pre-existing GitHub-hosted WEC runner uses Chromium
+`--no-sandbox`. This remediation does not weaken TLS validation or browser
+configuration further, but the browser sandbox is not enabled in that setup.
+Do not claim sandbox-level isolation for those WEC processes or use this workflow
+for authenticated/private targets. The next security hardening should evaluate
+a sandbox-capable, isolated runner before any expanded or less-trusted sample.
+This is distinct from research measurement validity and must be reported openly.
+
+The 2026-11-15 failed run remains a diagnostic artifact, not an accepted experiment.
+A new `phase=execute` on an identified current-main commit, inspection of the
+restricted normalized output, and explicit acceptance/report review are required
+before closing #191.
